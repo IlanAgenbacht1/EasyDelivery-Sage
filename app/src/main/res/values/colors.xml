@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#6200EE</color>
+    <color name="colorPrimaryDark">#3700B3</color>
+    <color name="colorAccent">#03DAC5</color>
+    <color name="colorgray">#D9D9D9</color>
+    <color name="colorgray1">#50D9D9D9</color>
+
+    <color name="black">#000000</color>
+    <color name = "gold">#FFD700</color>
+
+    <color name="theme">#1D252C</color>
+    <color name="button_select">#1D252D</color>#D9D8D6
+    <color name="button">#D9D8D6</color>
+    <color name="darkgray">#1D252C</color>
+    <color name="mtrl_textinput_default_box_stroke_color">#00A6CE</color>
+</resources>

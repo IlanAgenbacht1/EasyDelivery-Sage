@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:background="@color/white"
+    android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+          android:id="@+id/iv_logo"
+          android:layout_alignParentTop="true"
+          android:layout_marginTop="5dp"
+          android:layout_width="wrap_content"
+          android:layout_height="80dp"
+          android:layout_centerInParent="true"
+          android:src="@drawable/main_logo"/>
+
+    <TextView
+        android:layout_centerInParent="true"
+        android:layout_marginTop="12dp"
+        android:id="@+id/tv_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp"
+        android:text="Delivery Details Submitted Successfully"
+        android:gravity="center"
+        android:textColor="@color/theme"
+        android:textSize="18sp"
+        android:fontFamily="@font/roboto_medium"
+        android:layout_centerHorizontal="true"/>
+
+
+        <LinearLayout
+          android:layout_below="@id/tv_1"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal"
+          android:layout_marginTop="10dp"
+          android:layout_centerInParent="true"
+          >
+
+            <Button
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:id="@+id/save"
+              android:backgroundTint="@color/theme"
+              android:layout_centerHorizontal="true"
+              android:layout_marginRight="10dp"
+              android:textColor="@color/white"
+              android:text="new"/>
+
+
+            <Button
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:id="@+id/exit"
+              android:textColor="@color/white"
+              android:layout_centerHorizontal="true"
+              android:backgroundTint="@color/darkgray"
+
+              android:text="exit"/>
+
+        </LinearLayout>
+
+
+
+
+    </RelativeLayout>
+
+</RelativeLayout>

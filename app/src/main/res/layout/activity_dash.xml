@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout
+xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:app="http://schemas.android.com/apk/res-auto"
+xmlns:tools="http://schemas.android.com/tools"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:descendantFocusability="beforeDescendants"
+android:focusableInTouchMode="true"
+tools:context=".Activity.Dash">
+
+
+    <RelativeLayout
+    android:id="@+id/rl_main"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_below="@+id/iv_logo"
+    android:layout_marginTop="20dp">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/ll_docu"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:textColorHint="@color/theme"
+        android:layout_height="wrap_content"
+        app:errorEnabled="true">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_docu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="DOCUMENT NUMBER"
+            android:inputType="text"
+            android:paddingHorizontal="10dp"
+            android:visibility="gone"
+            app:fontFamily="@font/roboto_light" />
+
+        <Spinner
+            android:id="@+id/spinnerDocument"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_weight="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+
+
+<!--    <com.google.android.material.textfield.TextInputLayout-->
+<!--        android:id="@+id/ll_parcel"-->
+<!--        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_marginLeft="10dp"-->
+<!--        android:layout_marginRight="10dp"-->
+<!--        android:layout_height="60dp"-->
+<!--        android:layout_below="@id/ll_docu"-->
+<!--        android:layout_marginTop="5dp"-->
+<!--        app:errorEnabled="true">-->
+
+<!--        <com.google.android.material.textfield.TextInputEditText-->
+<!--            android:id="@+id/et_parcel"-->
+<!--            android:paddingHorizontal="10dp"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:inputType="number"-->
+<!--            android:hint="Scan or Enter Parcel No" />-->
+
+
+
+
+<!--    </com.google.android.material.textfield.TextInputLayout>-->
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/ll_docu"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="5dp"
+      >
+
+
+        <Button
+            android:id="@+id/buttonReset"
+            android:layout_width="85dp"
+            android:layout_height="60dp"
+            android:layout_alignParentTop="false"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="false"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginRight="8dp"
+            android:layout_marginBottom="10dp"
+            android:text="Reset" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/ll_parcel_no"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="250dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_height="60dp"
+            android:layout_centerVertical="true"
+            android:textColorHint="@color/theme"
+            app:errorEnabled="true">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_parcel_no"
+                android:cursorVisible="false"
+                android:focusable="false"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="NUMBER OF PARCELS"
+                android:inputType="number"
+                android:paddingHorizontal="10dp"
+                android:textColor="@color/black"
+                android:visibility="visible"
+                app:fontFamily="@font/roboto_light" />
+
+
+
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_minus"
+            style="@style/Widget.MaterialComponents.Button.Icon"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="23dp"
+            android:layout_toLeftOf="@id/btn_add"
+            android:gravity="center"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:visibility="gone"
+            app:icon="@drawable/ic_remove"
+            app:iconGravity="textEnd"
+            app:iconPadding="5dp"
+            app:iconSize="24dp"
+            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.MyApp.Button.Rounded" />
+
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_add"
+            style="@style/Widget.MaterialComponents.Button.Icon"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:layout_marginTop="15dp"
+            android:layout_marginRight="5dp"
+            android:gravity="center"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:visibility="gone"
+            app:icon="@drawable/ic_add"
+            app:iconGravity="textEnd"
+            app:iconPadding="5dp"
+            app:iconSize="24dp"
+            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.MyApp.Button.Rounded" />
+
+
+
+
+
+
+
+
+
+
+
+    </RelativeLayout>
+
+
+</RelativeLayout>
+
+
+    <RelativeLayout
+        android:id="@+id/rl_rv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/ll_bottom"
+        android:layout_below="@id/rl_main"
+        android:layout_marginLeft="10dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginBottom="1dp"
+        android:visibility="visible">
+
+
+        <RelativeLayout
+            android:id="@+id/rl_parcelnumber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:layout_marginRight="5dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/ll_number"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                android:textColorHint="@color/theme"
+                android:visibility="visible"
+                app:errorEnabled="true">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_number"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textColor="@color/black"
+                    android:textColorHint="@color/theme"
+                    android:visibility="visible"
+                    app:fontFamily="@font/roboto_light" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/btn_next"
+                android:layout_width="80dp"
+                android:layout_height="65dp"
+                android:layout_alignParentRight="true"
+                android:layout_marginLeft="10dp"
+                android:backgroundTint="@color/theme"
+                android:text="Next"
+                android:textColor="#ffffff"
+                android:textSize="14sp"
+                android:visibility="visible"
+                app:fontFamily="@font/roboto_medium" />
+
+        </RelativeLayout>
+
+
+        <RelativeLayout
+            android:id="@+id/rl_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/rl_parcelnumber"
+            android:layout_marginTop="5dp"
+            android:visibility="visible">
+
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" Parcel Details"
+                android:textColor="#000000"
+                android:textSize="16sp"
+                app:fontFamily="@font/roboto_medium" />
+
+
+        </RelativeLayout>
+
+
+        <TextView
+            android:id="@+id/tv_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="15dp"
+            android:layout_marginTop="5dp"
+            android:text="Parcels"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/ll_1"
+            android:layout_width="match_parent"
+            android:layout_height="1.5dp"
+            android:layout_below="@id/tv_1"
+            android:layout_marginTop="1dp"
+            android:background="@color/cardview_dark_background"
+            android:orientation="horizontal"
+            android:visibility="visible">
+
+
+        </LinearLayout>
+
+
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_below="@id/rl_1"
+            android:layout_marginTop="5dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="3dp"
+                android:paddingVertical="3dp" />
+        </RelativeLayout>
+    </RelativeLayout>
+
+<LinearLayout
+    android:id="@+id/ll_bottom"
+    android:layout_alignParentBottom="true"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:layout_marginBottom="3dp"
+    android:gravity="center_vertical"
+    android:layout_marginLeft="10dp"
+    android:layout_marginRight="10dp">
+
+
+    <RelativeLayout
+        android:layout_width="132dp"
+        android:layout_weight="1"
+        android:layout_gravity="center_vertical"
+        android:layout_height="60dp">
+
+
+
+
+        <Button
+          android:id="@+id/btn_sign"
+          android:layout_width="110dp"
+          android:layout_height="60dp"
+          android:layout_centerHorizontal="true"
+          android:backgroundTint="@color/button"
+          android:textColor="#1D252C"
+          app:fontFamily="@font/roboto_medium"
+          android:textSize="12sp"
+          android:text="Capture Signature"/>
+
+        <RelativeLayout
+            android:id="@+id/rl_tick1"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:background="@drawable/circular"
+            android:elevation="2dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_centerInParent="true"
+                android:src="@drawable/ic_check" />
+        </RelativeLayout>
+
+
+
+    </RelativeLayout>
+
+
+    <RelativeLayout
+        android:layout_width="132dp"
+        android:layout_weight="1"
+        android:layout_gravity="center_vertical"
+        android:layout_height="60dp">
+
+
+
+<!--        <com.google.android.material.button.MaterialButton-->
+<!--            android:id="@+id/btn_pic"-->
+<!--            android:layout_marginLeft="7dp"-->
+<!--            android:layout_marginRight="7dp"-->
+<!--            android:layout_width="110dp"-->
+<!--            android:textSize="9sp"-->
+<!--            android:gravity="center"-->
+<!--          android:textColor="@android:color/white"-->
+<!--          android:text="Capture Photo"-->
+<!--          android:backgroundTint="@color/button"-->
+<!--          app:fontFamily="@font/roboto_light"-->
+<!--            android:layout_height="60dp"/>-->
+
+
+        <Button
+          android:id="@+id/btn_pic"
+          android:layout_width="110dp"
+          android:layout_height="60dp"
+          android:textSize="12sp"
+          android:layout_centerHorizontal="true"
+          android:backgroundTint="@color/button"
+          android:textColor="#1D252C"
+          app:fontFamily="@font/roboto_medium"
+          android:text="Capture Photo"/>
+
+        <RelativeLayout
+          android:id="@+id/rl_tick2"
+          android:layout_width="25dp"
+          android:layout_height="25dp"
+          android:background="@drawable/circular"
+          android:visibility="gone"
+          android:elevation="2dp"
+          >
+            <ImageView
+              android:layout_width="12dp"
+              android:layout_height="12dp"
+              android:layout_centerInParent="true"
+              android:src="@drawable/ic_check"/>
+        </RelativeLayout>
+
+    </RelativeLayout>
+
+
+
+    <RelativeLayout
+        android:layout_width="132dp"
+        android:layout_weight="1"
+        android:layout_gravity="center_vertical"
+        android:layout_height="60dp">
+
+
+<!--        <com.google.android.material.button.MaterialButton-->
+<!--            android:id="@+id/btn_delivery"-->
+<!--            android:layout_marginLeft="7dp"-->
+<!--            android:layout_marginRight="7dp"-->
+<!--            android:layout_width="110dp"-->
+<!--            android:textSize="9sp"-->
+<!--            android:gravity="center"-->
+<!--            android:backgroundTint="@color/theme"-->
+<!--          android:textColor="@android:color/white"-->
+<!--          android:text="Complete Delivery"-->
+<!--            app:fontFamily="@font/roboto_light"-->
+<!--            android:layout_height="60dp"/>-->
+
+
+
+        <Button
+          android:id="@+id/btn_delivery"
+          android:layout_width="110dp"
+          android:layout_height="60dp"
+          android:layout_centerHorizontal="true"
+          android:backgroundTint="@color/button"
+          android:textColor="#1D252C"
+          app:fontFamily="@font/roboto_medium"
+          android:textSize="12sp"
+          android:text="Complete Delivery"/>
+
+
+
+    </RelativeLayout>
+
+
+
+</LinearLayout>
+
+</RelativeLayout>
