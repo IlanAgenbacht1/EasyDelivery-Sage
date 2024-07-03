@@ -1,0 +1,8 @@
+- Record all activity, especially errors.
+
+- Discrepancy activity that can be used to track and manage any discrepancies. Driver can select an issue from a list of common discrepancies with minimal or no input needed. 
+  Capture an image depending on the issue. Can then enable a validation override.
+
+- Settings screen for certain variables like location validation distance, offline only mode etc. (Perhaps these are hardcoded per customer?)
+
+- Scanning barcode with camera when capturing parcels.
