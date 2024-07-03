@@ -6,16 +6,16 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:backgroundTint="@color/darkgray"
-    android:background="@color/darkgray"
+    android:backgroundTint="@color/theme"
+    android:background="@color/theme"
     android:gravity="center_horizontal"
     tools:context=".Activity.Splash">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:backgroundTint="@color/darkgray"
-        android:background="@color/darkgray">
+        android:backgroundTint="@color/theme"
+        android:background="@color/theme">
 
         <ImageView
             android:id="@+id/imageView2"
@@ -25,7 +25,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@drawable/horizontal_logo"
             tools:layout_editor_absoluteX="0dp"
-            android:backgroundTint="@color/darkgray"
-            android:background="@color/darkgray"/>
+            android:backgroundTint="@color/theme"
+            android:background="@color/theme"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </RelativeLayout>
