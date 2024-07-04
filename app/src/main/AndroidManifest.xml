@@ -26,6 +26,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.NoActionBar">
         <activity
+            android:name="com.clone.DeliveryApp.Activity.DashHeader"
+            android:theme="@style/Material" />
+        <activity
             android:name="com.clone.DeliveryApp.Activity.ZoomView"
             android:theme="@style/Theme.AppCompat.customPopUp" />
         <activity

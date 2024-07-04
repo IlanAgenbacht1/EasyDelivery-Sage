@@ -100,9 +100,6 @@ public class Dash extends AppCompatActivity {
 
     private static final String TAG = "Dash";
 
-    ArrayList<String> parcelId;
-    ArrayList<String> docuId;
-
     Bitmap bitmap;
 
     int last_entered=0;
@@ -117,23 +114,17 @@ public class Dash extends AppCompatActivity {
     private Button btn_next;
     private int imageType = 0;
     private Uri ImagefileUri;
-    File TempImageFile;
     String currentPicturePath;
     public int img_isthere = 0;
     public static final int REQUEST_CAPTURE = 7;
-    private static final int Pick_IMAGE = 3;
     File file;
     Uri fileUri;
     String img_URI;
-
-    int num;
 
     private boolean isSign=false,isPic=false;
 
     int arrylist_length=0;
     int current_position=0;
-    private ImageView ivPic, ivCheck, ivCross;
-    String imageCamera, imageGallery;
     private Button btnAdd,btnRemove;
 
     private RelativeLayout rlTick1,rlTick2;
@@ -145,9 +136,6 @@ public class Dash extends AppCompatActivity {
     int no_of_parcels=0;
 
     DeliveryDb database;
-
-    ItemParcel itemParcel;
-
     Schedule schedule;
 
     Button btnFinish;
@@ -213,9 +201,11 @@ public class Dash extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
 
         if (recyclerView.getChildCount() == listItems.size()){
+
             linearLayoutManager.setStackFromEnd(true);
         }
         else{
+
             linearLayoutManager.setStackFromEnd(false);
         }
 

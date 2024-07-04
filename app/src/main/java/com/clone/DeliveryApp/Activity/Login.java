@@ -90,7 +90,7 @@ public class Login extends AppCompatActivity {
 
                             ScheduleHelper.getSchedule(context, GetCompany(), Login.this);
 
-                            startActivity(new Intent(Login.this, Dash.class));
+                            startActivity(new Intent(Login.this, DashHeader.class));
                             finish();
                         }
                     });
