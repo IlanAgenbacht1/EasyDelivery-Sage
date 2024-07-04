@@ -35,14 +35,15 @@ tools:context=".Activity.Dash">
             android:hint="DOCUMENT NUMBER"
             android:inputType="text"
             android:paddingHorizontal="10dp"
-            android:visibility="gone"
+            android:visibility="visible"
             app:fontFamily="@font/roboto_light" />
 
         <Spinner
             android:id="@+id/spinnerDocument"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:visibility="gone" />
     </com.google.android.material.textfield.TextInputLayout>
 
 
@@ -107,10 +108,10 @@ tools:context=".Activity.Dash">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_parcel_no"
+                android:layout_width="86dp"
+                android:layout_height="wrap_content"
                 android:cursorVisible="false"
                 android:focusable="false"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:hint="NUMBER OF PARCELS"
                 android:inputType="number"
                 android:paddingHorizontal="10dp"

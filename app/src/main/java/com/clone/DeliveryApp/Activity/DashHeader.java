@@ -65,7 +65,6 @@ public class DashHeader extends AppCompatActivity {
                 AppConstant.DOCUMENT = schedule.getDocument();
 
                 startActivity(new Intent(DashHeader.this, Dash.class));
-                finish();
             }
         });
 

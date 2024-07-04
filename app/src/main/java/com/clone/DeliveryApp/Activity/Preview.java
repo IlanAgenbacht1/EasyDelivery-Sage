@@ -323,8 +323,9 @@ public class Preview extends AppCompatActivity {
 
                     dialog.dismiss();
 
-                    startActivity(new Intent(Preview.this,Dash.class));
-                    finish();
+                    startActivity(new Intent(Preview.this, DashHeader.class));
+
+                    finishAffinity();
                 }
             });
 

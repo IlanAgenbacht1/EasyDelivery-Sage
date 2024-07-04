@@ -616,11 +616,7 @@ public class Dash extends AppCompatActivity {
                 listItems.clear();
                 adapter.notifyDataSetChanged();
 
-                etDocu.setText(spinnerDoc.getSelectedItem().toString());
 
-                setScheduleData(spinnerDoc.getSelectedItem().toString());
-
-                etNo.setText(String.valueOf(schedule.getNumberOfParcels()));
 
                 enter_num.setEnabled(true);
                 enter_num.requestFocus();
@@ -656,7 +652,7 @@ public class Dash extends AppCompatActivity {
 
     public void getAndDisplayData() {
 
-        spinnerAdapter.clear();
+        /*spinnerAdapter.clear();
 
         for (String document : AppConstant.documentList) {
 
@@ -665,7 +661,15 @@ public class Dash extends AppCompatActivity {
                 spinnerAdapter.add(document);
                 spinnerAdapter.notifyDataSetChanged();
             }
-        }
+        }*/
+
+        etDocu.setText(AppConstant.DOCUMENT);
+        etDocu.setFocusable(false);
+        etDocu.setCursorVisible(false);
+
+        setScheduleData(AppConstant.DOCUMENT);
+
+        etNo.setText(String.valueOf(schedule.getNumberOfParcels()));
     }
 
 
@@ -1163,6 +1167,13 @@ public class Dash extends AppCompatActivity {
                 signFile.delete();
             }
         }
+    }
+
+    public void onBackPressed() {
+
+        super.onBackPressed();
+
+        finish();
     }
 
     @Override
