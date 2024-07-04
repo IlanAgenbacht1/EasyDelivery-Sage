@@ -8,8 +8,6 @@ UI
 
 
 FUNCTIONALITY
-- Handle running in background/app minimised better. Should restore as is if app is minimised.
-
 - Exporting data.
 
 - Capturing of data when completely offline. IE no preloaded schedule.
