@@ -3,9 +3,6 @@ UI
 
 - Reduce amount of input required
 
-- Seperate dash activity into 2 seperate activities in a header and details format. 
-  Header activity displays document, customer, and address. Detail activity displays number of parcels and captures data.
-
 
 FUNCTIONALITY
 - Exporting data.
