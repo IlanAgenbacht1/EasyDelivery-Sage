@@ -323,6 +323,8 @@ public class Preview extends AppCompatActivity {
 
                     dialog.dismiss();
 
+                    AppConstant.DOCUMENT = null;
+
                     startActivity(new Intent(Preview.this, DashHeader.class));
 
                     finishAffinity();

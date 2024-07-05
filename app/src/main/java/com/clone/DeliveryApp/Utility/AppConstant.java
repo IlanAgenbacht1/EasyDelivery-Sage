@@ -19,13 +19,12 @@ public class AppConstant {
     public static boolean parcelsValid;
 
     public static ArrayList<Location> gpsList = new ArrayList<>();
-
     public static ArrayList<String> documentList = new ArrayList<>();
-
     public static ArrayList<String> adapterParcelList = new ArrayList<>();
-
     public static ArrayList<ItemParcel> parcelList=new ArrayList<>();
-
     public static ArrayList<ItemParcel> syncList=new ArrayList<>();
+
+    public static String SAVED_DOCUMENT;
+    public static ArrayList<ItemParcel> SAVED_PARCELS = new ArrayList<>();
 
 }

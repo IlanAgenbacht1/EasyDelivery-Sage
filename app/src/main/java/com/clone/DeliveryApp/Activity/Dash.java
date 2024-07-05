@@ -140,10 +140,14 @@ public class Dash extends AppCompatActivity {
 
     Button btnFinish;
 
+    public static Activity dashActivity;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dash);
+
+        dashActivity = this;
 
         btn_next = findViewById(R.id.btn_next);
 
@@ -401,7 +405,6 @@ public class Dash extends AppCompatActivity {
             }
         });
 
-
         btnRemove.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -458,7 +461,6 @@ public class Dash extends AppCompatActivity {
             }
         });
 
-
         btnSign.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -477,7 +479,6 @@ public class Dash extends AppCompatActivity {
                   }
             }
         });
-
 
         btnPic.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -515,7 +516,6 @@ public class Dash extends AppCompatActivity {
                 }
             }
         });
-
 
         btnSave.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -569,7 +569,6 @@ public class Dash extends AppCompatActivity {
             }
         });
 
-
         btnReset.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -582,9 +581,15 @@ public class Dash extends AppCompatActivity {
                 listItems.clear();
                 adapter.notifyDataSetChanged();
 
-                etDocu.setText(spinnerDoc.getSelectedItem().toString());
+                if (AppConstant.DOCUMENT.equals(AppConstant.SAVED_DOCUMENT)) {
 
-                setScheduleData(spinnerDoc.getSelectedItem().toString());
+                    AppConstant.SAVED_DOCUMENT = null;
+                    AppConstant.SAVED_PARCELS.clear();
+                }
+
+                etDocu.setText(AppConstant.DOCUMENT);
+
+                setScheduleData(AppConstant.DOCUMENT);
 
                 etNo.setText(String.valueOf(schedule.getNumberOfParcels()));
 
@@ -604,7 +609,6 @@ public class Dash extends AppCompatActivity {
                 enter_num.requestFocus();
             }
         });
-
 
         spinnerDoc.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -652,24 +656,35 @@ public class Dash extends AppCompatActivity {
 
     public void getAndDisplayData() {
 
-        /*spinnerAdapter.clear();
+        if (AppConstant.SAVED_DOCUMENT != null && AppConstant.SAVED_DOCUMENT.equals(AppConstant.DOCUMENT)) {
 
-        for (String document : AppConstant.documentList) {
+            etDocu.setText(AppConstant.SAVED_DOCUMENT);
+            etDocu.setFocusable(false);
+            etDocu.setCursorVisible(false);
 
-            if (ScheduleHelper.documentExists(database, document, true)) {
+            setScheduleData(AppConstant.SAVED_DOCUMENT);
 
-                spinnerAdapter.add(document);
-                spinnerAdapter.notifyDataSetChanged();
+            etNo.setText(String.valueOf(schedule.getNumberOfParcels()));
+
+            listItems.clear();
+
+            for (int i = 0; i < AppConstant.SAVED_PARCELS.size(); i++) {
+
+                listItems.add(AppConstant.SAVED_PARCELS.get(i));
             }
-        }*/
 
-        etDocu.setText(AppConstant.DOCUMENT);
-        etDocu.setFocusable(false);
-        etDocu.setCursorVisible(false);
+            adapter.notifyDataSetChanged();
+        }
+        else {
 
-        setScheduleData(AppConstant.DOCUMENT);
+            etDocu.setText(AppConstant.DOCUMENT);
+            etDocu.setFocusable(false);
+            etDocu.setCursorVisible(false);
 
-        etNo.setText(String.valueOf(schedule.getNumberOfParcels()));
+            setScheduleData(AppConstant.DOCUMENT);
+
+            etNo.setText(String.valueOf(schedule.getNumberOfParcels()));
+        }
     }
 
 
@@ -681,8 +696,6 @@ public class Dash extends AppCompatActivity {
         }
 
         schedule = database.getScheduleData(document);
-
-        AppConstant.DOCUMENT = document;
     }
 
 
@@ -1148,6 +1161,7 @@ public class Dash extends AppCompatActivity {
     }
 
     public void deleteImageFiles() {
+
         if (currentPicturePath != null) {
 
             File pictureFile = new File(currentPicturePath);
@@ -1169,16 +1183,40 @@ public class Dash extends AppCompatActivity {
         }
     }
 
+    @Override
     public void onBackPressed() {
-
         super.onBackPressed();
 
-        finish();
+        deleteImageFiles();
+
+        String parcelNumber = listItems.get(0).getNumber();
+
+        if (parcelNumber != null) {
+
+            AppConstant.SAVED_DOCUMENT = AppConstant.DOCUMENT;
+            AppConstant.SAVED_PARCELS = listItems;
+        }
+
+        startActivity(new Intent(this, DashHeader.class));
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        Log.i("Debug", "onDestroy Called");
+    }
+
+    protected void onResume() {
+        super.onResume();
+
+        Log.i("Debug", "onResume Called");
+    }
+
+    protected void onPause() {
+        super.onPause();
+
+        Log.i("Debug", "onPause Called");
 
         database.close();
     }
