@@ -164,7 +164,6 @@ public class Dash extends AppCompatActivity {
         enter_num = findViewById(R.id.et_number);
         ll_number= findViewById(R.id.ll_number);
 
-
         btnAdd = findViewById(R.id.btn_add);
         btnRemove = findViewById(R.id.btn_minus);
         btnReset = findViewById(R.id.buttonReset);
@@ -302,7 +301,6 @@ public class Dash extends AppCompatActivity {
             }
         });
 
-
         btn_next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -367,7 +365,6 @@ public class Dash extends AppCompatActivity {
                 }
             }
         });
-
 
         btnAdd.setOnClickListener(new View.OnClickListener() {
             @Override
