@@ -1,10 +1,9 @@
 UI
-- Cleaner, clearer, and simple feedback on everything.
+- Reduce amount of input required.
 
-- Reduce amount of input required
+- Add more clarity in dash header. Open/Saved document etc.
 
-- Seperate dash activity into 2 seperate activities in a header and details format. 
-  Header activity displays document, customer, and address. Detail activity displays number of parcels and captures data.
+- Redo dash layout.
 
 
 FUNCTIONALITY
