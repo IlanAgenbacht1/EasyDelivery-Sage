@@ -179,7 +179,7 @@ public class Preview extends AppCompatActivity {
 
                 parcelId = new ArrayList<>();
 
-                for (int i=0;i<AppConstant.parcelList.size();i++){
+                for (int i=0; i<AppConstant.parcelList.size(); i++){
 
                     parcelId.add(AppConstant.parcelList.get(i).getNumber());
                 }
@@ -217,7 +217,6 @@ public class Preview extends AppCompatActivity {
             itemParcel.setDocu(tvDocu.getText().toString());
             itemParcel.setPic(AppConstant.PIC_PATH);
             itemParcel.setSign(AppConstant.SIGN_PATH);
-
             itemParcel.setUnit(tvParcels.getText().toString());
 
             Gson gson = new Gson();
@@ -227,7 +226,6 @@ public class Preview extends AppCompatActivity {
             System.out.println("inputString= " + parcelString);
 
             itemParcel.setParcels(strList);
-
             itemParcel.setDriver(tvDriver.getText().toString());
             itemParcel.setVehicle(tvVehicle.getText().toString());
             itemParcel.setCompany(tvCompany.getText().toString());
@@ -237,14 +235,14 @@ public class Preview extends AppCompatActivity {
 
             List<String> documents = db.getDocumentList(false);
 
-            for (int i = 0; i < documents.size(); i++) {
+            /*for (int i = 0; i < documents.size(); i++) {
 
                 if (!itemParcel.getDocu().equals(documents.get(i))) {
 
                     db.createDocuEntry(itemParcel);
                     db.createParcelEntry(parcelString,tvDocu.getText().toString(), null);
                 }
-            }
+            }*/
 
             db.close();
 

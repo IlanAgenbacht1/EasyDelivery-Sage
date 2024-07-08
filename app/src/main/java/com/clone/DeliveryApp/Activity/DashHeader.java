@@ -23,11 +23,10 @@ import java.util.List;
 
 public class DashHeader extends AppCompatActivity {
 
-    private RecyclerView recyclerView;
-    private HeaderAdapter adapter;
-    private List<Schedule> deliveryList;
-
-    private DeliveryDb database;
+    RecyclerView recyclerView;
+    HeaderAdapter adapter;
+    List<Schedule> deliveryList;
+    DeliveryDb database;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

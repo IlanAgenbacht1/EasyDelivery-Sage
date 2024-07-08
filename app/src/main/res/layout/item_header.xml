@@ -2,6 +2,11 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginTop="2.5dp"
+    android:layout_marginRight="5dp"
+    android:layout_marginLeft="5dp"
+    android:layout_marginBottom="2.5dp"
+    android:background="@drawable/dash_border"
     android:orientation="vertical"
     android:padding="16dp">
 
@@ -22,4 +27,5 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Customer Address" />
+
 </LinearLayout>
