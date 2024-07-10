@@ -45,14 +45,14 @@ public class DropboxHelper {
 
         try {
 
-            File file = new File(Environment.getExternalStorageDirectory().getPath() + "/DeliveryApp/TripSchedule/");
+            File file = new File(context.getFilesDir(), "trip.json");
 
             if (!file.exists()) {
 
                 file.mkdirs();
             }
 
-            try (OutputStream outputStream = new FileOutputStream(new File(file.getPath(), "trip.json"))) {
+            try (OutputStream outputStream = new FileOutputStream(file)) {
 
                 Log.i("Dropbox", "Download starting...");
 

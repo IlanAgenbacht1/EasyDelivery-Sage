@@ -30,78 +30,81 @@ public class ScheduleHelper {
 
         Schedule schedule = new Schedule();
 
-        JSONObject jsonData = JsonHandler.GetJsonData();
+        JSONObject jsonData = JsonHandler.GetJsonData(context);
 
-        try {
+        if (jsonData != null) {
 
-            //Set TripId for this schedule
+            try {
 
-            String tripId = jsonData.getString("tripId");
+                //Set TripId for this schedule
 
-            AppConstant.TRIPID = tripId;
-            AppConstant.documentList.clear();
+                String tripId = jsonData.getString("tripId");
 
-            //Continue parsing and inserting data
+                AppConstant.TRIPID = tripId;
+                AppConstant.documentList.clear();
 
-            JSONArray stops = jsonData.getJSONArray("stops");
+                //Continue parsing and inserting data
 
-            for (int i = 0; i < stops.length(); i++) {
+                JSONArray stops = jsonData.getJSONArray("stops");
 
-                JSONObject stop = stops.getJSONObject(i);
-                String documentNumber = stop.getString("documentNumber");
-                AppConstant.documentList.add(documentNumber);
+                for (int i = 0; i < stops.length(); i++) {
 
-                JSONObject customer = stop.getJSONObject("customer");
-                String customerName = customer.getString("name");
-                String customerContactName = customer.getString("contactName");
-                String customerContact = customer.getString("contactNumber");
+                    JSONObject stop = stops.getJSONObject(i);
+                    String documentNumber = stop.getString("documentNumber");
+                    AppConstant.documentList.add(documentNumber);
 
-                JSONObject address = stop.getJSONObject("address");
-                String street = address.getString("street");
-                String city = address.getString("city");
-                String state = address.getString("state");
-                String postalCode = address.getString("postalCode");
-                String country = address.getString("country");
+                    JSONObject customer = stop.getJSONObject("customer");
+                    String customerName = customer.getString("name");
+                    String customerContactName = customer.getString("contactName");
+                    String customerContact = customer.getString("contactNumber");
 
-                JSONObject gpsLocation = stop.getJSONObject("gpsLocation");
-                double latitude = gpsLocation.getDouble("latitude");
-                double longitude = gpsLocation.getDouble("longitude");
+                    JSONObject address = stop.getJSONObject("address");
+                    String street = address.getString("street");
+                    String city = address.getString("city");
+                    String state = address.getString("state");
+                    String postalCode = address.getString("postalCode");
+                    String country = address.getString("country");
 
-                Location location = new Location("");
-                location.setLongitude(longitude);
-                location.setLatitude(latitude);
+                    JSONObject gpsLocation = stop.getJSONObject("gpsLocation");
+                    double latitude = gpsLocation.getDouble("latitude");
+                    double longitude = gpsLocation.getDouble("longitude");
 
-                int numParcels = stop.getInt("numParcels");
+                    Location location = new Location("");
+                    location.setLongitude(longitude);
+                    location.setLatitude(latitude);
 
-                JSONArray parcelNumbers = stop.getJSONArray("parcelNumbers");
+                    int numParcels = stop.getInt("numParcels");
 
-                List<String> parcelList = new ArrayList<>();
+                    JSONArray parcelNumbers = stop.getJSONArray("parcelNumbers");
 
-                for (int j = 0; j < parcelNumbers.length(); j++) {
+                    List<String> parcelList = new ArrayList<>();
 
-                    String parcelNumber = parcelNumbers.getString(j);
+                    for (int j = 0; j < parcelNumbers.length(); j++) {
 
-                    parcelList.add(parcelNumber);
+                        String parcelNumber = parcelNumbers.getString(j);
+
+                        parcelList.add(parcelNumber);
+                    }
+
+                    schedule.setDocument(documentNumber);
+                    schedule.setTripId(tripId);
+                    schedule.setCustomerName(customerName);
+                    schedule.setAddress(street + ", " + city + ", " + state + ", " + postalCode + ", " + country);
+                    schedule.setContactName(customerContactName);
+                    schedule.setContactNumber(customerContact);
+                    schedule.setLocation(location);
+                    schedule.setNumberOfParcels(numParcels);
+                    schedule.setCompleted(false);
+
+                    schedule.setParcelNumbers(parcelList);
+
+                    insertScheduleData(context, schedule);
                 }
 
-                schedule.setDocument(documentNumber);
-                schedule.setTripId(tripId);
-                schedule.setCustomerName(customerName);
-                schedule.setAddress(street + ", " + city + ", " + state + ", " + postalCode + ", " + country);
-                schedule.setContactName(customerContactName);
-                schedule.setContactNumber(customerContact);
-                schedule.setLocation(location);
-                schedule.setNumberOfParcels(numParcels);
-                schedule.setCompleted(false);
+            } catch (JSONException e) {
 
-                schedule.setParcelNumbers(parcelList);
-
-                insertScheduleData(context, schedule);
+                e.printStackTrace();
             }
-
-        } catch (JSONException e) {
-
-            e.printStackTrace();
         }
     }
 

@@ -57,7 +57,7 @@ public class Splash extends AppCompatActivity {
 
                     isAlradyRequested = false;
 
-                    startActivity(new Intent(Splash.this,Login.class));
+                    startActivity(new Intent(Splash.this, Login.class));
                     finish();
                 }
             }

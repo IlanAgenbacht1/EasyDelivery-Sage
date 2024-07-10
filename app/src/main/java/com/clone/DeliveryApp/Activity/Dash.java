@@ -487,7 +487,7 @@ public class Dash extends AppCompatActivity {
                         long tsLong = System.currentTimeMillis() / 1000;
 
                         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                        file = new File(getExternalCacheDir(), "Pic" + tsLong + ".jpg");
+                        file = new File(getFilesDir(), "Pic" + tsLong + ".jpg");
                         img_URI = "file:" + file.getAbsolutePath();
                         intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(Dash.this,
                             "com.clone.DeliveryApp" + ".provider",
@@ -498,7 +498,7 @@ public class Dash extends AppCompatActivity {
                         file = null;
                         long tsLong = System.currentTimeMillis() / 1000;
                         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                        file = new File(getExternalCacheDir(), "Pic" + tsLong + ".jpg");
+                        file = new File(getFilesDir(), "Pic" + tsLong + ".jpg");
                         intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
                         img_URI = "" + Uri.fromFile(file);
                         startActivityForResult(intent,REQUEST_CAPTURE);
@@ -912,7 +912,7 @@ public class Dash extends AppCompatActivity {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         myBitmap.compress(Bitmap.CompressFormat.JPEG, 90, bytes);
 
-        File wallpaperDirectory = new File(Environment.getExternalStorageDirectory() + IMAGE_DIRECTORY +SiGN_DIRECTORY);
+        File wallpaperDirectory = new File(this.getFilesDir() + IMAGE_DIRECTORY + SiGN_DIRECTORY);
         // have the object build the directory structure, if needed.
         if (!wallpaperDirectory.exists()) {
             wallpaperDirectory.mkdirs();
@@ -1088,7 +1088,7 @@ public class Dash extends AppCompatActivity {
 
     public String getFilename() {
 
-        File file = new File(Environment.getExternalStorageDirectory().getPath(), IMAGE_DIRECTORY+PIC_DIRECTORY);
+        File file = new File(this.getFilesDir().getPath(), IMAGE_DIRECTORY+PIC_DIRECTORY);
 
         if (!file.exists()) {
             file.mkdirs();
@@ -1133,7 +1133,6 @@ public class Dash extends AppCompatActivity {
             btnSave.setTextColor(getResources().getColor(android.R.color.white));
             btnSave.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.button_select)));
 
-
             img_isthere = 1;
             imageType = 2;
 
@@ -1154,11 +1153,9 @@ public class Dash extends AppCompatActivity {
 
             ImagefileUri = Uri.parse(CompressPath);
         }
-
     }
 
     public void deleteImageFiles() {
-
         if (currentPicturePath != null) {
 
             File pictureFile = new File(currentPicturePath);

@@ -13,15 +13,16 @@ import java.io.IOException;
 
 public class JsonHandler {
 
-    static File file = new File(Environment.getExternalStorageDirectory().getPath() + "/DeliveryApp/TripSchedule/", "trip.json");
 
-    private static String ReadFile() {
+    private static String ReadFile(Context context) {
 
         StringBuilder jsonString = new StringBuilder();
 
+        File file = new File(context.getFilesDir(), "trip.json");
+
         if (file.exists()) {
 
-            try (BufferedReader reader = new BufferedReader(new FileReader(file.getPath()))) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
 
                 String line;
 
@@ -39,9 +40,9 @@ public class JsonHandler {
         return jsonString.toString();
     }
 
-    public static JSONObject GetJsonData() {
+    public static JSONObject GetJsonData(Context context) {
 
-        String jsonString = ReadFile();
+        String jsonString = ReadFile(context);
 
         try {
 
