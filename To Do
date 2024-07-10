@@ -3,6 +3,8 @@ UI
 
 - Redo dash layout.
 
+- Remove new/exit screen after completing delivery. Return to updated header dash.
+
 
 FUNCTIONALITY
 - Exporting data.
