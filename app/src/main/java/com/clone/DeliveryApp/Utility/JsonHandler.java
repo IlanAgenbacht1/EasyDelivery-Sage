@@ -22,7 +22,7 @@ public class JsonHandler {
 
         if (file.exists()) {
 
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(new File(file.getPath(), "trip.json")))) {
 
                 String line;
 

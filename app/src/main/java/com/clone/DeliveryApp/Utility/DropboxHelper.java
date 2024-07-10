@@ -52,7 +52,7 @@ public class DropboxHelper {
                 file.mkdirs();
             }
 
-            try (OutputStream outputStream = new FileOutputStream(file)) {
+            try (OutputStream outputStream = new FileOutputStream(new File(file.getPath(), "trip.json"))) {
 
                 Log.i("Dropbox", "Download starting...");
 
