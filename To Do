@@ -1,6 +1,4 @@
 UI
-- Reduce amount of input required.
-
 - Redo dash layout.
 
 - Remove new/exit screen after completing delivery. Return to updated header dash.
@@ -9,6 +7,12 @@ UI
 FUNCTIONALITY
 - Exporting data.
 
-- Capturing of data when completely offline. IE no preloaded schedule.
+- Capturing of data when completely offline. IE no schedule. 
+  - Add/Plus/New button in dash header that appears only when no schedule is found (or the existing schedule is completed) and internet cannot be accessed.
+  - All fields can be edited when capturing parcels. Once completed, data is inserted into a seperate ("CustomDelivery" or "OfflineDelivery") table which can then be validated at a later stage.
 
-- Date/Time capturing 
+- Rename Schedule table to Delivery.
+
+- Add columns to Delivery table:
+  -  Captured image name/directory (seperate columns for both parcel image and signature)
+  -  Captured Time/Date
