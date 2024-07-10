@@ -1,5 +1,8 @@
 package com.clone.DeliveryApp.Activity;
 
+import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ImageView;
@@ -71,5 +74,37 @@ public class DashHeader extends AppCompatActivity {
         });
 
         recyclerView.setAdapter(adapter);
+    }
+
+    @SuppressLint("MissingSuperCall")
+    @Override
+    public void onBackPressed() {
+        //super.onBackPressed();
+
+        AlertDialog alertDialog = new AlertDialog.Builder(DashHeader.this).create();
+
+        alertDialog.setTitle("Login");
+
+        alertDialog.setMessage("Return to Login Screen?");
+
+        alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "No",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+
+                        dialog.dismiss();
+                    }
+                });
+
+        alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Yes",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                        startActivity(new Intent(DashHeader.this, Login.class));
+                        finish();
+                    }
+                });
+
+        alertDialog.show();
     }
 }

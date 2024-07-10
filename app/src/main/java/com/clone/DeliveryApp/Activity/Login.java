@@ -55,9 +55,21 @@ public class Login extends AppCompatActivity {
 
             etCompany.setText(GetCompany());
         }
+        else {
+            //for testing only
+
+            etCompany.setText("DEV");
+            etCompany.setFocusable(false);
+            etCompany.setCursorVisible(false);
+        }
         if (GetDriver()!=null && GetDriver().length()>0){
 
             etDriver.setText(GetDriver());
+        }
+        else {
+            //for testing only
+
+            etDriver.setText("DEV");
         }
         if (GetEmail()!=null && GetEmail().length()>0){
 
@@ -67,12 +79,17 @@ public class Login extends AppCompatActivity {
 
             etVehicle.setText(GetVehicle());
         }
+        else {
+            //for testing only
+
+            etVehicle.setText("DEV");
+        }
 
         btnlogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                Toast.makeText(context, "Downloading trip schedule...", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "Downloading Delivery Schedule...", Toast.LENGTH_LONG).show();
 
                 if (validation()){
 

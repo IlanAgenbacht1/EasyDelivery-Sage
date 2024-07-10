@@ -65,7 +65,7 @@ public class DropboxHelper {
                 handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(context, "Trip schedule downloaded.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(context, "Delivery Schedule Downloaded", Toast.LENGTH_LONG).show();
                         }
                 });
             }

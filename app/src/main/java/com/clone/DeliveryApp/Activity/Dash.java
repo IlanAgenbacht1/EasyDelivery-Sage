@@ -1192,6 +1192,7 @@ public class Dash extends AppCompatActivity {
         }
 
         startActivity(new Intent(this, DashHeader.class));
+        finish();
     }
 
     @Override
