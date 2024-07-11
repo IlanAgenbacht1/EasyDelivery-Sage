@@ -10,5 +10,3 @@ FUNCTIONALITY
 - Capturing of data when completely offline. IE no schedule. 
   - Add/Plus/New button in dash header that appears only when no schedule is found (or the existing schedule is completed) and internet cannot be accessed.
   - All fields can be edited when capturing parcels. Once completed, data is inserted into a seperate ("CustomDelivery" or "OfflineDelivery") table which can then be validated at a later stage.
-
-- Rename Schedule table to Delivery.
