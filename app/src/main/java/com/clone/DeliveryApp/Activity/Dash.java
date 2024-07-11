@@ -540,7 +540,7 @@ public class Dash extends AppCompatActivity {
 
                         startActivity(new Intent(Dash.this,Preview.class));
 
-                    }else {
+                    } else {
 
                         AlertDialog alertDialog = new AlertDialog.Builder(Dash.this).create();
 

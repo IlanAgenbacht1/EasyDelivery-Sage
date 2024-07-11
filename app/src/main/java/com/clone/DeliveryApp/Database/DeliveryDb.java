@@ -31,7 +31,7 @@ public class DeliveryDb {
     private static final String DATABASE_NAME = "DeliveryDb";
     private static final String DOCUMENT_TABLE = "DocumentTable";
     private static final String PARCEL_TABLE = "ParcelTable";
-    private static final String SCHEDULE_TABLE = "ScheduleTable";
+    private static final String DELIVERY_TABLE = "DeliveryTable";
     private final int DATABASE_VERSION = 14;
     private Context ourContext;
     private SQLiteDatabase ourDatabase;
@@ -107,7 +107,7 @@ public class DeliveryDb {
 
             db.execSQL(sqlCreateParcelTable);
 
-            String sqlCreateScheduleTable = "CREATE TABLE " + SCHEDULE_TABLE + " (" +
+            String sqlCreateDeliveryTable = "CREATE TABLE " + DELIVERY_TABLE + " (" +
                     KEY_ROWID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     KEY_TRIPID + " TEXT, " +
                     KEY_DOCUMENT + " TEXT UNIQUE NOT NULL, " +
@@ -120,9 +120,12 @@ public class DeliveryDb {
                     KEY_LONGITUDE + " TEXT NOT NULL, " +
                     KEY_CAPTUREDLATITUDE + " TEXT, " +
                     KEY_CAPTUREDLONGITUDE + " TEXT, " +
+                    KEY_SIGN + " TEXT, " +
+                    KEY_PIC + " TEXT, " +
+                    KEY_TIME + " TEXT, " +
                     KEY_COMPLETED + " BOOLEAN NOT NULL);";
 
-            db.execSQL(sqlCreateScheduleTable);
+            db.execSQL(sqlCreateDeliveryTable);
         }
 
         @Override
@@ -130,7 +133,7 @@ public class DeliveryDb {
 
             db.execSQL("DROP TABLE IF EXISTS " + DOCUMENT_TABLE);
             db.execSQL("DROP TABLE IF EXISTS " + PARCEL_TABLE);
-            db.execSQL("DROP TABLE IF EXISTS " + SCHEDULE_TABLE);
+            db.execSQL("DROP TABLE IF EXISTS " + DELIVERY_TABLE);
 
             onCreate(db);
         }
@@ -159,7 +162,6 @@ public class DeliveryDb {
 
 
     public long createScheduleEntry(Schedule schedule) {
-
         ContentValues cv = new ContentValues();
 
         cv.put(KEY_TRIPID, schedule.getTripId());
@@ -175,12 +177,11 @@ public class DeliveryDb {
         cv.put(KEY_CAPTUREDLONGITUDE, "NULL");
         cv.put(KEY_COMPLETED, schedule.completed());
 
-        return ourDatabase.insert(SCHEDULE_TABLE, null, cv);
+        return ourDatabase.insert(DELIVERY_TABLE, null, cv);
     }
 
 
     public long createDocuEntry(ItemParcel item) {
-
         ContentValues cv = new ContentValues();
 
         cv.put(KEY_DOCUMENT, item.getDocu());
@@ -198,7 +199,6 @@ public class DeliveryDb {
 
 
     public long createParcelEntry(String parcel, String docu, String tripId) {
-
         ContentValues cv = new ContentValues();
 
         cv.put(KEY_DOCUMENT, docu);
@@ -219,11 +219,11 @@ public class DeliveryDb {
 
         if (incompleteDocument) {
 
-            cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + SCHEDULE_TABLE + " WHERE " + KEY_COMPLETED + " = 0;", null);
+            cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE + " WHERE " + KEY_COMPLETED + " = 0;", null);
         }
         else {
 
-            cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + SCHEDULE_TABLE, null);
+            cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE, null);
         }
 
         int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
@@ -244,7 +244,7 @@ public class DeliveryDb {
         //return specified document data from the ScheduleTable that matches the tripId in the current schedule file.
         //the tripId is how data in the local db is validated against the downloaded schedule.
 
-        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + SCHEDULE_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_COMPLETED + " = 0;", null);
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_COMPLETED + " = 0;", null);
 
         int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
         int customerIndex = cursor.getColumnIndex(KEY_CUSTOMER);
@@ -291,9 +291,8 @@ public class DeliveryDb {
         return schedule;
     }
 
-    public void setDocumentCompleted(String document) {
-
-        Cursor cursor = ourDatabase.rawQuery("UPDATE " + SCHEDULE_TABLE + " SET " + KEY_COMPLETED + " = 1, " + KEY_CAPTUREDLATITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLatitude()) + "', " + KEY_CAPTUREDLONGITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLongitude()) + "' WHERE " + KEY_DOCUMENT + " = '" + document + "';", null);
+    public void setDocumentCompleted(String document, String imageFile, String signFile, String date) {
+        Cursor cursor = ourDatabase.rawQuery("UPDATE " + DELIVERY_TABLE + " SET " + KEY_COMPLETED + " = 1, " + KEY_CAPTUREDLATITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLatitude()) + "', " + KEY_CAPTUREDLONGITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLongitude()) + "', " + KEY_PIC + " = '" + imageFile + "', " + KEY_SIGN + " = '" + signFile + "', " + KEY_TIME + " = '" + date + "' WHERE " + KEY_DOCUMENT + " = '" + document + "';", null);
 
         cursor.moveToFirst();
         cursor.close();

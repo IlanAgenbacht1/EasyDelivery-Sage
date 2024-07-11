@@ -134,7 +134,6 @@ public class ScheduleHelper {
     private static void insertScheduleData(Context context, Schedule schedule) {
 
         try {
-
             DeliveryDb database = new DeliveryDb(context);
 
             database.open();

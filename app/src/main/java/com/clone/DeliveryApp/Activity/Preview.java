@@ -74,7 +74,7 @@ public class Preview extends AppCompatActivity {
 
     private TextView tvPic,tvSign;
 
-    String sign,pic;
+    String sign, pic;
 
     private static final String TAG = "Preview";
 
@@ -207,12 +207,11 @@ public class Preview extends AppCompatActivity {
     private void updateDatabase() {
 
         try{
-
             DeliveryDb db =new DeliveryDb(Preview.this);
 
             db.open();
 
-            itemParcel=new ItemParcel();
+            itemParcel = new ItemParcel();
 
             itemParcel.setDocu(tvDocu.getText().toString());
             itemParcel.setPic(AppConstant.PIC_PATH);
@@ -231,7 +230,15 @@ public class Preview extends AppCompatActivity {
             itemParcel.setCompany(tvCompany.getText().toString());
             itemParcel.setTime(currentDate);
 
-            db.setDocumentCompleted(itemParcel.getDocu());
+            String imageFile = result1.substring(0, result1.length() - 4);
+
+            String signatureFile = result.substring(0, result.length() - 4);
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyyyy - HHmmss", Locale.getDefault());
+
+            String date = dateFormat.format(new Date());
+
+            db.setDocumentCompleted(itemParcel.getDocu(), imageFile, signatureFile, date);
 
             List<String> documents = db.getDocumentList(false);
 

@@ -18,23 +18,18 @@ public class JsonHandler {
 
         StringBuilder jsonString = new StringBuilder();
 
-        File file = new File(context.getFilesDir(), "trip.json");
+        try (BufferedReader reader = new BufferedReader(new FileReader(new File(context.getFilesDir(), "trip.json")))) {
 
-        if (file.exists()) {
+            String line;
 
-            try (BufferedReader reader = new BufferedReader(new FileReader(new File(file.getPath(), "trip.json")))) {
+            while ((line = reader.readLine()) != null) {
 
-                String line;
+                jsonString.append(line);
 
-                while ((line = reader.readLine()) != null) {
-
-                    jsonString.append(line);
-
-                }
-
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         return jsonString.toString();
