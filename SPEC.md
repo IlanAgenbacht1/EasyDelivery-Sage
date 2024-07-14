@@ -30,4 +30,8 @@ This document outlines the requirements and flow for managing trips in the app. 
 - The app will utilize Dropbox for syncing data, allowing progress tracking by mining the Dropbox folder.
 - Once the trip is complete, the data will be read back into the host system for further processing.
 
-## Folder Structure
+
+## Notes
+- Ensure Dropbox syncs data consistently, though it is not essential.
+- Further refinement to this specification is acceptable to improve the workflow or accommodate additional requirements.
+
