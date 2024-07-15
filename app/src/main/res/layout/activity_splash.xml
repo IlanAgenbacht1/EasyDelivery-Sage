@@ -19,16 +19,15 @@
 
         <ImageView
             android:id="@+id/iv_splashLogo"
-            android:layout_width="wrap_content"
+            android:layout_width="300dp"
             android:layout_height="300dp"
             android:background="@color/theme"
             android:backgroundTint="@color/theme"
-            android:visibility="invisible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/horizontal_logo" />
+            app:srcCompat="@drawable/easydelivery_logo" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <RelativeLayout
