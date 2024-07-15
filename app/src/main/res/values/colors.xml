@@ -16,6 +16,6 @@
     <color name="button_select">#1D252D</color>#D9D8D6
     <color name="button">#D9D8D6</color>
     <color name="darkgray">#1D252C</color>
-    <color name="mtrl_textinput_default_box_stroke_color">#00A6CE</color>
+    <color name="mtrl_textinput_default_box_stroke_color">#000000</color>
 
 </resources>

@@ -1,55 +1,87 @@
 package com.clone.DeliveryApp.Activity;
 
-import android.content.Context;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import android.Manifest;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
 import android.text.SpannableStringBuilder;
 import android.text.style.RelativeSizeSpan;
 import android.util.Patterns;
 import android.view.KeyEvent;
+import android.view.View;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.TranslateAnimation;
 import android.view.inputmethod.EditorInfo;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.Intent;
-import android.os.Bundle;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-
-import com.clone.DeliveryApp.Model.Schedule;
 import com.clone.DeliveryApp.R;
 import com.clone.DeliveryApp.Utility.AppConstant;
 import com.clone.DeliveryApp.Utility.ScheduleHelper;
 import com.clone.DeliveryApp.Utility.SyncService;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
-public class Login extends AppCompatActivity {
+public class SplashLogin extends AppCompatActivity {
 
+    private ImageView ivLogo;
 
-    private EditText etEmail,etCompany,etDriver,etVehicle;
-    private Button btnlogin;
+    private RelativeLayout rlLayout;
+    private TextInputLayout company, email, driver, vehicle;
+    private TextInputEditText etCompany, etEmail, etDriver, etVehicle;
+    private Button proceed;
     private ProgressBar loadingIcon;
-    private Context context;
 
+    int REQUEST_ID_MULTIPLE_PERMISSIONS = 10000;
+    boolean isAlradyRequested = false;
+
+
+    private static final String TAG = "SplashLogin";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+        setContentView(R.layout.activity_splash);
 
-        AppConstant.gpsList.clear();
-
-        etEmail = findViewById(R.id.et_email);
-        btnlogin = findViewById(R.id.btn_login);
+        company = findViewById(R.id.ll_com);
         etCompany = findViewById(R.id.et_com);
-        etDriver = findViewById(R.id.et_driver);
+        email = findViewById(R.id.ll_docu);
+        etEmail = findViewById(R.id.et_email);
+        driver = findViewById(R.id.ll_driver);
+        etDriver =findViewById(R.id.et_driver);
+        vehicle = findViewById(R.id.ll_vehicle);
         etVehicle = findViewById(R.id.et_vehicle);
+        rlLayout = findViewById(R.id.rl_main);
+        proceed = findViewById(R.id.btn_login);
         loadingIcon = findViewById(R.id.progressBar);
+        ivLogo = findViewById(R.id.iv_splashLogo);
 
-        loadingIcon.setVisibility(View.GONE);
+        Handler handler = new Handler();
+
+        if (checkAndRequestPermissions()) {
+
+            isAlradyRequested = false;
+
+            animateLogo();
+        }
 
         if (GetCompany()!=null && GetCompany().length()>0){
 
@@ -85,11 +117,11 @@ public class Login extends AppCompatActivity {
             etVehicle.setText("DEV");
         }
 
-        btnlogin.setOnClickListener(new View.OnClickListener() {
+        proceed.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                Toast.makeText(context, "Downloading Delivery Schedule...", Toast.LENGTH_LONG).show();
+                Toast.makeText(SplashLogin.this, "Downloading Delivery Schedule...", Toast.LENGTH_LONG).show();
 
                 if (validation()){
 
@@ -98,16 +130,19 @@ public class Login extends AppCompatActivity {
                     StoreEmail(etEmail.getText().toString());
                     StoreVehicle(etVehicle.getText().toString());
 
-                    btnlogin.setVisibility(View.GONE);
+                    proceed.setVisibility(View.GONE);
                     loadingIcon.setVisibility(View.VISIBLE);
 
                     Thread thread = new Thread(new Runnable() {
                         @Override
                         public void run() {
+                            AppConstant.tripList = ScheduleHelper.getTrips(etCompany.getText().toString());
 
-                            ScheduleHelper.getSchedule(context, GetCompany(), Login.this);
+                            //below code is moved to DashHeader and executed when trip is selected
 
-                            startActivity(new Intent(Login.this, DashHeader.class));
+                            ScheduleHelper.downloadSchedule(SplashLogin.this, etCompany.getText().toString(), SplashLogin.this);
+
+                            startActivity(new Intent(SplashLogin.this, DashHeader.class));
                             finish();
                         }
                     });
@@ -128,7 +163,7 @@ public class Login extends AppCompatActivity {
                         String text="Invalid Email. Please Re-enter";
                         SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                         biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
-                        Toast.makeText(Login.this, biggerText, Toast.LENGTH_LONG).show();
+                        Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_LONG).show();
 
                     }
                 }
@@ -136,14 +171,14 @@ public class Login extends AppCompatActivity {
             }
         });
 
-        context = this;
         Intent startSyncIntent = new Intent(this, SyncService.class);
         startService(startSyncIntent);
+
     }
 
 
     public boolean validation() {
-        boolean bool = false;
+        boolean bool;
 
         try {
             if (etCompany.getText().toString().length() < 1) {
@@ -153,7 +188,7 @@ public class Login extends AppCompatActivity {
                 String text="Enter company name";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
-                Toast.makeText(Login.this, biggerText, Toast.LENGTH_LONG).show();
+                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_LONG).show();
 
             } else if (etEmail.getText().toString().length() < 1 || !validEmail(etEmail.getText().toString())) {
                 bool = false;
@@ -161,7 +196,7 @@ public class Login extends AppCompatActivity {
                 String text="Invalid Email. Please Re-enter";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
-                Toast.makeText(Login.this, biggerText, Toast.LENGTH_LONG).show();
+                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_LONG).show();
 
             }else if (etDriver.getText().toString().length() < 1) {
                 bool = false;
@@ -169,7 +204,7 @@ public class Login extends AppCompatActivity {
                 String text="Enter Driver name";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
-                Toast.makeText(Login.this, biggerText, Toast.LENGTH_LONG).show();
+                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_LONG).show();
 
             }else if (etVehicle.getText().toString().length() < 1) {
                 bool = false;
@@ -177,7 +212,7 @@ public class Login extends AppCompatActivity {
                 String text="Enter vehicle number";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
-                Toast.makeText(Login.this, biggerText, Toast.LENGTH_LONG).show();
+                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_LONG).show();
             }
 
             else {
@@ -192,6 +227,39 @@ public class Login extends AppCompatActivity {
         return bool;
 
     }
+
+
+    public void animateLogo() {
+
+        ivLogo.setVisibility(View.VISIBLE);
+        Animation fadeIn = new AlphaAnimation(0, 1);
+        fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
+        fadeIn.setDuration(500);
+        fadeIn.setStartOffset(500);
+
+        Animation slide = new TranslateAnimation(0, 0, 0, -1000);
+        slide.setStartOffset(2500);
+        slide.setDuration(500);
+        slide.setFillAfter(true);
+
+        AnimationSet set = new AnimationSet(false);
+        set.addAnimation(fadeIn);
+        set.addAnimation(slide);
+        set.setFillAfter(true);
+
+        ivLogo.startAnimation(set);
+
+        rlLayout.setVisibility(View.VISIBLE);
+        proceed.setVisibility(View.VISIBLE);
+
+        Animation fadeIn2 = new AlphaAnimation(0, 1);
+        fadeIn2.setInterpolator(new DecelerateInterpolator()); //add this
+        fadeIn2.setDuration(500);
+        fadeIn2.setStartOffset(3500);
+
+        rlLayout.setAnimation(fadeIn2);
+    }
+
 
     public String GetCompany() {
         SharedPreferences shp = this.getSharedPreferences("COMPANY", MODE_PRIVATE);
@@ -214,6 +282,7 @@ public class Login extends AppCompatActivity {
         System.out.println("getting driver" + shp.getString("driver", ""));
         return shp.getString("driver", "");
     }
+
 
     public void StoreDriver(String image_url) {
         SharedPreferences.Editor editor = getSharedPreferences("DRIVER", MODE_PRIVATE).edit();
@@ -270,6 +339,74 @@ public class Login extends AppCompatActivity {
     private boolean validEmail(String email) {
         Pattern pattern = Patterns.EMAIL_ADDRESS;
         return pattern.matcher(email).matches();
+    }
+
+
+
+    private boolean checkAndRequestPermissions() {
+        isAlradyRequested = true;
+        if (Build.VERSION.SDK_INT >= 23) {
+
+            int permissionLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+            int permissionCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
+
+            List<String> listPermissionsNeeded = new ArrayList<>();
+
+            if (!(Build.VERSION.SDK_INT >= 34)) {
+                int permissionWrite = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                int permissionRead = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
+
+                if(permissionWrite != PackageManager.PERMISSION_GRANTED){
+
+                    listPermissionsNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+                }
+                if (permissionRead != PackageManager.PERMISSION_GRANTED){
+
+                    listPermissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+
+                }
+            }
+            if (permissionCamera != PackageManager.PERMISSION_GRANTED){
+
+                listPermissionsNeeded.add(Manifest.permission.CAMERA);
+
+            }
+            if (permissionLocation != PackageManager.PERMISSION_GRANTED) {
+
+                listPermissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
+
+            }
+
+            if (!listPermissionsNeeded.isEmpty()) {
+
+                ActivityCompat.requestPermissions(this,
+                        listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]), REQUEST_ID_MULTIPLE_PERMISSIONS);
+                return false;
+            }
+
+        } else {
+
+            return true;
+        }
+
+        return true;
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_ID_MULTIPLE_PERMISSIONS) {
+
+            try {
+                isAlradyRequested = false;
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+        }
+
     }
 
 }

@@ -20,10 +20,17 @@ import java.util.List;
 
 public class ScheduleHelper {
 
-    public static void getSchedule(Context context, String companyName, Activity activity) {
+    public static void downloadSchedule(Context context, String companyName, Activity activity) {
 
         downloadSchedule(context, companyName);
         parseAndInsertScheduleData(context);
+    }
+
+    public static ArrayList<String> getTrips(String company) {
+        //read trip files in dropbox (/Customer/CustomerName/) and return list
+        //use AppConstant list
+
+        return null;
     }
 
     private static void parseAndInsertScheduleData(Context context) {

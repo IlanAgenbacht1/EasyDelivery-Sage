@@ -20,6 +20,8 @@ public class AppConstant {
 
     public static ArrayList<Location> gpsList = new ArrayList<>();
     public static ArrayList<String> documentList = new ArrayList<>();
+    public static ArrayList<String> tripList = new ArrayList<>();
+
     public static ArrayList<String> adapterParcelList = new ArrayList<>();
     public static ArrayList<ItemParcel> parcelList=new ArrayList<>();
     public static ArrayList<ItemParcel> syncList=new ArrayList<>();

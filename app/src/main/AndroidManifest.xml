@@ -24,22 +24,18 @@
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@drawable/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.NoActionBar">
+        android:theme="@style/Theme.AppCompat.DayNight.DarkActionBar">
         <activity
             android:name="com.clone.DeliveryApp.Activity.DashHeader"
-            android:theme="@style/Material" />
+            android:theme="@style/Theme.MaterialComponents.Light.DarkActionBar"/>
         <activity
             android:name="com.clone.DeliveryApp.Activity.ZoomView"
             android:theme="@style/Theme.AppCompat.customPopUp" />
         <activity
             android:name="com.clone.DeliveryApp.Activity.Preview"
-            android:theme="@style/Material" />
-        <activity android:name="com.clone.DeliveryApp.Activity.Login"
-            android:exported="true"
-            android:theme="@style/Material">
-
-        </activity>
-        <activity android:name="com.clone.DeliveryApp.Activity.Splash"
+            android:theme="@style/Theme.MaterialComponents.DayNight.DarkActionBar"/>
+        <activity android:name="com.clone.DeliveryApp.Activity.SplashLogin"
+            android:theme="@style/Material"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -49,7 +45,7 @@
         <activity
             android:name="com.clone.DeliveryApp.Activity.Dash"
             android:requestLegacyExternalStorage="true"
-            android:theme="@style/Material"
+            android:theme="@style/Theme.MaterialComponents.DayNight.DarkActionBar"
             android:windowSoftInputMode="stateHidden|adjustPan" />
         <activity android:name="com.clone.DeliveryApp.MainActivity" />
 

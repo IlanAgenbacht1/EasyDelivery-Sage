@@ -9,7 +9,7 @@
     android:backgroundTint="@color/theme"
     android:background="@color/theme"
     android:gravity="center_horizontal"
-    tools:context=".Activity.Splash">
+    tools:context=".Activity.SplashLogin">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -18,14 +18,145 @@
         android:background="@color/theme">
 
         <ImageView
-            android:id="@+id/imageView2"
+            android:id="@+id/iv_splashLogo"
             android:layout_width="wrap_content"
             android:layout_height="300dp"
             android:background="@color/theme"
             android:backgroundTint="@color/theme"
+            android:visibility="invisible"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/horizontal_logo"
-            tools:layout_editor_absoluteX="0dp" />
+            app:srcCompat="@drawable/horizontal_logo" />
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <RelativeLayout
+        android:id="@+id/rl_main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:layout_marginTop="10dp"
+        android:visibility="invisible">
+
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/ll_com"
+            style="@style/textInputLogin"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:textColorHint="@color/gold"
+            app:errorEnabled="true">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_com"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="ENTER COMPANY"
+                android:inputType="textEmailAddress"
+                android:paddingHorizontal="10dp"
+                android:textColor="@color/white" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/ll_docu"
+            style="@style/textInputLogin"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_below="@id/ll_com"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginRight="10dp"
+            android:textColorHint="@color/gold"
+            app:errorEnabled="true">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_email"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="ENTER EMAIL"
+                android:inputType="textEmailAddress"
+                android:paddingHorizontal="10dp"
+                android:textColor="@color/white" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/ll_driver"
+            style="@style/textInputLogin"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_below="@id/ll_docu"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginRight="10dp"
+            android:textColorHint="@color/gold"
+            app:errorEnabled="true">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_driver"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="ENTER DRIVER NAME"
+                android:inputType="text"
+                android:paddingHorizontal="10dp"
+                android:textColor="@color/white" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/ll_vehicle"
+            style="@style/textInputLogin"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_below="@id/ll_driver"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginRight="10dp"
+            android:textColorHint="@color/gold"
+            app:errorEnabled="true">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_vehicle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="ENTER VEHICLE NUMBER"
+                android:inputType="text"
+                android:paddingHorizontal="10dp"
+                android:textColor="@color/white" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyle"
+
+            android:layout_width="110dp"
+            android:layout_height="60dp"
+            android:layout_below="@+id/ll_vehicle"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="25dp"
+            android:layout_marginEnd="181dp"
+            android:theme="@style/progressBarGold"
+            android:visibility="invisible" />
+
+        <Button
+            android:id="@+id/btn_login"
+            android:layout_width="110dp"
+            android:layout_height="60dp"
+            android:layout_below="@+id/ll_vehicle"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="25dp"
+            android:backgroundTint="@color/gold"
+            android:text="Proceed"
+            android:textColor="@color/theme"
+            app:fontFamily="@font/roboto_medium" />
+
+    </RelativeLayout>
+
 </RelativeLayout>

@@ -5,13 +5,8 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.ImageView;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -35,13 +30,8 @@ public class DashHeader extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //EdgeToEdge.enable(this);
+
         setContentView(R.layout.activity_dash_header);
-        /*ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });*/
 
         recyclerView = findViewById(R.id.rvDocument);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -50,6 +40,15 @@ public class DashHeader extends AppCompatActivity {
 
         database = new DeliveryDb(this);
         database.open();
+
+
+        //display list of trips fetched in Login activity (stored in AppConstant.tripList)
+
+        //onclick, schedule is downloaded
+
+        //ScheduleHelper.downloadSchedule(context, etCompany.getText().toString(), Login.this);
+
+        //after downloading, file is moved to InProgress folder in dropbox
 
         for (String document : AppConstant.documentList) {
 
@@ -100,7 +99,7 @@ public class DashHeader extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
-                        startActivity(new Intent(DashHeader.this, Login.class));
+                        startActivity(new Intent(DashHeader.this, SplashLogin.class));
                         finish();
                     }
                 });
