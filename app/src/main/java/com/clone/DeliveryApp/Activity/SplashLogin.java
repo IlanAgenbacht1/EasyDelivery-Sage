@@ -1,5 +1,6 @@
 package com.clone.DeliveryApp.Activity;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -13,6 +14,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.text.SpannableStringBuilder;
 import android.text.style.RelativeSizeSpan;
+import android.util.Log;
 import android.util.Patterns;
 import android.view.KeyEvent;
 import android.view.View;
@@ -74,12 +76,11 @@ public class SplashLogin extends AppCompatActivity {
 
         Handler handler = new Handler();
 
-        if (checkAndRequestPermissions()) {
-
-            isAlradyRequested = false;
+        if (!checkAndRequestPermissions()) {
 
             animateLogo();
         }
+
 
         if (GetCompany()!=null && GetCompany().length()>0){
 
@@ -173,6 +174,15 @@ public class SplashLogin extends AppCompatActivity {
         startService(startSyncIntent);
 
     }
+
+/*    @Override
+    public void onResume() {
+        super.onResume();
+
+        Log.i("OnResume", "onResume called");
+
+        animateLogo();
+    }*/
 
 
     public boolean validation() {
@@ -341,71 +351,63 @@ public class SplashLogin extends AppCompatActivity {
     }
 
 
+    private List<String> requiredPermissionsList() {
+
+        int permissionLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+        int permissionCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
+
+        List<String> listPermissionsNeeded = new ArrayList<>();
+
+        if (!(Build.VERSION.SDK_INT >= 34)) {
+            int permissionWrite = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            int permissionRead = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
+
+            if (permissionWrite != PackageManager.PERMISSION_GRANTED) {
+
+                listPermissionsNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+            }
+            if (permissionRead != PackageManager.PERMISSION_GRANTED) {
+
+                listPermissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+
+            }
+        }
+        if (permissionCamera != PackageManager.PERMISSION_GRANTED) {
+
+            listPermissionsNeeded.add(Manifest.permission.CAMERA);
+
+        }
+        if (permissionLocation != PackageManager.PERMISSION_GRANTED) {
+
+            listPermissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
+
+        }
+
+        return listPermissionsNeeded;
+    }
 
     private boolean checkAndRequestPermissions() {
-        isAlradyRequested = true;
-        if (Build.VERSION.SDK_INT >= 23) {
 
-            int permissionLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
-            int permissionCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
+        List<String> listPermissionsNeeded = requiredPermissionsList();
 
-            List<String> listPermissionsNeeded = new ArrayList<>();
+        if (!listPermissionsNeeded.isEmpty()) {
 
-            if (!(Build.VERSION.SDK_INT >= 34)) {
-                int permissionWrite = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-                int permissionRead = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
-
-                if(permissionWrite != PackageManager.PERMISSION_GRANTED){
-
-                    listPermissionsNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-
-                }
-                if (permissionRead != PackageManager.PERMISSION_GRANTED){
-
-                    listPermissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-
-                }
-            }
-            if (permissionCamera != PackageManager.PERMISSION_GRANTED){
-
-                listPermissionsNeeded.add(Manifest.permission.CAMERA);
-
-            }
-            if (permissionLocation != PackageManager.PERMISSION_GRANTED) {
-
-                listPermissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
-
-            }
-
-            if (!listPermissionsNeeded.isEmpty()) {
-
-                ActivityCompat.requestPermissions(this,
-                        listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]), REQUEST_ID_MULTIPLE_PERMISSIONS);
-                return false;
-            }
-
-        } else {
+            ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]), REQUEST_ID_MULTIPLE_PERMISSIONS);
 
             return true;
         }
 
-        return true;
+        return false;
     }
-
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_ID_MULTIPLE_PERMISSIONS) {
 
-            try {
-                isAlradyRequested = false;
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+        if (requiredPermissionsList().isEmpty()) {
 
+            animateLogo();
         }
-
     }
-
 }
