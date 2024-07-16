@@ -22,6 +22,7 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.AnimationUtils;
+import android.view.animation.BounceInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.TranslateAnimation;
 import android.view.inputmethod.EditorInfo;
@@ -120,8 +121,6 @@ public class SplashLogin extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                Toast.makeText(SplashLogin.this, "Downloading Delivery Schedule...", Toast.LENGTH_LONG).show();
-
                 if (validation()){
 
                     StoreCompany(etCompany.getText().toString());
@@ -129,17 +128,29 @@ public class SplashLogin extends AppCompatActivity {
                     StoreEmail(etEmail.getText().toString());
                     StoreVehicle(etVehicle.getText().toString());
 
+                    etCompany.setFocusable(false);
+                    etCompany.setCursorVisible(false);
+                    etDriver.setFocusable(false);
+                    etDriver.setCursorVisible(false);
+                    etEmail.setFocusable(false);
+                    etEmail.setCursorVisible(false);
+                    etVehicle.setFocusable(false);
+                    etVehicle.setCursorVisible(false);
+
                     proceed.setVisibility(View.GONE);
                     loadingIcon.setVisibility(View.VISIBLE);
+
+                    Toast.makeText(SplashLogin.this, "Downloading Delivery Schedule...", Toast.LENGTH_LONG).show();
 
                     Thread thread = new Thread(new Runnable() {
                         @Override
                         public void run() {
                             AppConstant.tripList = ScheduleHelper.getTrips(etCompany.getText().toString());
 
-                            //below code is moved to DashHeader and executed when trip is selected
-
                             ScheduleHelper.downloadSchedule(SplashLogin.this, etCompany.getText().toString(), SplashLogin.this);
+
+                            Intent startSyncIntent = new Intent(SplashLogin.this, SyncService.class);
+                            startService(startSyncIntent);
 
                             startActivity(new Intent(SplashLogin.this, DashHeader.class));
                             finish();
@@ -170,9 +181,6 @@ public class SplashLogin extends AppCompatActivity {
             }
         });
 
-        Intent startSyncIntent = new Intent(this, SyncService.class);
-        startService(startSyncIntent);
-
     }
 
 /*    @Override
@@ -196,7 +204,9 @@ public class SplashLogin extends AppCompatActivity {
                 String text="Enter company name";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
-                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_LONG).show();
+                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_SHORT).show();
+
+                etCompany.requestFocus();
 
             } else if (etEmail.getText().toString().length() < 1 || !validEmail(etEmail.getText().toString())) {
                 bool = false;
@@ -204,7 +214,9 @@ public class SplashLogin extends AppCompatActivity {
                 String text="Invalid Email. Please Re-enter";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
-                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_LONG).show();
+                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_SHORT).show();
+
+                etEmail.requestFocus();
 
             }else if (etDriver.getText().toString().length() < 1) {
                 bool = false;
@@ -212,7 +224,9 @@ public class SplashLogin extends AppCompatActivity {
                 String text="Enter Driver name";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
-                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_LONG).show();
+                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_SHORT).show();
+
+                etDriver.requestFocus();
 
             }else if (etVehicle.getText().toString().length() < 1) {
                 bool = false;
@@ -220,7 +234,9 @@ public class SplashLogin extends AppCompatActivity {
                 String text="Enter vehicle number";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
-                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_LONG).show();
+                Toast.makeText(SplashLogin.this, biggerText, Toast.LENGTH_SHORT).show();
+
+                etVehicle.requestFocus();
             }
 
             else {
@@ -248,6 +264,7 @@ public class SplashLogin extends AppCompatActivity {
         Animation slide = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_up);
         slide.setStartOffset(1950);
         slide.setDuration(250);
+        slide.setInterpolator(SplashLogin.this, android.R.anim.accelerate_decelerate_interpolator);
         slide.setFillAfter(true);
 
         AnimationSet set = new AnimationSet(false);
@@ -263,7 +280,7 @@ public class SplashLogin extends AppCompatActivity {
         Animation fadeInLayout = new AlphaAnimation(0, 1);
         fadeInLayout.setInterpolator(new DecelerateInterpolator()); //add this
         fadeInLayout.setDuration(600);
-        fadeInLayout.setStartOffset(2250);
+        fadeInLayout.setStartOffset(2225);
 
         rlLayout.setAnimation(fadeInLayout);
         proceed.setAnimation(fadeInLayout);

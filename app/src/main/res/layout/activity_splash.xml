@@ -81,7 +81,7 @@
                 android:id="@+id/et_com"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Company"
+                android:hint="COMPANY"
                 android:inputType="textEmailAddress"
                 android:paddingHorizontal="10dp"
                 android:textColor="@color/white" />
@@ -104,7 +104,7 @@
                 android:id="@+id/et_email"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Email Address"
+                android:hint="EMAIL ADDRESS"
                 android:inputType="textEmailAddress"
                 android:paddingHorizontal="10dp"
                 android:textColor="@color/white" />
@@ -127,7 +127,7 @@
                 android:id="@+id/et_driver"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Driver Name"
+                android:hint="DRIVER NAME"
                 android:inputType="text"
                 android:paddingHorizontal="10dp"
                 android:textColor="@color/white" />
@@ -151,7 +151,7 @@
                 android:id="@+id/et_vehicle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Vehicle Number"
+                android:hint="VEHICLE NUMBER"
                 android:inputType="text"
                 android:paddingHorizontal="10dp"
                 android:textColor="@color/white" />
