@@ -19,8 +19,10 @@
 
         <ImageView
             android:id="@+id/iv_splashLogo"
-            android:layout_width="300dp"
+            android:layout_width="0dp"
             android:layout_height="300dp"
+            android:layout_marginStart="18dp"
+            android:layout_marginEnd="18dp"
             android:background="@color/theme"
             android:backgroundTint="@color/theme"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -30,12 +32,37 @@
             app:srcCompat="@drawable/easydelivery_logo" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <Button
+        android:id="@+id/btn_login"
+        android:layout_width="110dp"
+        android:layout_height="60dp"
+        android:layout_below="@+id/rl_main"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="45dp"
+        android:backgroundTint="@color/gold"
+        android:text="Proceed"
+        android:textColor="@color/theme"
+        app:fontFamily="@font/roboto_medium"
+        android:visibility="invisible"/>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyle"
+
+        android:layout_width="110dp"
+        android:layout_height="60dp"
+        android:layout_below="@+id/rl_main"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="45dp"
+        android:theme="@style/progressBarGold"
+        android:visibility="invisible" />
+
     <RelativeLayout
         android:id="@+id/rl_main"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="200dp"
         android:visibility="invisible">
 
 
@@ -53,7 +80,7 @@
                 android:id="@+id/et_com"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="ENTER COMPANY"
+                android:hint="Company"
                 android:inputType="textEmailAddress"
                 android:paddingHorizontal="10dp"
                 android:textColor="@color/white" />
@@ -76,7 +103,7 @@
                 android:id="@+id/et_email"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="ENTER EMAIL"
+                android:hint="Email Address"
                 android:inputType="textEmailAddress"
                 android:paddingHorizontal="10dp"
                 android:textColor="@color/white" />
@@ -99,7 +126,7 @@
                 android:id="@+id/et_driver"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="ENTER DRIVER NAME"
+                android:hint="Driver Name"
                 android:inputType="text"
                 android:paddingHorizontal="10dp"
                 android:textColor="@color/white" />
@@ -123,38 +150,12 @@
                 android:id="@+id/et_vehicle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="ENTER VEHICLE NUMBER"
+                android:hint="Vehicle Number"
                 android:inputType="text"
                 android:paddingHorizontal="10dp"
                 android:textColor="@color/white" />
 
         </com.google.android.material.textfield.TextInputLayout>
-
-
-        <ProgressBar
-            android:id="@+id/progressBar"
-            style="?android:attr/progressBarStyle"
-
-            android:layout_width="110dp"
-            android:layout_height="60dp"
-            android:layout_below="@+id/ll_vehicle"
-            android:layout_centerHorizontal="true"
-            android:layout_marginTop="25dp"
-            android:layout_marginEnd="181dp"
-            android:theme="@style/progressBarGold"
-            android:visibility="invisible" />
-
-        <Button
-            android:id="@+id/btn_login"
-            android:layout_width="110dp"
-            android:layout_height="60dp"
-            android:layout_below="@+id/ll_vehicle"
-            android:layout_centerHorizontal="true"
-            android:layout_marginTop="25dp"
-            android:backgroundTint="@color/gold"
-            android:text="Proceed"
-            android:textColor="@color/theme"
-            app:fontFamily="@font/roboto_medium" />
 
     </RelativeLayout>
 

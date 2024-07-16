@@ -30,19 +30,21 @@
 
     <style name="progressBarGold" parent="@style/Theme.AppCompat">
         <item name="colorAccent">@color/gold</item>
+        <item name="colorPrimary">@color/gold</item>
     </style>
 
     <style name="textInputLogin" parent="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
         <item name="boxStrokeColor">@color/gold</item>
         <item name="hintTextColor">@color/gold</item>
+        <item name="colorAccent">@color/gold</item>
     </style>
 
     <style name="Material" parent="Theme.MaterialComponents.Light.NoActionBar">
         <!-- Customize your theme here. -->
 
-        <item name="colorPrimary">@color/theme</item>
+        <item name="colorPrimary">@color/gold</item>
         <item name="colorPrimaryDark">@color/theme</item>
-        <item name="colorAccent">@color/theme</item>
+        <item name="colorAccent">@color/gold</item>
         <item name="android:windowContentTransitions" tools:ignore="NewApi">true</item>
 
 

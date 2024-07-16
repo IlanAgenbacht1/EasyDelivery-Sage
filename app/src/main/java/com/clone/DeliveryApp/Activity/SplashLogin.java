@@ -19,6 +19,7 @@ import android.view.View;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
+import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.TranslateAnimation;
 import android.view.inputmethod.EditorInfo;
@@ -61,18 +62,15 @@ public class SplashLogin extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
-        company = findViewById(R.id.ll_com);
         etCompany = findViewById(R.id.et_com);
-        email = findViewById(R.id.ll_docu);
         etEmail = findViewById(R.id.et_email);
-        driver = findViewById(R.id.ll_driver);
         etDriver =findViewById(R.id.et_driver);
-        vehicle = findViewById(R.id.ll_vehicle);
         etVehicle = findViewById(R.id.et_vehicle);
         rlLayout = findViewById(R.id.rl_main);
         proceed = findViewById(R.id.btn_login);
         loadingIcon = findViewById(R.id.progressBar);
         ivLogo = findViewById(R.id.iv_splashLogo);
+
 
         Handler handler = new Handler();
 
@@ -234,12 +232,12 @@ public class SplashLogin extends AppCompatActivity {
         ivLogo.setVisibility(View.VISIBLE);
         Animation fadeIn = new AlphaAnimation(0, 1);
         fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
-        fadeIn.setDuration(500);
+        fadeIn.setDuration(1000);
         fadeIn.setStartOffset(500);
 
-        Animation slide = new TranslateAnimation(0, 0, 0, -1000);
-        slide.setStartOffset(2500);
-        slide.setDuration(500);
+        Animation slide = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_up);
+        slide.setStartOffset(1950);
+        slide.setDuration(250);
         slide.setFillAfter(true);
 
         AnimationSet set = new AnimationSet(false);
@@ -252,12 +250,13 @@ public class SplashLogin extends AppCompatActivity {
         rlLayout.setVisibility(View.VISIBLE);
         proceed.setVisibility(View.VISIBLE);
 
-        Animation fadeIn2 = new AlphaAnimation(0, 1);
-        fadeIn2.setInterpolator(new DecelerateInterpolator()); //add this
-        fadeIn2.setDuration(500);
-        fadeIn2.setStartOffset(3500);
+        Animation fadeInLayout = new AlphaAnimation(0, 1);
+        fadeInLayout.setInterpolator(new DecelerateInterpolator()); //add this
+        fadeInLayout.setDuration(600);
+        fadeInLayout.setStartOffset(2250);
 
-        rlLayout.setAnimation(fadeIn2);
+        rlLayout.setAnimation(fadeInLayout);
+        proceed.setAnimation(fadeInLayout);
     }
 
 
