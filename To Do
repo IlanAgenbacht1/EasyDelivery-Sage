@@ -7,4 +7,8 @@ UI
 FUNCTIONALITY
 - Exporting data.
 
-- Add TripDashboard. Display available trips read from dropbox directory for specified customer.
+- Redo or recreate sync service.
+
+- Display parcels in dash layout.
+
+- Barcode scanner.
