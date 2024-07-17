@@ -11,11 +11,13 @@ public class AppConstant {
 
     public static  String DOCUMENT=" ";
     public static  String PARCEL_NO=" ";
+    public static String COMPANY = " ";
     public static  String SIGN_PATH = " ";
     public static  String PIC_PATH = " ";
     public static  String ZOOM = " ";
     public static Location GPS_LOCATION;
     public static String TRIPID;
+    public static String TRIP_NAME;
     public static boolean parcelsValid;
 
     public static ArrayList<Location> gpsList = new ArrayList<>();

@@ -109,8 +109,8 @@ public class DeliveryDb {
 
             String sqlCreateDeliveryTable = "CREATE TABLE " + DELIVERY_TABLE + " (" +
                     KEY_ROWID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    KEY_TRIPID + " TEXT, " +
-                    KEY_DOCUMENT + " TEXT UNIQUE NOT NULL, " +
+                    KEY_TRIPID + " TEXT , " +
+                    KEY_DOCUMENT + " TEXT NOT NULL, " +
                     KEY_CUSTOMER + " TEXT NOT NULL, " +
                     KEY_ADDRESS + " TEXT NOT NULL, " +
                     KEY_CONTACTNAME + " TEXT NOT NULL, " +
@@ -219,11 +219,11 @@ public class DeliveryDb {
 
         if (incompleteDocument) {
 
-            cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE + " WHERE " + KEY_COMPLETED + " = 0;", null);
+            cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE + " WHERE " + KEY_COMPLETED + " = 0" + " AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "'", null);
         }
         else {
 
-            cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE, null);
+            cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE + " WHERE " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "'", null);
         }
 
         int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
@@ -231,8 +231,6 @@ public class DeliveryDb {
         while (cursor != null && cursor.moveToNext()) {
 
             documents.add(cursor.getString(documentIndex));
-
-            Log.i("Document", cursor.getString(documentIndex));
         }
 
         return documents;

@@ -1,7 +1,6 @@
 package com.clone.DeliveryApp.Utility;
 
 import android.content.Context;
-import android.os.Environment;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -14,11 +13,11 @@ import java.io.IOException;
 public class JsonHandler {
 
 
-    private static String ReadFile(Context context) {
+    private static String readFile(Context context) {
 
         StringBuilder jsonString = new StringBuilder();
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(new File(context.getFilesDir(), "trip.json")))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(new File(context.getFilesDir(), AppConstant.TRIP_NAME + ".json")))) {
 
             String line;
 
@@ -35,9 +34,9 @@ public class JsonHandler {
         return jsonString.toString();
     }
 
-    public static JSONObject GetJsonData(Context context) {
+    public static JSONObject getJsonData(Context context) {
 
-        String jsonString = ReadFile(context);
+        String jsonString = readFile(context);
 
         try {
 

@@ -1,6 +1,7 @@
 package com.clone.DeliveryApp.Activity;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -41,13 +42,6 @@ public class DashHeader extends AppCompatActivity {
         database = new DeliveryDb(this);
         database.open();
 
-
-        //display list of trips fetched in Login activity (stored in AppConstant.tripList)
-
-        //onclick, schedule is downloaded
-
-        //ScheduleHelper.downloadSchedule(context, etCompany.getText().toString(), Login.this);
-
         //after downloading, file is moved to InProgress folder in dropbox
 
         for (String document : AppConstant.documentList) {
@@ -80,11 +74,11 @@ public class DashHeader extends AppCompatActivity {
     public void onBackPressed() {
         //super.onBackPressed();
 
-        AlertDialog alertDialog = new AlertDialog.Builder(DashHeader.this).create();
+        AlertDialog alertDialog = new AlertDialog.Builder(DashHeader.this, R.style.AlertDialogStyle).create();
 
-        alertDialog.setTitle("Login");
+        alertDialog.setTitle("Trip Selection");
 
-        alertDialog.setMessage("Return to Login Screen?");
+        alertDialog.setMessage("Return to trip selection screen?");
 
         alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "No",
                 new DialogInterface.OnClickListener() {
@@ -99,7 +93,7 @@ public class DashHeader extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
-                        startActivity(new Intent(DashHeader.this, SplashLogin.class));
+                        startActivity(new Intent(DashHeader.this, TripDash.class));
                         finish();
                     }
                 });

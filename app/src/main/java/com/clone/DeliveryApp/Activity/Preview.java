@@ -190,15 +190,15 @@ public class Preview extends AppCompatActivity {
 
                 updateDatabase();
 
-                email();
+                //email();
 
-                new Handler().postDelayed(new Runnable() {
+                /*new Handler().postDelayed(new Runnable() {
                     @Override
                     public void run() {
 
                         WebUrl();
                     }
-                },2000);
+                },2000);*/
             }
         });
     }

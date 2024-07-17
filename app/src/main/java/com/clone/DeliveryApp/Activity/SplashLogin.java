@@ -35,6 +35,7 @@ import android.widget.Toast;
 
 import com.clone.DeliveryApp.R;
 import com.clone.DeliveryApp.Utility.AppConstant;
+import com.clone.DeliveryApp.Utility.DropboxHelper;
 import com.clone.DeliveryApp.Utility.ScheduleHelper;
 import com.clone.DeliveryApp.Utility.SyncService;
 import com.google.android.material.textfield.TextInputEditText;
@@ -47,7 +48,6 @@ import java.util.regex.Pattern;
 public class SplashLogin extends AppCompatActivity {
 
     private ImageView ivLogo;
-
     private RelativeLayout rlLayout;
     private TextInputLayout company, email, driver, vehicle;
     private TextInputEditText etCompany, etEmail, etDriver, etVehicle;
@@ -91,8 +91,6 @@ public class SplashLogin extends AppCompatActivity {
             //for testing only
 
             etCompany.setText("DEV");
-            etCompany.setFocusable(false);
-            etCompany.setCursorVisible(false);
         }
         if (GetDriver()!=null && GetDriver().length()>0){
 
@@ -140,19 +138,21 @@ public class SplashLogin extends AppCompatActivity {
                     proceed.setVisibility(View.GONE);
                     loadingIcon.setVisibility(View.VISIBLE);
 
-                    Toast.makeText(SplashLogin.this, "Downloading Delivery Schedule...", Toast.LENGTH_LONG).show();
+                    //Toast.makeText(SplashLogin.this, "Downloading Delivery Schedule...", Toast.LENGTH_LONG).show();
 
                     Thread thread = new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            AppConstant.tripList = ScheduleHelper.getTrips(etCompany.getText().toString());
 
-                            ScheduleHelper.downloadSchedule(SplashLogin.this, etCompany.getText().toString(), SplashLogin.this);
+                            AppConstant.COMPANY = etCompany.getText().toString();
+
+                            AppConstant.tripList.clear();
+                            AppConstant.tripList.addAll(DropboxHelper.getTripList(AppConstant.COMPANY));
 
                             Intent startSyncIntent = new Intent(SplashLogin.this, SyncService.class);
                             startService(startSyncIntent);
 
-                            startActivity(new Intent(SplashLogin.this, DashHeader.class));
+                            startActivity(new Intent(SplashLogin.this, TripDash.class));
                             finish();
                         }
                     });

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.clone.DeliveryApp">
+    package="com.clone.DeliveryApp" >
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -24,30 +24,35 @@
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@drawable/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Material">
+        android:theme="@style/Material" >
         <activity
-            android:name="com.clone.DeliveryApp.Activity.DashHeader"
-            android:theme="@style/Theme.MaterialComponents.Light.DarkActionBar"/>
+            android:name=".Activity.TripDash"
+            android:theme="@style/MaterialActionBar" />
         <activity
-            android:name="com.clone.DeliveryApp.Activity.ZoomView"
+            android:name=".Activity.DashHeader"
+            android:theme="@style/MaterialActionBar" />
+        <activity
+            android:name=".Activity.ZoomView"
             android:theme="@style/Theme.AppCompat.customPopUp" />
         <activity
-            android:name="com.clone.DeliveryApp.Activity.Preview"
-            android:theme="@style/Theme.MaterialComponents.DayNight.DarkActionBar"/>
-        <activity android:name="com.clone.DeliveryApp.Activity.SplashLogin"
-            android:theme="@style/Material"
-            android:exported="true">
+            android:name=".Activity.Preview"
+            android:theme="@style/Theme.MaterialComponents.DayNight.DarkActionBar" />
+        <activity
+            android:name=".Activity.SplashLogin"
+            android:exported="true"
+            android:theme="@style/Material" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
-            android:name="com.clone.DeliveryApp.Activity.Dash"
+            android:name=".Activity.Dash"
             android:requestLegacyExternalStorage="true"
             android:theme="@style/Theme.MaterialComponents.DayNight.DarkActionBar"
             android:windowSoftInputMode="stateHidden|adjustPan" />
-        <activity android:name="com.clone.DeliveryApp.MainActivity" />
+        <activity android:name=".MainActivity" />
 
         <meta-data
             android:name="preloaded_fonts"
@@ -57,14 +62,15 @@
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
             android:exported="false"
-            android:grantUriPermissions="true">
+            android:grantUriPermissions="true" >
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <service android:name="com.clone.DeliveryApp.Utility.SyncService"
-            android:foregroundServiceType="location"/>
+        <service
+            android:name=".Utility.SyncService"
+            android:foregroundServiceType="location" />
     </application>
 
 </manifest>

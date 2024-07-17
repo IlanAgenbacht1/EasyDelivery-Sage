@@ -73,23 +73,37 @@ public class SyncService extends IntentService {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
 //        Toast.makeText(this, "Service Started", Toast.LENGTH_LONG).show();
+
         IntentFilter filter = new IntentFilter();
+
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
 
         BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+
                 String action = intent.getAction();
+
                 if (CONNECTIVITY_CHANGE_ACTION.equals(action)) {
+
                     //check internet connection
+
                     if (!ConnectionHelper.isConnectedOrConnecting(context)) {
+
                         if (context != null) {
+
                             boolean show = false;
+
                             if (ConnectionHelper.lastNoConnectionTs == -1) {//first time
+
                                 show = true;
+
                                 ConnectionHelper.lastNoConnectionTs = System.currentTimeMillis();
+
                             } else {
+
                                 if (System.currentTimeMillis() - ConnectionHelper.lastNoConnectionTs > 1000) {
+
                                     show = true;
                                     ConnectionHelper.lastNoConnectionTs = System.currentTimeMillis();
                                 }
@@ -372,7 +386,7 @@ public class SyncService extends IntentService {
                         }
                     });
 
-                    DropboxHelper.DownloadFile(context, companyName);
+                    DropboxHelper.downloadFile(context, companyName, AppConstant.TRIPID);
 
                 } else {
 

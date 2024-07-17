@@ -43,8 +43,7 @@
         android:backgroundTint="@color/gold"
         android:text="Proceed"
         android:textColor="@color/theme"
-        app:fontFamily="@font/roboto_medium"
-        android:visibility="invisible"/>
+        android:visibility="gone"/>
 
     <ProgressBar
         android:id="@+id/progressBar"

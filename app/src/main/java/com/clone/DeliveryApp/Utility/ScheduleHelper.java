@@ -1,6 +1,5 @@
 package com.clone.DeliveryApp.Utility;
 
-import android.app.Activity;
 import android.content.Context;
 import android.location.Location;
 import android.os.Handler;
@@ -20,24 +19,17 @@ import java.util.List;
 
 public class ScheduleHelper {
 
-    public static void downloadSchedule(Context context, String companyName, Activity activity) {
+    public static void getSchedule(Context context, String companyName, String tripNumber) {
 
-        downloadSchedule(context, companyName);
+        downloadSchedule(context, companyName, tripNumber);
         parseAndInsertScheduleData(context);
-    }
-
-    public static ArrayList<String> getTrips(String company) {
-        //read trip files in dropbox (/Customer/CustomerName/) and return list
-        //use AppConstant list
-
-        return null;
     }
 
     private static void parseAndInsertScheduleData(Context context) {
 
         Schedule schedule = new Schedule();
 
-        JSONObject jsonData = JsonHandler.GetJsonData(context);
+        JSONObject jsonData = JsonHandler.getJsonData(context);
 
         if (jsonData != null) {
 
@@ -48,6 +40,7 @@ public class ScheduleHelper {
                 String tripId = jsonData.getString("tripId");
 
                 AppConstant.TRIPID = tripId;
+
                 AppConstant.documentList.clear();
 
                 //Continue parsing and inserting data
@@ -116,11 +109,11 @@ public class ScheduleHelper {
     }
 
 
-    public static void downloadSchedule(Context context, String companyName) {
+    public static void downloadSchedule(Context context, String companyName, String tripNumber) {
 
         if (ConnectionHelper.isInternetConnected()) {
 
-            DropboxHelper.DownloadFile(context, companyName);
+            DropboxHelper.downloadFile(context, companyName, tripNumber);
 
         } else {
 
@@ -174,19 +167,17 @@ public class ScheduleHelper {
 
         List<String> documentList = database.getDocumentList(isIncompleteDocument);
 
-        boolean documentExists = false;
-
         for (int i = 0; i < documentList.size(); i++) {
 
             if (document.equals(documentList.get(i))) {
 
-                documentExists = true;
-
                 Log.i("Document Table", "Document " + document + " already exists.");
+
+                return true;
             }
         }
 
-        return documentExists;
+        return false;
     }
 
 }
