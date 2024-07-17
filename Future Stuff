@@ -9,4 +9,8 @@
 
 - Keep completed documents in header dashboard (can be colored green and set to unclickable). Once all deliveries are done the app will automatically sync. 
   If no internet, driver can trigger it manually once he has an internet connection (If the app doesnt pick up the connection automatically).
+
+- Capturing of data when completely offline. IE no schedule. 
+  - Add/Plus/New button in dash header that appears only when no schedule is found (or the existing schedule is completed) and internet cannot be accessed.
+  - All fields can be edited when capturing parcels. Once completed, data is inserted into a seperate ("CustomDelivery" or "OfflineDelivery") table which can then be validated at a later stage.
  
