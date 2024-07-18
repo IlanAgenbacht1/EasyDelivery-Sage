@@ -106,7 +106,7 @@ public class Preview extends AppCompatActivity {
         tvParcels = findViewById(R.id.tv_parcel);
 
 
-        adapter = new PreviewAdapter(this,AppConstant.parcelList);
+        //adapter = new PreviewAdapter(this,AppConstant.parcelList);
 
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
@@ -181,7 +181,7 @@ public class Preview extends AppCompatActivity {
 
                 for (int i=0; i<AppConstant.parcelList.size(); i++){
 
-                    parcelId.add(AppConstant.parcelList.get(i).getNumber());
+                    //parcelId.add(AppConstant.parcelList.get(i).getNumber());
                 }
 
                 strList = TextUtils.join(" , ",  parcelId);

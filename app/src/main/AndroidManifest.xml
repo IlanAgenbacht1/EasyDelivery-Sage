@@ -50,7 +50,7 @@
         <activity
             android:name=".Activity.Dash"
             android:requestLegacyExternalStorage="true"
-            android:theme="@style/Theme.MaterialComponents.DayNight.DarkActionBar"
+            android:theme="@style/MaterialActionBar"
             android:windowSoftInputMode="stateHidden|adjustPan" />
         <activity android:name=".MainActivity" />
 

@@ -34,7 +34,7 @@
     </style>
 
     <style name="textInputLogin" parent="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-        <item name="boxStrokeColor">@color/gold</item>
+        <item name="boxStrokeColor">@color/parcel_input</item>
         <item name="hintTextColor">@color/gold</item>
         <item name="colorAccent">@color/gold</item>
     </style>

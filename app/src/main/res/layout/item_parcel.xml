@@ -1,85 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="40dp"
     android:layout_marginTop="5dp"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
 
-    <RelativeLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
 
         android:id="@+id/rl_main"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#46D9D8D6"
-      >
+        android:layout_height="wrap_content"
+        android:background="@color/theme"
+        android:padding="2dp">
 
         <TextView
-            android:layout_marginLeft="10dp"
             android:id="@+id/tv_number"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:text="1214651"
-            android:textColor="#1D252C"
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="3dp"
             android:gravity="center"
-            app:fontFamily="@font/roboto_light" />
-
-        <!--        <com.google.android.material.textfield.TextInputLayout-->
-        <!--            android:id="@+id/ll_number"-->
-        <!--            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"-->
-        <!--            android:layout_width="match_parent"-->
-        <!--            android:layout_height="wrap_content"-->
-        <!--            android:textColorHint="@color/theme"-->
-        <!--            app:errorEnabled="true">-->
-
-        <!--            <com.google.android.material.textfield.TextInputEditText-->
-        <!--                android:id="@+id/et_number"-->
-        <!--                android:paddingHorizontal="10dp"-->
-        <!--                android:layout_width="match_parent"-->
-        <!--                android:layout_height="wrap_content"-->
-        <!--                android:inputType="text"-->
-        <!--                android:textColorHint="@color/theme"-->
-        <!--                app:fontFamily="@font/roboto_light"/>-->
-        <!--        </com.google.android.material.textfield.TextInputLayout>-->
-
-        <ImageView
-          android:id="@+id/iv_edit"
-          android:layout_alignParentRight="true"
-          android:layout_width="20dp"
-          android:layout_height="20dp"
-          android:layout_centerVertical="true"
-          android:src="@drawable/edit"
-          android:layout_marginRight="10dp"
-          />
+            android:text="1214651"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
             android:id="@+id/iv_check"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentBottom="true"
-            android:layout_marginTop="9dp"
-            android:layout_marginEnd="9dp"
-            android:layout_marginRight="20dp"
-            android:layout_marginBottom="9dp"
-            android:layout_toStartOf="@+id/iv_edit"
-            android:visibility="gone"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_marginTop="1dp"
+            android:layout_marginBottom="1dp"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@drawable/check" />
 
-        <ImageView
-            android:id="@+id/iv_cross"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentBottom="true"
-            android:layout_marginTop="9dp"
-            android:layout_marginEnd="9dp"
-            android:layout_marginRight="20dp"
-            android:layout_marginBottom="9dp"
-            android:layout_toStartOf="@+id/iv_edit"
-            android:visibility="gone"
-            app:srcCompat="@drawable/cross" />
-
-    </RelativeLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </RelativeLayout>

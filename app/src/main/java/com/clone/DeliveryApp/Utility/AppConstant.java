@@ -25,10 +25,10 @@ public class AppConstant {
     public static ArrayList<String> tripList = new ArrayList<>();
 
     public static ArrayList<String> adapterParcelList = new ArrayList<>();
-    public static ArrayList<ItemParcel> parcelList=new ArrayList<>();
+    public static ArrayList<String> parcelList=new ArrayList<>();
     public static ArrayList<ItemParcel> syncList=new ArrayList<>();
 
     public static String SAVED_DOCUMENT;
-    public static ArrayList<ItemParcel> SAVED_PARCELS = new ArrayList<>();
+    public static ArrayList<String> SAVED_PARCELS = new ArrayList<>();
 
 }
