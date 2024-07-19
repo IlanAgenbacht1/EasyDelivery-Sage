@@ -52,10 +52,4 @@ public class JsonHandler {
         }
     }
 
-    static void WriteJson(Context context, File file) {
-
-
-
-    }
-
 }

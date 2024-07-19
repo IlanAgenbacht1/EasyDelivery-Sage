@@ -21,7 +21,7 @@ public class ScheduleHelper {
 
     public static void getSchedule(Context context, String companyName, String tripNumber) {
 
-        downloadSchedule(context, companyName, tripNumber);
+        //downloadSchedule(context, companyName, tripNumber);
         parseAndInsertScheduleData(context);
     }
 
@@ -109,15 +109,15 @@ public class ScheduleHelper {
     }
 
 
-    public static void downloadSchedule(Context context, String companyName, String tripNumber) {
+    public static void downloadSchedule(Context context, String companyName, String tripName) {
 
-        if (ConnectionHelper.isInternetConnected()) {
 
-            DropboxHelper.downloadFile(context, companyName, tripNumber);
 
-        } else {
+            DropboxHelper.downloadFile(context, companyName, tripName);
 
-            Handler handler2 = new Handler(Looper.getMainLooper());
+
+
+            /*Handler handler2 = new Handler(Looper.getMainLooper());
             handler2.post(new Runnable() {
                 @Override
                 public void run() {
@@ -126,8 +126,8 @@ public class ScheduleHelper {
                 }
             });
 
-            Log.i("Internet", "No internet connection.");
-        }
+            Log.i("Internet", "No internet connection.");*/
+
     }
 
 

@@ -108,7 +108,6 @@ public class Dash extends AppCompatActivity {
 
     String path;
     private static final String IMAGE_DIRECTORY = "/DeliveryApp";
-
     private static final String SiGN_DIRECTORY = "/DeliverySignature";
     private static final String PIC_DIRECTORY = "/DeliveryImages";
 
@@ -130,6 +129,8 @@ public class Dash extends AppCompatActivity {
     DeliveryDb database;
     Schedule schedule;
 
+    int VALIDATION_DISTANCE = 50;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -141,7 +142,6 @@ public class Dash extends AppCompatActivity {
         textViewDocument = findViewById(R.id.tv_dashDocTitle);
         textViewCustomer = findViewById(R.id.tv_dashCustomer);
         textViewTrip = findViewById(R.id.tv_dashTripTitle);
-
 
        // btnFinish = findViewById(R.id.btn_finish);
 
@@ -159,11 +159,8 @@ public class Dash extends AppCompatActivity {
 
         parentLayout = findViewById(android.R.id.content);
 
-        //ivPic = findViewById(R.id.iv_pic);
-
         btnPic = findViewById(R.id.btn_pic);
         btnSign = findViewById(R.id.btn_sign);
-        btnSave = findViewById(R.id.btn_delivery);
 
         listItems = new ArrayList<>();
 
@@ -192,42 +189,90 @@ public class Dash extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                boolean duplicate = false;
+                if (AppConstant.adapterParcelList.size() == schedule.getNumberOfParcels()) {
 
-                for (String item : AppConstant.adapterParcelList) {
+                    if (validation()){
 
-                    if (item.equals(enter_num.getText().toString())) {
+                        AppConstant.PARCEL_NO = String.valueOf(listItems.size());
+                        AppConstant.PIC_PATH = currentPicturePath;
+                        AppConstant.SIGN_PATH = path;
+                        AppConstant.parcelList = listItems;
 
-                        duplicate = true;
-                    }
-                }
+                        // Validate location
+                        AppConstant.GPS_LOCATION = LocationHelper.returnClosestCoordinate(schedule.getLocation(), context);
 
-                if (!duplicate) {
+                        if (LocationHelper.isWithinDistance(schedule.getLocation(), VALIDATION_DISTANCE)) {
 
-                    rl_1.setVisibility(View.VISIBLE);
+                            Toast.makeText(Dash.this, "Location within " + VALIDATION_DISTANCE + "m of " + schedule.getCustomerName(), Toast.LENGTH_LONG).show();
 
-                    int position = 0;
+                            database.close();
 
-                    for (int i = 0; i < listItems.size(); i++) {
+                            startActivity(new Intent(Dash.this, Preview.class));
 
-                        if (enter_num.getText().toString().equals(listItems.get(i))) {
+                        } else {
 
-                            position = i;
+                            AlertDialog alertDialog = new AlertDialog.Builder(Dash.this).create();
+
+                            alertDialog.setTitle("Location Mismatch");
+
+                            alertDialog.setMessage("Your current location is more than " + VALIDATION_DISTANCE + "m from " + schedule.getCustomerName() + ".");
+
+                            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Continue",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+
+                                        dialog.dismiss();
+
+                                        database.close();
+
+                                        startActivity(new Intent(Dash.this, Preview.class));
+                                    }
+                                });
+
+                            alertDialog.show();
                         }
                     }
 
-                    adapter.validateParcel(position, enter_num.getText().toString());
+                } else {
 
-                    enter_num.setText("");
+                    boolean duplicate = false;
 
-                    if (AppConstant.adapterParcelList.size() == schedule.getNumberOfParcels()) {
+                    for (String item : AppConstant.adapterParcelList) {
 
-                        btn_next.setEnabled(false);
+                        if (item.equals(enter_num.getText().toString())) {
 
-                        enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                        enter_num.setHint("PARCELS VALID");
-                        enter_num.setFocusable(false);
-                        enter_num.setCursorVisible(false);
+                            duplicate = true;
+                        }
+                    }
+
+                    if (!duplicate) {
+
+                        rl_1.setVisibility(View.VISIBLE);
+
+                        int position = 0;
+
+                        for (int i = 0; i < listItems.size(); i++) {
+
+                            if (enter_num.getText().toString().equals(listItems.get(i))) {
+
+                                position = i;
+                            }
+                        }
+
+                        adapter.validateParcel(position, enter_num.getText().toString());
+
+                        enter_num.setText("");
+
+                        if (AppConstant.adapterParcelList.size() == schedule.getNumberOfParcels()) {
+
+                            btn_next.setTextColor(getResources().getColor(R.color.black, null));
+                            btn_next.setText("Complete Delivery");
+
+                            enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                            enter_num.setHint("PARCELS VALID");
+                            enter_num.setFocusable(false);
+                            enter_num.setCursorVisible(false);
+                        }
                     }
                 }
             }
@@ -238,18 +283,19 @@ public class Dash extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                  if (isDataValid() && listItems.size()>0 && textViewDocument.getText().length()>0){
-                      ViewDialog alert = new ViewDialog();
-                      alert.showDialog(Dash.this);
-                  }else {
+                if (listItems.size()>0 && textViewDocument.getText().length()>0){
 
-                      String text="Enter All Parcel Details";
-                      SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
-                      biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
-                      Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
+                    ViewDialog alert = new ViewDialog();
+                    alert.showDialog(Dash.this);
+                }else {
 
-                      //Toast.makeText(context, "Enter All Parcel Details", Toast.LENGTH_LONG).show();
-                  }
+                    String text="Enter All Parcel Details";
+                    SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
+                    biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
+                    Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
+
+                    //Toast.makeText(context, "Enter All Parcel Details", Toast.LENGTH_LONG).show();
+                }
             }
         });
 
@@ -257,7 +303,8 @@ public class Dash extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                if (isDataValid() && listItems.size()>0){
+                if (listItems.size()>0){
+
                     if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
                         file = null;
                         long tsLong = System.currentTimeMillis() / 1000;
@@ -279,6 +326,7 @@ public class Dash extends AppCompatActivity {
                         img_URI = "" + Uri.fromFile(file);
                         startActivityForResult(intent,REQUEST_CAPTURE);
                     }
+
                 }else {
                     String text="Enter All Parcel Details";
                     SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
@@ -290,66 +338,13 @@ public class Dash extends AppCompatActivity {
             }
         });
 
-
-        btnSave.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                if (validation()){
-
-                    isDataValid();
-
-                    AppConstant.PARCEL_NO = String.valueOf(listItems.size());
-                    AppConstant.PIC_PATH = currentPicturePath;
-                    AppConstant.SIGN_PATH = path;
-                    AppConstant.parcelList = listItems;
-
-                    // Validate location
-                    AppConstant.GPS_LOCATION = LocationHelper.returnClosestCoordinate(schedule.getLocation(), context);
-
-                    int validationDistance = 50;
-
-                    if (LocationHelper.isWithinDistance(schedule.getLocation(), validationDistance)) {
-
-                        Toast.makeText(Dash.this, "Location within " + validationDistance + "m of " + schedule.getCustomerName(), Toast.LENGTH_LONG).show();
-
-                        database.close();
-
-                        startActivity(new Intent(Dash.this,Preview.class));
-
-                    } else {
-
-                        AlertDialog alertDialog = new AlertDialog.Builder(Dash.this).create();
-
-                        alertDialog.setTitle("Location Mismatch");
-
-                        alertDialog.setMessage("Your current location is more than " + validationDistance + "m from " + schedule.getCustomerName() + ".");
-
-                        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Continue",
-                                new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog, int which) {
-
-                                        dialog.dismiss();
-
-                                        database.close();
-
-                                        startActivity(new Intent(Dash.this,Preview.class));
-                                    }
-                                });
-
-                        alertDialog.show();
-                    }
-                }
-            }
-        });
-
         getAndDisplayData();
     }
 
 
     public void getAndDisplayData() {
 
-        if (AppConstant.SAVED_DOCUMENT != null && AppConstant.SAVED_DOCUMENT.equals(AppConstant.DOCUMENT)) {
+        /*if (AppConstant.SAVED_DOCUMENT != null && AppConstant.SAVED_DOCUMENT.equals(AppConstant.DOCUMENT)) {
 
             textViewDocument.setText(AppConstant.SAVED_DOCUMENT);
 
@@ -377,7 +372,19 @@ public class Dash extends AppCompatActivity {
             listItems.addAll(schedule.getParcelNumbers());
 
             adapter.notifyDataSetChanged();
-        }
+        }*/
+
+        textViewDocument.setText(AppConstant.DOCUMENT);
+
+        setScheduleData(AppConstant.DOCUMENT);
+
+        textViewCustomer.setText(schedule.getCustomerName());
+
+        textViewTrip.setText(AppConstant.TRIP_NAME);
+
+        listItems.addAll(schedule.getParcelNumbers());
+
+        adapter.notifyDataSetChanged();
     }
 
 
@@ -389,26 +396,6 @@ public class Dash extends AppCompatActivity {
         }
 
         schedule = database.getScheduleData(document);
-    }
-
-
-    public boolean isDataValid(){
-
-        for(int i = 0; i < listItems.size(); i++){
-
-            String data = listItems.get(i);
-
-            if(data == null || data.equalsIgnoreCase("")){
-
-                Log.d(TAG, "isDataValid: "+data);
-                adapter.notifyItemChanged(i);
-
-                return false;
-            }
-        }
-
-        return true;
-        //do something here as all data is valid
     }
 
 
@@ -427,7 +414,7 @@ public class Dash extends AppCompatActivity {
 
               //  Toast.makeText(context, "Enter Document Number", Toast.LENGTH_LONG).show();
             }
-            else if (!(isDataValid() && listItems.size()>0)){
+            else if (!(listItems.size()>0)){
 
                 String text="Enter All Parcel Details";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
@@ -549,9 +536,6 @@ public class Dash extends AppCompatActivity {
                     dialog.dismiss();
                     rlTick1.setVisibility(View.VISIBLE);
                     isSign = true;
-                    btnPic.setTextColor(getResources().getColor(android.R.color.white));
-                    btnPic.setBackgroundColor(getResources().getColor(R.color.button_select));
-
                 }
             });
 
@@ -572,6 +556,7 @@ public class Dash extends AppCompatActivity {
                     public void onSlide(@NonNull View bottomSheet, float slideOffset) {
                     }
                 });
+
             } catch (NoSuchFieldException e) {
                 e.printStackTrace();
             } catch (IllegalAccessException e) {
@@ -806,8 +791,6 @@ public class Dash extends AppCompatActivity {
 
             rlTick2.setVisibility(View.VISIBLE);
             isPic = true;
-            btnSave.setTextColor(getResources().getColor(android.R.color.white));
-            btnSave.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.button_select)));
 
             img_isthere = 1;
             imageType = 2;
@@ -853,19 +836,31 @@ public class Dash extends AppCompatActivity {
         }
     }
 
+
+    private SpannableStringBuilder enlargedText (String text) {
+
+        SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
+        biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
+
+        return biggerText;
+    }
+
+
     @Override
     public void onBackPressed() {
         super.onBackPressed();
 
         deleteImageFiles();
 
-        String parcelNumber = listItems.get(0);
+        /*String parcelNumber = listItems.get(0);
 
         if (parcelNumber != null) {
 
             AppConstant.SAVED_DOCUMENT = AppConstant.DOCUMENT;
             AppConstant.SAVED_PARCELS = listItems;
         }
+
+         */
 
         startActivity(new Intent(this, DashHeader.class));
         finish();

@@ -28,13 +28,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder> {
 
-
     private Context context;
     private ArrayList<String> listItems;
     private DeliveryDb database;
     boolean isSubmitClick = false;
     private RecyclerView recyclerView;
-
 
 
     public ParcelAdapter(Context context, ArrayList<String> listItems, DeliveryDb database, RecyclerView recyclerView) {
@@ -61,11 +59,7 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
 
             holder.rl_main.setVisibility(View.VISIBLE);
             holder.etNumber.setText((holder.getAdapterPosition() + 1) + "." + " " + listItems.get(position));
-
-            //validateParcel(holder, null);
         }
-
-
     }
 
     @Override
@@ -112,7 +106,6 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
             rl_main=itemView.findViewById(R.id.rl_main);
         }
     }
-
 }
 
 

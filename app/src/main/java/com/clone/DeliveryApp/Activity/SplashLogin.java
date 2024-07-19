@@ -11,10 +11,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.text.SpannableStringBuilder;
 import android.text.style.RelativeSizeSpan;
-import android.util.Log;
 import android.util.Patterns;
 import android.view.KeyEvent;
 import android.view.View;
@@ -22,9 +20,7 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.AnimationUtils;
-import android.view.animation.BounceInterpolator;
 import android.view.animation.DecelerateInterpolator;
-import android.view.animation.TranslateAnimation;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -36,7 +32,6 @@ import android.widget.Toast;
 import com.clone.DeliveryApp.R;
 import com.clone.DeliveryApp.Utility.AppConstant;
 import com.clone.DeliveryApp.Utility.DropboxHelper;
-import com.clone.DeliveryApp.Utility.ScheduleHelper;
 import com.clone.DeliveryApp.Utility.SyncService;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -74,8 +69,6 @@ public class SplashLogin extends AppCompatActivity {
         loadingIcon = findViewById(R.id.progressBar);
         ivLogo = findViewById(R.id.iv_splashLogo);
 
-
-        Handler handler = new Handler();
 
         if (!checkAndRequestPermissions()) {
 
@@ -146,8 +139,7 @@ public class SplashLogin extends AppCompatActivity {
 
                             AppConstant.COMPANY = etCompany.getText().toString();
 
-                            AppConstant.tripList.clear();
-                            AppConstant.tripList.addAll(DropboxHelper.getTripList(AppConstant.COMPANY));
+                            DropboxHelper.downloadAllFiles(SplashLogin.this, AppConstant.COMPANY);
 
                             Intent startSyncIntent = new Intent(SplashLogin.this, SyncService.class);
                             startService(startSyncIntent);

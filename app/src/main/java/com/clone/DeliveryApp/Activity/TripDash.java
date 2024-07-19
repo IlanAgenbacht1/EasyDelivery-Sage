@@ -45,19 +45,22 @@ public class TripDash extends AppCompatActivity {
 
         tripList = new ArrayList<>();
 
-        if (AppConstant.tripList != null) {
+        for (String item : getFilesDir().list()) {
 
-            tripList.addAll(AppConstant.tripList);
+            if (item.contains(".json")) {
+
+                tripList.add(item.substring(0, item.length() - 5));
+            }
         }
 
         adapter = new TripAdapter(this, tripList, new TripAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(String tripName) {
 
-                recyclerView.setFocusable(false);
+                //recyclerView.setFocusable(false);
 
-                logo.setVisibility(View.INVISIBLE);
-                loadingIcon.setVisibility(View.VISIBLE);
+                //logo.setVisibility(View.INVISIBLE);
+                //loadingIcon.setVisibility(View.VISIBLE);
 
                 Thread thread = new Thread(new Runnable() {
                     @Override

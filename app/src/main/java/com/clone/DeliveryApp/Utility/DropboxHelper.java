@@ -1,10 +1,7 @@
 package com.clone.DeliveryApp.Utility;
 
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
@@ -42,9 +39,7 @@ public class DropboxHelper {
     }
 
 
-    public static ArrayList<String> getTripList(String companyName) {
-
-        ArrayList<String> resultList = new ArrayList<>();
+    public static void downloadAllFiles(Context context, String companyName) {
 
         try {
 
@@ -56,7 +51,9 @@ public class DropboxHelper {
 
                 if (resultString.contains(".json")) {
 
-                    resultList.add(resultString.substring(0, resultString.length() - 5));
+                    downloadFile(context, companyName, resultString);
+
+                    AppConstant.tripList.add(resultString.substring(0, resultString.length() - 5));
                 }
             }
 
@@ -64,38 +61,34 @@ public class DropboxHelper {
 
             e.printStackTrace();
         }
-
-        return resultList;
     }
 
 
-    public static void downloadFile(Context context, String companyName, String tripNumber) {
+    public static void downloadFile(Context context, String companyName, String tripName) {
 
         try {
 
-            try (OutputStream outputStream = new FileOutputStream(new File(context.getFilesDir(), tripNumber + ".json"))) {
+            try (OutputStream outputStream = new FileOutputStream(new File(context.getFilesDir(), tripName))) {
 
                 Log.i("Dropbox", "Download starting...");
 
-                getClient().files().downloadBuilder("/Company/" + companyName + "/" + tripNumber + ".json" ).download(outputStream);
+                getClient().files().downloadBuilder("/Company/" + companyName + "/" + tripName).download(outputStream);
 
                 Log.i("Dropbox", "Download completed.");
-
-                Handler handler = new Handler(Looper.getMainLooper());
             }
 
         } catch (DownloadErrorException e) {
 
             e.printStackTrace();
 
-            Handler handler = new Handler(Looper.getMainLooper());
+            /*Handler handler = new Handler(Looper.getMainLooper());
 
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(context, "Company name not found.", Toast.LENGTH_LONG).show();
+                    //Toast.makeText(context, "Company name not found.", Toast.LENGTH_LONG).show();
                 }
-            });
+            });*/
 
         } catch (DbxException | IOException e) {
             e.printStackTrace();
