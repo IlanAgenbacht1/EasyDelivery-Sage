@@ -1,6 +1,4 @@
 UI
-- Redo dash layout.
-
 - Remove new/exit screen after completing delivery. Return to updated delivery dashboard.
 
 
@@ -8,7 +6,5 @@ FUNCTIONALITY
 - Exporting data.
 
 - Redo or recreate sync service.
-
-- Display parcels in dash layout.
 
 - Barcode scanner.
