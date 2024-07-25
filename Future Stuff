@@ -14,3 +14,5 @@
   - Add/Plus/New button in dash header that appears only when no delivery is found (or the existing delivery is completed) and internet cannot be accessed.
   - All fields can be edited when capturing parcels. Once completed, data is inserted into a seperate ("CustomDelivery" or "OfflineDelivery") table which can then be validated at a later stage.
  
+- Web Based Progress Tracker.
+  - 
