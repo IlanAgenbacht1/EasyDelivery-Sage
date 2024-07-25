@@ -77,7 +77,7 @@ public class TripDash extends AppCompatActivity {
                         ScheduleHelper.getSchedule(TripDash.this, AppConstant.COMPANY, tripName);
 
                         //sendBroadcast(new Intent().setAction("TripStarted"));
-                        sendBroadcast(new Intent().setAction("DeliveryCompleted"));
+                        //sendBroadcast(new Intent().setAction("DeliveryCompleted"));
 
                         startActivity(new Intent(TripDash.this, DashHeader.class));
                         finish();

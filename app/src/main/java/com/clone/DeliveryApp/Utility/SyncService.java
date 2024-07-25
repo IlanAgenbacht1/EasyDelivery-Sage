@@ -152,7 +152,15 @@ public class SyncService extends IntentService {
 
                     case "DeliveryCompleted":
 
-                        syncCompletedDelivery();
+                        Thread threadDocumnetSync = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+
+                                syncCompletedDelivery();
+                            }
+                        });
+
+                        threadDocumnetSync.start();
                         
                         Log.i("SyncService", "Delivery Completed");
                     break;
@@ -202,24 +210,13 @@ public class SyncService extends IntentService {
 
                         JsonHandler.writeDeliveryFile(getApplicationContext(), delivery);
 
-                        Thread thread = new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-
-                                DropboxHelper.uploadCompletedDelivery();
-                            }
-                        });
-
-                        thread.start();
-                        thread.join();
+                        DropboxHelper.uploadCompletedDelivery();
                     }
                 }
             }
 
         } catch (JSONException e) {
 
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
