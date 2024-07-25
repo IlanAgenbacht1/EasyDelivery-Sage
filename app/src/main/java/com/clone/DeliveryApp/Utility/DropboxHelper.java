@@ -7,14 +7,15 @@ import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.v2.DbxClientV2;
-import com.dropbox.core.v2.files.DownloadErrorException;
 import com.dropbox.core.v2.files.ListFolderResult;
+import com.dropbox.core.v2.files.RelocationErrorException;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 
 public class DropboxHelper {
 
@@ -39,26 +40,22 @@ public class DropboxHelper {
     }
 
 
-    public static void downloadAllFiles(Context context, String companyName) {
+    public static void downloadAllTrips(Context context, String companyName) {
 
         try {
 
-            ListFolderResult result = getClient().files().listFolder("/Company/" + companyName + "/");
+            ListFolderResult folders = getClient().files().listFolder("/Company/" + companyName + "/");
 
-            for (int i = 0; i < result.getEntries().size(); i++) {
+            for (int i = 0; i < folders.getEntries().size(); i++) {
 
-                String resultString = result.getEntries().get(i).getName();
+                String resultString = folders.getEntries().get(i).getName();
 
-                if (resultString.contains(".json")) {
+                if (resultString.contains(".json") && !AppConstant.tripList.contains(resultString.substring(0, resultString.length() - 5))) {
 
                     downloadFile(context, companyName, resultString);
-
-                    AppConstant.tripList.add(resultString.substring(0, resultString.length() - 5));
                 }
             }
-
-        } catch(Exception e) {
-
+        } catch (DbxException e) {
             e.printStackTrace();
         }
     }
@@ -68,7 +65,14 @@ public class DropboxHelper {
 
         try {
 
-            try (OutputStream outputStream = new FileOutputStream(new File(context.getFilesDir(), tripName))) {
+            File file = new File(context.getFilesDir() + "/Trip/");
+
+            if (!file.exists()) {
+
+                file.mkdirs();
+            }
+
+            try (OutputStream outputStream = new FileOutputStream(new File(file.getPath(), tripName))) {
 
                 Log.i("Dropbox", "Download starting...");
 
@@ -77,20 +81,99 @@ public class DropboxHelper {
                 Log.i("Dropbox", "Download completed.");
             }
 
-        } catch (DownloadErrorException e) {
+        } catch (DbxException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static void moveFileInProgress() {
+
+        String fromFile = "/Company/" + AppConstant.COMPANY + "/" + SyncConstant.STARTED_TRIP + ".json";
+
+        String toFolder = "/Company/" + AppConstant.COMPANY + "/InProgress/" + SyncConstant.STARTED_TRIP + ".json";
+
+        try {
+
+            getClient().files().moveV2(fromFile, toFolder);
+
+        } catch (RelocationErrorException e) {
+
+            throw new RuntimeException(e);
+        } catch (DbxException e) {
+
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public static void uploadCompletedDelivery() {
+
+        try {
+
+            String path = "/Company/" + AppConstant.COMPANY + "/Completed/" + SyncConstant.TRIP_NAME + "/" + SyncConstant.DOCUMENT + "/" + SyncConstant.DOCUMENT + ".json";
+
+            createUploadFolders();
+
+            try(InputStream inputStream = new FileInputStream(new File(SyncConstant.DOCUMENT_FILE_PATH))) {
+
+                getClient().files().uploadBuilder(path).uploadAndFinish(inputStream);
+            }
+
+        } catch (Exception e) {
 
             e.printStackTrace();
+        }
+    }
 
-            /*Handler handler = new Handler(Looper.getMainLooper());
 
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    //Toast.makeText(context, "Company name not found.", Toast.LENGTH_LONG).show();
+    public static void createUploadFolders() {
+
+        try {
+
+            boolean tripExists = false;
+            boolean documentExists = false;
+
+            String path = "/Company/" + AppConstant.COMPANY + "/Completed/" ;
+
+            ListFolderResult folders = getClient().files().listFolder(path);
+
+            for (int i = 0; i < folders.getEntries().size(); i++) {
+
+                String folderName = folders.getEntries().get(i).getName();
+
+                if (folderName.equals(SyncConstant.TRIP_NAME)) {
+
+                    tripExists = true;
                 }
-            });*/
+            }
 
-        } catch (DbxException | IOException e) {
+            if (!tripExists) {
+
+                getClient().files().createFolderV2(path + SyncConstant.TRIP_NAME);
+            }
+
+            path = path + SyncConstant.TRIP_NAME + "/";
+
+            folders = getClient().files().listFolder(path);
+
+            for (int i = 0; i < folders.getEntries().size(); i++) {
+
+                String folderName = folders.getEntries().get(i).getName();
+
+                if (folderName.equals(SyncConstant.DOCUMENT)) {
+
+                    documentExists = true;
+                }
+            }
+
+            if (!documentExists) {
+
+                getClient().files().createFolderV2(path + SyncConstant.DOCUMENT);
+            }
+
+        } catch(Exception e) {
+
             e.printStackTrace();
         }
     }

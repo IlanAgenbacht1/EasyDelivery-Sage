@@ -3,37 +3,32 @@ package com.clone.DeliveryApp.Utility;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.util.Log;
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class ConnectionHelper {
 
-    public static long lastNoConnectionTs = -1;
-    public static boolean isOnline = true;
-
-    public static boolean isConnected(Context context) {
-        ConnectivityManager cm =(ConnectivityManager)  context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-
-        return activeNetwork != null && activeNetwork.isConnected();
-    }
-
-    public static boolean isConnectedOrConnecting(Context context) {
-        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-
-        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
-    }
-
     public static boolean isInternetConnected() {
 
-        try {
+            try {
 
-            String command = "ping -c 1 google.com";
-            return (Runtime.getRuntime().exec(command).waitFor() == 0);
+                HttpURLConnection urlConnection = (HttpURLConnection) (new URL("http://clients3.google.com/generate_204").openConnection());
+                urlConnection.setRequestProperty("User-Agent", "Android");
+                urlConnection.setRequestProperty("Connection", "close");
+                urlConnection.setConnectTimeout(3000);
+                urlConnection.connect();
 
-        } catch (Exception e) {
+                return (urlConnection.getResponseCode() == 204 && urlConnection.getContentLength() == 0);
 
-            return false;
-        }
+            } catch (IOException e) {
+
+                Log.e("Internet", "Error checking internet connection", e);
+            }
+
+        return false;
     }
 
 }

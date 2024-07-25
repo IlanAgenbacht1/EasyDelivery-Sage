@@ -2,18 +2,16 @@ package com.clone.DeliveryApp.Utility;
 
 import android.content.Context;
 import android.location.Location;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.clone.DeliveryApp.Database.DeliveryDb;
-import com.clone.DeliveryApp.Model.Schedule;
+import com.clone.DeliveryApp.Model.Delivery;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,15 +25,15 @@ public class ScheduleHelper {
 
     private static void parseAndInsertScheduleData(Context context) {
 
-        Schedule schedule = new Schedule();
+        Delivery delivery = new Delivery();
 
-        JSONObject jsonData = JsonHandler.getJsonData(context);
+        JSONObject jsonData = JsonHandler.readFile(context);
 
         if (jsonData != null) {
 
             try {
 
-                //Set TripId for this schedule
+                //Set TripId for this delivery
 
                 String tripId = jsonData.getString("tripId");
 
@@ -86,19 +84,19 @@ public class ScheduleHelper {
                         parcelList.add(parcelNumber);
                     }
 
-                    schedule.setDocument(documentNumber);
-                    schedule.setTripId(tripId);
-                    schedule.setCustomerName(customerName);
-                    schedule.setAddress(street + ", " + city + ", " + state + ", " + postalCode + ", " + country);
-                    schedule.setContactName(customerContactName);
-                    schedule.setContactNumber(customerContact);
-                    schedule.setLocation(location);
-                    schedule.setNumberOfParcels(numParcels);
-                    schedule.setCompleted(false);
+                    delivery.setDocument(documentNumber);
+                    delivery.setTripId(tripId);
+                    delivery.setCustomerName(customerName);
+                    delivery.setAddress(street + ", " + city + ", " + state + ", " + postalCode + ", " + country);
+                    delivery.setContactName(customerContactName);
+                    delivery.setContactNumber(customerContact);
+                    delivery.setLocation(location);
+                    delivery.setNumberOfParcels(numParcels);
+                    delivery.setCompleted(false);
 
-                    schedule.setParcelNumbers(parcelList);
+                    delivery.setParcelNumbers(parcelList);
 
-                    insertScheduleData(context, schedule);
+                    insertScheduleData(context, delivery);
                 }
 
             } catch (JSONException e) {
@@ -109,29 +107,7 @@ public class ScheduleHelper {
     }
 
 
-    public static void downloadSchedule(Context context, String companyName, String tripName) {
-
-
-
-            DropboxHelper.downloadFile(context, companyName, tripName);
-
-
-
-            /*Handler handler2 = new Handler(Looper.getMainLooper());
-            handler2.post(new Runnable() {
-                @Override
-                public void run() {
-
-                    Toast.makeText(context, "Connection failed. Continuing offline.", Toast.LENGTH_LONG).show();
-                }
-            });
-
-            Log.i("Internet", "No internet connection.");*/
-
-    }
-
-
-    private static void insertScheduleData(Context context, Schedule schedule) {
+    private static void insertScheduleData(Context context, Delivery delivery) {
 
         try {
             DeliveryDb database = new DeliveryDb(context);
@@ -140,15 +116,15 @@ public class ScheduleHelper {
 
             //Check if document exists first.
 
-            if (!documentExists(database, schedule.getDocument(), false)) {
+            if (!documentExists(database, delivery.getDocument(), false)) {
 
-                database.createScheduleEntry(schedule);
+                database.createScheduleEntry(delivery);
 
                 Log.i("Document Table", "Document inserted.");
 
-                for (String parcel : schedule.getParcelNumbers()) {
+                for (String parcel : delivery.getParcelNumbers()) {
 
-                    database.createParcelEntry(parcel, schedule.getDocument(), schedule.getTripId());
+                    database.createParcelEntry(parcel, delivery.getDocument(), delivery.getTripId());
 
                     Log.i("Parcel Table", "Parcel inserted.");
                 }
@@ -179,5 +155,21 @@ public class ScheduleHelper {
 
         return false;
     }
+
+
+    public static void getLocalTrips(Context context) {
+
+        File file = new File(context.getFilesDir() + "/Trip/");
+
+        for (String item : file.list()) {
+
+            if (!AppConstant.tripList.contains(item.substring(0, item.length() - 5))) {
+
+                AppConstant.tripList.add(item.substring(0, item.length() - 5));
+            }
+        }
+
+    }
+
 
 }

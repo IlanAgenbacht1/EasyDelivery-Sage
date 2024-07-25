@@ -5,37 +5,22 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.res.ColorStateList;
-import android.database.Cursor;
+import android.database.SQLException;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.drawable.ColorDrawable;
-import android.media.ExifInterface;
-import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
-import android.text.Editable;
-import android.text.Layout;
 import android.text.SpannableStringBuilder;
-import android.text.TextUtils;
-import android.text.TextWatcher;
 import android.text.style.RelativeSizeSpan;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
-import android.view.inputmethod.EditorInfo;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -51,26 +36,23 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.clone.DeliveryApp.Adapter.ParcelAdapter;
 //import com.clone.DeliveryApp.BuildConfig;
 import com.clone.DeliveryApp.Database.DeliveryDb;
-import com.clone.DeliveryApp.Model.ItemParcel;
-import com.clone.DeliveryApp.Model.Schedule;
+import com.clone.DeliveryApp.Model.Delivery;
 import com.clone.DeliveryApp.R;
 import com.clone.DeliveryApp.Utility.AppConstant;
+import com.clone.DeliveryApp.Utility.ImageHelper;
 import com.clone.DeliveryApp.Utility.LocationHelper;
-import com.clone.DeliveryApp.Utility.ScheduleHelper;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.textfield.TextInputLayout;
 import com.kyanogen.signatureview.SignatureView;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class Dash extends AppCompatActivity {
 
@@ -89,7 +71,7 @@ public class Dash extends AppCompatActivity {
 
     private ArrayList<String> spinnerList;
 
-    private ArrayList<String> listItems;
+    private ArrayList<String> adapterList;
 
     private ParcelAdapter adapter;
 
@@ -116,20 +98,23 @@ public class Dash extends AppCompatActivity {
     private int imageType = 0;
     private Uri ImagefileUri;
     String currentPicturePath;
+    String tempPicturePath;
     public int img_isthere = 0;
     public static final int REQUEST_CAPTURE = 7;
     File file;
     String img_URI;
 
-    private boolean isSign=false,isPic=false;
+    private boolean isSign=false,isPic=false, deliveryStarted;
     private RelativeLayout rlTick1,rlTick2;
     private TextInputLayout ll_number;
     String signImagePath;
     private EditText enter_num;
     DeliveryDb database;
-    Schedule schedule;
+    Delivery deliveryData;
 
     int VALIDATION_DISTANCE = 50;
+
+    public static Dash activity;
 
 
     @Override
@@ -162,18 +147,18 @@ public class Dash extends AppCompatActivity {
         btnPic = findViewById(R.id.btn_pic);
         btnSign = findViewById(R.id.btn_sign);
 
-        listItems = new ArrayList<>();
+        adapterList = new ArrayList<>();
 
         database = new DeliveryDb(context).open();
 
-        adapter = new ParcelAdapter(this, listItems, database, recyclerView);
+        adapter = new ParcelAdapter(this, adapterList, database, recyclerView);
 
         linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
 
         recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(adapter);
 
-        if (recyclerView.getChildCount() == listItems.size()){
+        if (recyclerView.getChildCount() == adapterList.size()){
 
             linearLayoutManager.setStackFromEnd(true);
         }
@@ -182,64 +167,32 @@ public class Dash extends AppCompatActivity {
             linearLayoutManager.setStackFromEnd(false);
         }
 
-        AppConstant.adapterParcelList.clear();
+        AppConstant.validatedParcels.clear();
 
 
         btn_next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                if (AppConstant.adapterParcelList.size() == schedule.getNumberOfParcels()) {
+                String input = enter_num.getText().toString();
+
+                if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
 
                     if (validation()){
 
-                        AppConstant.PARCEL_NO = String.valueOf(listItems.size());
-                        AppConstant.PIC_PATH = currentPicturePath;
-                        AppConstant.SIGN_PATH = path;
-                        AppConstant.parcelList = listItems;
+                        AppConstant.PARCEL_NO = String.valueOf(adapterList.size());
 
-                        // Validate location
-                        AppConstant.GPS_LOCATION = LocationHelper.returnClosestCoordinate(schedule.getLocation(), context);
+                        startActivity(new Intent(Dash.this, Preview.class));
 
-                        if (LocationHelper.isWithinDistance(schedule.getLocation(), VALIDATION_DISTANCE)) {
-
-                            Toast.makeText(Dash.this, "Location within " + VALIDATION_DISTANCE + "m of " + schedule.getCustomerName(), Toast.LENGTH_LONG).show();
-
-                            database.close();
-
-                            startActivity(new Intent(Dash.this, Preview.class));
-
-                        } else {
-
-                            AlertDialog alertDialog = new AlertDialog.Builder(Dash.this).create();
-
-                            alertDialog.setTitle("Location Mismatch");
-
-                            alertDialog.setMessage("Your current location is more than " + VALIDATION_DISTANCE + "m from " + schedule.getCustomerName() + ".");
-
-                            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Continue",
-                                new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog, int which) {
-
-                                        dialog.dismiss();
-
-                                        database.close();
-
-                                        startActivity(new Intent(Dash.this, Preview.class));
-                                    }
-                                });
-
-                            alertDialog.show();
-                        }
                     }
 
                 } else {
 
                     boolean duplicate = false;
 
-                    for (String item : AppConstant.adapterParcelList) {
+                    for (String item : AppConstant.validatedParcels) {
 
-                        if (item.equals(enter_num.getText().toString())) {
+                        if (item.equals(input)) {
 
                             duplicate = true;
                         }
@@ -251,27 +204,35 @@ public class Dash extends AppCompatActivity {
 
                         int position = 0;
 
-                        for (int i = 0; i < listItems.size(); i++) {
+                        for (int i = 0; i < adapterList.size(); i++) {
 
-                            if (enter_num.getText().toString().equals(listItems.get(i))) {
+                            if (input.equals(adapterList.get(i))) {
 
                                 position = i;
                             }
                         }
 
-                        adapter.validateParcel(position, enter_num.getText().toString());
+                        if (adapter.validParcel(position, input, deliveryData)) {
 
-                        enter_num.setText("");
+                            if (!AppConstant.deliveryStarted) {
 
-                        if (AppConstant.adapterParcelList.size() == schedule.getNumberOfParcels()) {
+                                sendBroadcast(new Intent().setAction("DeliveryStarted"));
 
-                            btn_next.setTextColor(getResources().getColor(R.color.black, null));
-                            btn_next.setText("Complete Delivery");
+                                AppConstant.deliveryStarted = true;
+                            }
 
-                            enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                            enter_num.setHint("PARCELS VALID");
-                            enter_num.setFocusable(false);
-                            enter_num.setCursorVisible(false);
+                            enter_num.setText("");
+
+                            if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
+
+                                btn_next.setTextColor(getResources().getColor(R.color.black, null));
+                                btn_next.setText("Complete Delivery");
+
+                                enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                                enter_num.setHint("PARCELS VALID");
+                                enter_num.setFocusable(false);
+                                enter_num.setCursorVisible(false);
+                            }
                         }
                     }
                 }
@@ -283,10 +244,11 @@ public class Dash extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                if (listItems.size()>0 && textViewDocument.getText().length()>0){
+                if (adapterList.size() > 0 && textViewDocument.getText().length() > 0){
 
                     ViewDialog alert = new ViewDialog();
                     alert.showDialog(Dash.this);
+
                 }else {
 
                     String text="Enter All Parcel Details";
@@ -299,31 +261,50 @@ public class Dash extends AppCompatActivity {
             }
         });
 
+
         btnPic.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                if (listItems.size()>0){
+                if (adapterList.size()>0){
 
                     if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
+
                         file = null;
                         long tsLong = System.currentTimeMillis() / 1000;
 
                         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                        file = new File(getFilesDir(), "Pic" + tsLong + ".jpg");
+                        file = new File(getFilesDir() + IMAGE_DIRECTORY + "/DeliveryImage/");
+
+                        if (!file.exists()) {
+
+                            file.mkdirs();
+                        }
+
+                        file = new File(file, tsLong + ".jpg");
                         img_URI = "file:" + file.getAbsolutePath();
                         intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(Dash.this,
                             "com.clone.DeliveryApp" + ".provider",
                             file));
 
                         startActivityForResult(intent,REQUEST_CAPTURE);
+
                     }else {
+
                         file = null;
                         long tsLong = System.currentTimeMillis() / 1000;
                         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                        file = new File(getFilesDir(), "Pic" + tsLong + ".jpg");
+                        file = new File(getFilesDir() + IMAGE_DIRECTORY + "/DeliveryImage/");
+
+                        if (!file.exists()) {
+
+                            file.mkdirs();
+                        }
+
+                        file = new File(file,  tsLong + ".jpg");
                         intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
                         img_URI = "" + Uri.fromFile(file);
+
                         startActivityForResult(intent,REQUEST_CAPTURE);
                     }
 
@@ -339,50 +320,21 @@ public class Dash extends AppCompatActivity {
         });
 
         getAndDisplayData();
+        validateLocation();
     }
 
 
     public void getAndDisplayData() {
 
-        /*if (AppConstant.SAVED_DOCUMENT != null && AppConstant.SAVED_DOCUMENT.equals(AppConstant.DOCUMENT)) {
-
-            textViewDocument.setText(AppConstant.SAVED_DOCUMENT);
-
-            setScheduleData(AppConstant.SAVED_DOCUMENT);
-
-            listItems.clear();
-
-            for (int i = 0; i < AppConstant.SAVED_PARCELS.size(); i++) {
-
-                //listItems.add(AppConstant.SAVED_PARCELS.get(i));
-            }
-
-            adapter.notifyDataSetChanged();
-        }
-        else {
-
-            textViewDocument.setText(AppConstant.DOCUMENT);
-
-            setScheduleData(AppConstant.DOCUMENT);
-
-            textViewCustomer.setText(schedule.getCustomerName());
-
-            textViewTrip.setText(AppConstant.TRIP_NAME);
-
-            listItems.addAll(schedule.getParcelNumbers());
-
-            adapter.notifyDataSetChanged();
-        }*/
-
         textViewDocument.setText(AppConstant.DOCUMENT);
 
         setScheduleData(AppConstant.DOCUMENT);
 
-        textViewCustomer.setText(schedule.getCustomerName());
+        textViewCustomer.setText(deliveryData.getCustomerName());
 
         textViewTrip.setText(AppConstant.TRIP_NAME);
 
-        listItems.addAll(schedule.getParcelNumbers());
+        adapterList.addAll(deliveryData.getParcelNumbers());
 
         adapter.notifyDataSetChanged();
     }
@@ -395,7 +347,44 @@ public class Dash extends AppCompatActivity {
             database.open();
         }
 
-        schedule = database.getScheduleData(document);
+        deliveryData = database.getDeliveryData(document);
+    }
+
+
+    public void validateLocation() {
+
+        AppConstant.GPS_LOCATION = LocationHelper.returnClosestCoordinate(deliveryData.getLocation(), context);
+
+        if (!LocationHelper.isWithinDistance(deliveryData.getLocation(), VALIDATION_DISTANCE)) {
+
+            AlertDialog alertDialog = new AlertDialog.Builder(Dash.this, R.style.AlertDialogStyle).create();
+
+            alertDialog.setTitle("Location Mismatch");
+
+            alertDialog.setMessage("Your current location is more than " + VALIDATION_DISTANCE + "m from " + deliveryData.getCustomerName() + ". Return to delivery selection?");
+
+            alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Return",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+
+                            startActivity(new Intent(Dash.this, DashHeader.class));
+                            finish();
+                        }
+                    }
+            );
+
+            alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Continue Delivery",
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+
+                            dialog.dismiss();
+                        }
+                    }
+            );
+
+            alertDialog.show();
+        }
     }
 
 
@@ -414,7 +403,7 @@ public class Dash extends AppCompatActivity {
 
               //  Toast.makeText(context, "Enter Document Number", Toast.LENGTH_LONG).show();
             }
-            else if (!(listItems.size()>0)){
+            else if (!(adapterList.size()>0)){
 
                 String text="Enter All Parcel Details";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
@@ -463,20 +452,20 @@ public class Dash extends AppCompatActivity {
 
             List<String> inputParcels = new ArrayList<>();
 
-            for (String parcel : schedule.getParcelNumbers()) {
+            for (String parcel : deliveryData.getParcelNumbers()) {
 
-                for (int i = 0; i < listItems.size(); i++) {
+                for (int i = 0; i < adapterList.size(); i++) {
 
-                    String inputParcel = listItems.get(i);
+                    String inputParcel = adapterList.get(i);
 
                     if (parcel.equals(inputParcel)) {
 
-                        inputParcels.add(listItems.get(i));
+                        inputParcels.add(adapterList.get(i));
                     }
                 }
             }
 
-            if (inputParcels.size() != listItems.size()) {
+            if (inputParcels.size() != adapterList.size()) {
 
                 Toast.makeText(this, "Invalid parcel number!", Toast.LENGTH_LONG).show();
 
@@ -489,6 +478,22 @@ public class Dash extends AppCompatActivity {
         }
 
         return bool;
+    }
+
+
+    private void updateDatabase() {
+
+        try{
+            SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyyyy - HHmmss", Locale.getDefault());
+
+            String date = dateFormat.format(new Date());
+
+            database.setDocumentCompleted(AppConstant.DOCUMENT, AppConstant.PIC_PATH, AppConstant.SIGN_PATH, date, context);
+
+        } catch(SQLException e){
+
+            e.printStackTrace();
+        }
     }
 
 
@@ -532,7 +537,8 @@ public class Dash extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     bitmap = signatureView.getSignatureBitmap();
-                    path = saveImage(bitmap);
+                    path = ImageHelper.saveImage(Dash.this, bitmap, IMAGE_DIRECTORY, SiGN_DIRECTORY);
+                    AppConstant.SIGN_PATH = path;
                     dialog.dismiss();
                     rlTick1.setVisibility(View.VISIBLE);
                     isSign = true;
@@ -568,220 +574,6 @@ public class Dash extends AppCompatActivity {
     }
 
 
-    public String saveImage(Bitmap myBitmap) {
-
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        myBitmap.compress(Bitmap.CompressFormat.JPEG, 90, bytes);
-
-        File wallpaperDirectory = new File(this.getFilesDir() + IMAGE_DIRECTORY + SiGN_DIRECTORY);
-        // have the object build the directory structure, if needed.
-        if (!wallpaperDirectory.exists()) {
-            wallpaperDirectory.mkdirs();
-            Log.d("hhhhh", wallpaperDirectory.toString());
-        }
-
-        try {
-            File f = new File(wallpaperDirectory, Calendar.getInstance()
-                    .getTimeInMillis() + ".jpg");
-            f.createNewFile();
-            FileOutputStream fo = new FileOutputStream(f);
-            fo.write(bytes.toByteArray());
-            MediaScannerConnection.scanFile(Dash.this,
-                    new String[]{f.getPath()},
-                    new String[]{"image/jpeg"}, null);
-            fo.close();
-            Log.d("TAG", "File Saved::--->" + f.getAbsolutePath());
-
-            return f.getAbsolutePath();
-
-        } catch (IOException e1) {
-            e1.printStackTrace();
-        }
-
-        return "";
-    }
-
-
-    public String compressImage(String imageUri) {
-
-        String filePath = getRealPathFromURI(imageUri);
-        Bitmap scaledBitmap = null;
-
-        BitmapFactory.Options options = new BitmapFactory.Options();
-
-//      by setting this field as true, the actual bitmap pixels are not loaded in the memory. Just the bounds are loaded. If
-//      you try the use the bitmap here, you will get null.
-        options.inJustDecodeBounds = true;
-        Bitmap bmp = BitmapFactory.decodeFile(filePath, options);
-
-        int actualHeight = options.outHeight;
-        int actualWidth = options.outWidth;
-
-//      max Height and width values of the compressed image is taken as 816x612
-
-        if (actualHeight != 0 && actualWidth != 0) {
-            float maxHeight = 816.0f;
-            float maxWidth = 612.0f;
-            float imgRatio = actualWidth / actualHeight;
-            float maxRatio = maxWidth / maxHeight;
-
-//      width and height values are set maintaining the aspect ratio of the image
-
-            if (actualHeight > maxHeight || actualWidth > maxWidth) {
-                if (imgRatio < maxRatio) {
-                    imgRatio = maxHeight / actualHeight;
-                    actualWidth = (int) (imgRatio * actualWidth);
-                    actualHeight = (int) maxHeight;
-                } else if (imgRatio > maxRatio) {
-                    imgRatio = maxWidth / actualWidth;
-                    actualHeight = (int) (imgRatio * actualHeight);
-                    actualWidth = (int) maxWidth;
-                } else {
-                    actualHeight = (int) maxHeight;
-                    actualWidth = (int) maxWidth;
-
-                }
-            }
-
-//      setting inSampleSize value allows to load a scaled down version of the original image
-
-            options.inSampleSize = calculateInSampleSize(options, actualWidth, actualHeight);
-
-//      inJustDecodeBounds set to false to load the actual bitmap
-            options.inJustDecodeBounds = false;
-
-//      this options allow android to claim the bitmap memory if it runs low on memory
-            options.inPurgeable = true;
-            options.inInputShareable = true;
-            options.inTempStorage = new byte[16 * 1024];
-
-            try {
-//          load the bitmap from its path
-                bmp = BitmapFactory.decodeFile(filePath, options);
-            } catch (OutOfMemoryError exception) {
-                exception.printStackTrace();
-
-            }
-            try {
-                scaledBitmap = Bitmap.createBitmap(actualWidth, actualHeight, Bitmap.Config.ARGB_8888);
-            } catch (OutOfMemoryError exception) {
-                exception.printStackTrace();
-            }
-
-            float ratioX = actualWidth / (float) options.outWidth;
-            float ratioY = actualHeight / (float) options.outHeight;
-            float middleX = actualWidth / 2.0f;
-            float middleY = actualHeight / 2.0f;
-
-            android.graphics.Matrix scaleMatrix = new android.graphics.Matrix();
-            scaleMatrix.setScale(ratioX, ratioY, middleX, middleY);
-
-            Canvas canvas = new Canvas(scaledBitmap);
-            canvas.setMatrix(scaleMatrix);
-            canvas.drawBitmap(bmp, middleX - bmp.getWidth() / 2, middleY - bmp.getHeight() / 2, new Paint(Paint.FILTER_BITMAP_FLAG));
-
-//      check the rotation of the image and display it properly
-            ExifInterface exif;
-            try {
-                exif = new ExifInterface(filePath);
-
-                int orientation = exif.getAttributeInt(
-                        ExifInterface.TAG_ORIENTATION, 0);
-                Log.d("EXIF", "Exif: " + orientation);
-                android.graphics.Matrix matrix = new android.graphics.Matrix();
-                if (orientation == 6) {
-                    matrix.postRotate(90);
-                    Log.d("EXIF", "Exif: " + orientation);
-                } else if (orientation == 3) {
-                    matrix.postRotate(180);
-                    Log.d("EXIF", "Exif: " + orientation);
-                } else if (orientation == 8) {
-                    matrix.postRotate(270);
-                    Log.d("EXIF", "Exif: " + orientation);
-                }
-                scaledBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0,
-                        scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix,
-                        true);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            FileOutputStream out = null;
-            String filename = getFilename();
-
-            currentPicturePath = filename;
-//            imagePath = getFilename();
-            try {
-                out = new FileOutputStream(filename);
-
-//          write the compressed bitmap at the destination specified by filename.
-                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out);
-
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-
-            return filename;
-
-        } else {
-            return null;
-        }
-    }
-
-
-    private String getRealPathFromURI(String contentURI) {
-
-        Uri contentUri = Uri.parse(contentURI);
-        Cursor cursor = context.getContentResolver().query(contentUri, null, null, null, null);
-        if (cursor == null) {
-
-            return contentUri.getPath();
-        }
-        else {
-
-            cursor.moveToFirst();
-            int index = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
-
-            return cursor.getString(index);
-        }
-    }
-
-
-    public String getFilename() {
-
-        File file = new File(this.getFilesDir().getPath(), IMAGE_DIRECTORY+PIC_DIRECTORY);
-
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-
-        String uriSting = (file.getAbsolutePath() + "/" + System.currentTimeMillis() + ".jpg");
-
-        return uriSting;
-    }
-
-
-    public int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
-
-        final int height = options.outHeight;
-        final int width = options.outWidth;
-        int inSampleSize = 1;
-
-        if (height > reqHeight || width > reqWidth) {
-            final int heightRatio = Math.round((float) height / (float) reqHeight);
-            final int widthRatio = Math.round((float) width / (float) reqWidth);
-            inSampleSize = heightRatio < widthRatio ? heightRatio : widthRatio;
-        }
-        final float totalPixels = width * height;
-        final float totalReqPixelsCap = reqWidth * reqHeight * 2;
-        while (totalPixels / (inSampleSize * inSampleSize) > totalReqPixelsCap) {
-            inSampleSize++;
-        }
-
-        return inSampleSize;
-    }
-
-
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -804,20 +596,24 @@ public class Dash extends AppCompatActivity {
 //            alert.showDialog(Dash.this);
 //
 //            ivPic.setImageBitmap(BitmapFactory.decodeFile(compressImage(img_URI)));
-            String CompressPath = compressImage(img_URI);
+            String CompressPath = ImageHelper.compressImage(Dash.this, img_URI, IMAGE_DIRECTORY, SiGN_DIRECTORY);
 
             signImagePath = CompressPath;
 
 //            picBite=getBytes(BitmapFactory.decodeFile(CompressPath));
 
             ImagefileUri = Uri.parse(CompressPath);
+
+            file.delete();
         }
     }
 
-    public void deleteImageFiles() {
-        if (currentPicturePath != null) {
 
-            File pictureFile = new File(currentPicturePath);
+    public void deleteImageFiles() {
+
+        if (AppConstant.PIC_PATH != null) {
+
+            File pictureFile = new File(AppConstant.PIC_PATH);
 
             if (pictureFile.exists()) {
 
@@ -825,9 +621,9 @@ public class Dash extends AppCompatActivity {
             }
         }
 
-        if (path != null) {
+        if (AppConstant.SIGN_PATH != null) {
 
-            File signFile = new File(path);
+            File signFile = new File(AppConstant.SIGN_PATH);
 
             if (signFile.exists()) {
 
@@ -851,16 +647,6 @@ public class Dash extends AppCompatActivity {
         super.onBackPressed();
 
         deleteImageFiles();
-
-        /*String parcelNumber = listItems.get(0);
-
-        if (parcelNumber != null) {
-
-            AppConstant.SAVED_DOCUMENT = AppConstant.DOCUMENT;
-            AppConstant.SAVED_PARCELS = listItems;
-        }
-
-         */
 
         startActivity(new Intent(this, DashHeader.class));
         finish();

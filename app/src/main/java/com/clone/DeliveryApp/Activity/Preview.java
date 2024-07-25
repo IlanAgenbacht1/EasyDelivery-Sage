@@ -5,7 +5,6 @@ import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.os.Handler;
 import android.text.TextUtils;
 import android.view.Window;
 import android.widget.RelativeLayout;
@@ -37,7 +36,6 @@ import com.clone.DeliveryApp.Adapter.PreviewAdapter;
 import com.clone.DeliveryApp.Database.DeliveryDb;
 import com.clone.DeliveryApp.Model.ItemParcel;
 import com.clone.DeliveryApp.R;
-import com.clone.DeliveryApp.Service.mAsyncTaskGet;
 import com.clone.DeliveryApp.Utility.AppConstant;
 import com.clone.DeliveryApp.WebService.mServiceUrl;
 import com.clone.DeliveryApp.WebService.mWebService;
@@ -106,7 +104,7 @@ public class Preview extends AppCompatActivity {
         tvParcels = findViewById(R.id.tv_parcel);
 
 
-        //adapter = new PreviewAdapter(this,AppConstant.parcelList);
+        adapter = new PreviewAdapter(this, AppConstant.validatedParcels);
 
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
@@ -177,20 +175,15 @@ public class Preview extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                parcelId = new ArrayList<>();
-
-                for (int i=0; i<AppConstant.parcelList.size(); i++){
-
-                    //parcelId.add(AppConstant.parcelList.get(i).getNumber());
-                }
-
-                strList = TextUtils.join(" , ",  parcelId);
-                strList = strList.replaceAll("\\s","");;
+                strList = TextUtils.join(", ",  AppConstant.validatedParcels);
+                strList = strList.replaceAll("\\s"," ");
                 System.out.println(strList);
 
                 updateDatabase();
 
-                //email();
+                email();
+
+                sendBroadcast(new Intent().setAction("DeliveryCompleted"));
 
                 /*new Handler().postDelayed(new Runnable() {
                     @Override
@@ -238,18 +231,7 @@ public class Preview extends AppCompatActivity {
 
             String date = dateFormat.format(new Date());
 
-            db.setDocumentCompleted(itemParcel.getDocu(), imageFile, signatureFile, date);
-
-            List<String> documents = db.getDocumentList(false);
-
-            /*for (int i = 0; i < documents.size(); i++) {
-
-                if (!itemParcel.getDocu().equals(documents.get(i))) {
-
-                    db.createDocuEntry(itemParcel);
-                    db.createParcelEntry(parcelString,tvDocu.getText().toString(), null);
-                }
-            }*/
+            db.setDocumentCompleted(itemParcel.getDocu(), imageFile, signatureFile, date, this);
 
             db.close();
 
@@ -262,46 +244,6 @@ public class Preview extends AppCompatActivity {
             e.printStackTrace();
         }
 
-    }
-
-
-    private void WebUrl() {
-
-        String mUrl = "";
-
-        mUrl = Uri.parse(mServiceUrl.BaseURL+"Document="+tvDocu.getText().toString()+
-                "&User="+tvDriver.getText().toString()+"&Vehicle="+tvVehicle.getText().toString()+
-                "&Parcels="+strList.trim()+"&Company="+tvCompany.getText().toString()+
-                "&DeliveryDateTime="+currentDate)
-                .buildUpon()
-                .toString();
-
-        if (new mWebService().checkInternetConnection(this)) {
-            new mAsyncTaskGet(this, mUrl,  new mAsyncTaskGet.AsyncResponse() {
-                @Override
-                public void processFinish(String output) {
-                    try {
-
-
-
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                    }
-                }
-            }, false).execute();
-
-
-//            email();
-
-
-            ViewDialog alert = new ViewDialog();
-            alert.showDialog(Preview.this);
-
-
-        } else {
-
-            Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
-        }
     }
 
 
@@ -326,8 +268,6 @@ public class Preview extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
 
-                    dialog.dismiss();
-
                     AppConstant.DOCUMENT = null;
 
                     startActivity(new Intent(Preview.this, DashHeader.class));
@@ -340,10 +280,7 @@ public class Preview extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
 
-                    dialog.dismiss();
-
                     finishAffinity();
-
                 }
             });
 
@@ -380,7 +317,7 @@ public class Preview extends AppCompatActivity {
                         .append("<p><b>"+"10. Parcel Photograph: "+result1 +"(See Attached File)"+"</b></p>")
 
                     .append("<p><b>"+"Warm Regards, "+"</b></p>")
-                    .append("<p><b>"+"Team DeliveryApp"+"</b></p>")
+                    .append("<p><b>"+"EasyDelivery Team"+"</b></p>")
 
                     .toString())
         );
@@ -405,6 +342,7 @@ public class Preview extends AppCompatActivity {
         } catch (ActivityNotFoundException ex){
             Toast.makeText(Preview.this, ex.getMessage(), Toast.LENGTH_SHORT).show();
         }
+
     }
 
     public String GetCompany() {

@@ -18,9 +18,9 @@ public class PreviewAdapter extends RecyclerView.Adapter<PreviewAdapter.ViewHold
 
 
     private Context context;
-    private ArrayList<ItemParcel> listItems;
+    private ArrayList<String> listItems;
 
-    public PreviewAdapter(Context context, ArrayList<ItemParcel> listItems) {
+    public PreviewAdapter(Context context, ArrayList<String> listItems) {
         this.context = context;
         this.listItems = listItems;
     }
@@ -39,7 +39,7 @@ public class PreviewAdapter extends RecyclerView.Adapter<PreviewAdapter.ViewHold
 
 
         holder.tvTitle.setText(""+String.valueOf(position+1)+": ");
-        holder.tvNumber.setText(listItems.get(position).getNumber());
+        holder.tvNumber.setText(listItems.get(position));
 
     }
 

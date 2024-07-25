@@ -503,7 +503,7 @@
             android:textSize="12sp"
             android:backgroundTint="@color/darkgray"
             android:layout_marginLeft="15dp"
-            android:textColor="#ffffff"
+            android:textColor="@color/gold"
             android:fontFamily="@font/roboto_medium"
             android:layout_centerVertical="true"
             android:layout_marginRight="25dp"
@@ -525,7 +525,7 @@
           android:fontFamily="@font/roboto_medium"
           android:gravity="center"
           android:text="Confirm and Send Email"
-          android:textColor="#ffffff"
+          android:textColor="@color/gold"
           android:textSize="12sp" />
 
     </RelativeLayout>

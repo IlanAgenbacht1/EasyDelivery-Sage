@@ -1,7 +1,6 @@
 package com.clone.DeliveryApp.Activity;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -13,7 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.clone.DeliveryApp.Adapter.HeaderAdapter;
 import com.clone.DeliveryApp.Database.DeliveryDb;
-import com.clone.DeliveryApp.Model.Schedule;
+import com.clone.DeliveryApp.Model.Delivery;
 import com.clone.DeliveryApp.R;
 import com.clone.DeliveryApp.Utility.AppConstant;
 import com.clone.DeliveryApp.Utility.ScheduleHelper;
@@ -25,7 +24,7 @@ public class DashHeader extends AppCompatActivity {
 
     RecyclerView recyclerView;
     HeaderAdapter adapter;
-    List<Schedule> deliveryList;
+    List<Delivery> deliveryList;
     DeliveryDb database;
 
     @Override
@@ -48,17 +47,36 @@ public class DashHeader extends AppCompatActivity {
 
             if (ScheduleHelper.documentExists(database, document, true)) {
 
-                Schedule schedule = database.getScheduleData(document);
+                Delivery delivery = database.getDeliveryData(document);
 
-                deliveryList.add(schedule);
+                deliveryList.add(delivery);
             }
+        }
+
+        if (deliveryList == null || deliveryList.isEmpty()) {
+
+            AlertDialog alertDialog = new AlertDialog.Builder(DashHeader.this, R.style.AlertDialogStyle).create();
+            alertDialog.setTitle("Deliveries Completed!");
+            alertDialog.setMessage("Returning to trip selection...");
+            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Ok", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                    AppConstant.completedTrips.add(AppConstant.TRIP_NAME);
+
+                    startActivity(new Intent(DashHeader.this, TripDash.class));
+                    finish();
+                }
+            });
+
+            alertDialog.show();
         }
 
         adapter = new HeaderAdapter(deliveryList, new HeaderAdapter.OnItemClickListener() {
             @Override
-            public void onItemClick(Schedule schedule) {
+            public void onItemClick(Delivery delivery) {
 
-                AppConstant.DOCUMENT = schedule.getDocument();
+                AppConstant.DOCUMENT = delivery.getDocument();
 
                 startActivity(new Intent(DashHeader.this, Dash.class));
 

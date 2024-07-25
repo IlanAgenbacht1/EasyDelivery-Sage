@@ -8,25 +8,23 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.clone.DeliveryApp.Model.Schedule;
+import com.clone.DeliveryApp.Model.Delivery;
 import com.clone.DeliveryApp.R;
 import com.clone.DeliveryApp.Utility.AppConstant;
 
 import java.util.List;
 
-import okhttp3.internal.http2.Header;
-
 public class HeaderAdapter extends RecyclerView.Adapter<HeaderAdapter.CustomerViewHolder> {
 
-    private List<Schedule> documents;
+    private List<Delivery> documents;
     private OnItemClickListener listener;
     private ImageView imageViewExclamation;
 
     public interface OnItemClickListener {
-        void onItemClick(Schedule schedule);
+        void onItemClick(Delivery delivery);
     }
 
-    public HeaderAdapter(List<Schedule> documents, OnItemClickListener listener) {
+    public HeaderAdapter(List<Delivery> documents, OnItemClickListener listener) {
         this.documents = documents;
         this.listener = listener;
     }
@@ -41,8 +39,8 @@ public class HeaderAdapter extends RecyclerView.Adapter<HeaderAdapter.CustomerVi
 
     @Override
     public void onBindViewHolder(@NonNull CustomerViewHolder holder, int position) {
-        Schedule schedule = documents.get(position);
-        holder.bind(schedule, listener);
+        Delivery delivery = documents.get(position);
+        holder.bind(delivery, listener);
     }
 
     @Override
@@ -64,12 +62,12 @@ public class HeaderAdapter extends RecyclerView.Adapter<HeaderAdapter.CustomerVi
             imageViewExclamation = itemView.findViewById(R.id.iv_exclamation);
         }
 
-        public void bind(final Schedule schedule, final OnItemClickListener listener) {
-            documentNumberTextView.setText(schedule.getDocument());
-            customerNameTextView.setText(schedule.getCustomerName());
-            customerAddressTextView.setText(schedule.getAddress());
+        public void bind(final Delivery delivery, final OnItemClickListener listener) {
+            documentNumberTextView.setText(delivery.getDocument());
+            customerNameTextView.setText(delivery.getCustomerName());
+            customerAddressTextView.setText(delivery.getAddress());
 
-            if (AppConstant.SAVED_DOCUMENT != null && AppConstant.SAVED_DOCUMENT.equals(schedule.getDocument())) {
+            if (AppConstant.SAVED_DOCUMENT != null && AppConstant.SAVED_DOCUMENT.equals(delivery.getDocument())) {
 
                 imageViewExclamation.setVisibility(View.VISIBLE);
                 itemView.setBackgroundResource(R.drawable.dash_border_red);
@@ -84,7 +82,7 @@ public class HeaderAdapter extends RecyclerView.Adapter<HeaderAdapter.CustomerVi
                 @Override
                 public void onClick(View v) {
 
-                    listener.onItemClick(schedule);
+                    listener.onItemClick(delivery);
                 }
             });
         }

@@ -36,7 +36,7 @@
             android:theme="@style/Theme.AppCompat.customPopUp" />
         <activity
             android:name=".Activity.Preview"
-            android:theme="@style/Theme.MaterialComponents.DayNight.DarkActionBar" />
+            android:theme="@style/MaterialActionBar" />
         <activity
             android:name=".Activity.SplashLogin"
             android:exported="true"
@@ -69,8 +69,7 @@
         </provider>
 
         <service
-            android:name=".Utility.SyncService"
-            android:foregroundServiceType="location" />
+            android:name=".Utility.SyncService" />
     </application>
 
 </manifest>

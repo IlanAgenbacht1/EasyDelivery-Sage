@@ -1,21 +1,14 @@
 package com.clone.DeliveryApp.Adapter;
 
-import android.app.Dialog;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.clone.DeliveryApp.Database.DeliveryDb;
-import com.clone.DeliveryApp.Model.ItemParcel;
-import com.clone.DeliveryApp.Model.Schedule;
+import com.clone.DeliveryApp.Model.Delivery;
 import com.clone.DeliveryApp.R;
 
 import com.clone.DeliveryApp.Utility.AppConstant;
@@ -68,26 +61,25 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
     }
 
 
-    public void validateParcel(int position, String parcelInput) {
+    public boolean validParcel(int position, String parcelInput, Delivery delivery) {
+
+        boolean valid = false;
 
         ViewHolder holder = (ViewHolder) recyclerView.findViewHolderForAdapterPosition(position);
 
-        if (!database.isOpen()) {
-
-            database.open();
-        }
-
-        Schedule schedule = database.getScheduleData(AppConstant.DOCUMENT);
-
-        for (String parcel : schedule.getParcelNumbers()) {
+        for (String parcel : delivery.getParcelNumbers()) {
 
             if (parcelInput.equals(parcel)) {
 
                 holder.iv_check.setVisibility(View.VISIBLE);
 
-                AppConstant.adapterParcelList.add(parcel);
+                AppConstant.validatedParcels.add(parcel);
+
+                valid = true;
             }
         }
+
+        return valid;
     }
 
 

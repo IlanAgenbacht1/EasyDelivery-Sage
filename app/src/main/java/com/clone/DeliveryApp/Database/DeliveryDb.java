@@ -2,29 +2,21 @@ package com.clone.DeliveryApp.Database;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.location.Location;
-import android.os.Build;
-import android.os.Environment;
 import android.util.Log;
-import android.widget.Toast;
 
+import com.clone.DeliveryApp.Model.Delivery;
 import com.clone.DeliveryApp.Model.ItemParcel;
-import com.clone.DeliveryApp.Model.Schedule;
 import com.clone.DeliveryApp.Utility.AppConstant;
+import com.clone.DeliveryApp.Utility.SyncConstant;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
-
-import androidx.annotation.RequiresApi;
 
 public class DeliveryDb {
 
@@ -161,21 +153,21 @@ public class DeliveryDb {
     }
 
 
-    public long createScheduleEntry(Schedule schedule) {
+    public long createScheduleEntry(Delivery delivery) {
         ContentValues cv = new ContentValues();
 
-        cv.put(KEY_TRIPID, schedule.getTripId());
-        cv.put(KEY_DOCUMENT, schedule.getDocument());
-        cv.put(KEY_CUSTOMER, schedule.getCustomerName());
-        cv.put(KEY_CONTACTNAME, schedule.getContactName());
-        cv.put(KEY_CONTACTNUMBER, schedule.getContactNumber());
-        cv.put(KEY_ADDRESS, schedule.getAddress());
-        cv.put(KEY_PARCELS, schedule.getNumberOfParcels());
-        cv.put(KEY_LATITUDE, schedule.getLocation().getLatitude());
-        cv.put(KEY_LONGITUDE, schedule.getLocation().getLongitude());
+        cv.put(KEY_TRIPID, delivery.getTripId());
+        cv.put(KEY_DOCUMENT, delivery.getDocument());
+        cv.put(KEY_CUSTOMER, delivery.getCustomerName());
+        cv.put(KEY_CONTACTNAME, delivery.getContactName());
+        cv.put(KEY_CONTACTNUMBER, delivery.getContactNumber());
+        cv.put(KEY_ADDRESS, delivery.getAddress());
+        cv.put(KEY_PARCELS, delivery.getNumberOfParcels());
+        cv.put(KEY_LATITUDE, delivery.getLocation().getLatitude());
+        cv.put(KEY_LONGITUDE, delivery.getLocation().getLongitude());
         cv.put(KEY_CAPTUREDLATITUDE, "NULL");
         cv.put(KEY_CAPTUREDLONGITUDE, "NULL");
-        cv.put(KEY_COMPLETED, schedule.completed());
+        cv.put(KEY_COMPLETED, delivery.completed());
 
         return ourDatabase.insert(DELIVERY_TABLE, null, cv);
     }
@@ -237,10 +229,10 @@ public class DeliveryDb {
     }
 
 
-    public Schedule getScheduleData(String document) {
+    public Delivery getDeliveryData(String document) {
 
-        //return specified document data from the ScheduleTable that matches the tripId in the current schedule file.
-        //the tripId is how data in the local db is validated against the downloaded schedule.
+        //return specified document data from the ScheduleTable that matches the tripId in the current trip file.
+        //the tripId is how data in the local db is validated against the downloaded delivery.
 
         Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_COMPLETED + " = 0;", null);
 
@@ -253,22 +245,22 @@ public class DeliveryDb {
         int longitudeIndex = cursor.getColumnIndex(KEY_LONGITUDE);
         int parcelsIndex = cursor.getColumnIndex(KEY_PARCELS);
 
-        Schedule schedule = new Schedule();
+        Delivery delivery = new Delivery();
 
         while (cursor.moveToNext()) {
 
-            schedule.setDocument(cursor.getString(documentIndex));
-            schedule.setCustomerName(cursor.getString(customerIndex));
-            schedule.setAddress(cursor.getString(addressIndex));
-            schedule.setContactName(cursor.getString(contactNameIndex));
-            schedule.setContactNumber(cursor.getString(contactNumberIndex));
+            delivery.setDocument(cursor.getString(documentIndex));
+            delivery.setCustomerName(cursor.getString(customerIndex));
+            delivery.setAddress(cursor.getString(addressIndex));
+            delivery.setContactName(cursor.getString(contactNameIndex));
+            delivery.setContactNumber(cursor.getString(contactNumberIndex));
 
             Location location = new Location("");
             location.setLatitude(cursor.getDouble(latitudeIndex));
             location.setLongitude(cursor.getDouble(longitudeIndex));
-            schedule.setLocation(location);
+            delivery.setLocation(location);
 
-            schedule.setNumberOfParcels(cursor.getInt(parcelsIndex));
+            delivery.setNumberOfParcels(cursor.getInt(parcelsIndex));
         }
 
         cursor.close();
@@ -284,205 +276,109 @@ public class DeliveryDb {
             parcels.add(cursor.getString(parcelNumberIndex));
         }
 
-        schedule.setParcelNumbers(parcels);
+        delivery.setParcelNumbers(parcels);
 
-        return schedule;
+        return delivery;
     }
 
-    public void setDocumentCompleted(String document, String imageFile, String signFile, String date) {
+
+    public List<String> getCompletedDocumentList() {
+
+        //return specified document data from the ScheduleTable that matches the tripId in the current trip file.
+        //the tripId is how data in the local db is validated against the downloaded delivery.
+
+        Cursor cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE + " WHERE " + KEY_TRIPID + " = '" + SyncConstant.TRIP_ID + "' AND " + KEY_COMPLETED + " = 1;", null);
+
+        int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
+
+        List<String> documents = new ArrayList<>();
+
+        while (cursor.moveToNext()) {
+
+            documents.add(cursor.getString(documentIndex));
+
+            Log.i("Completed Documents", cursor.getString(documentIndex));
+        }
+
+        cursor.close();
+
+        return documents;
+    }
+
+
+    public Delivery getCompletedParcels(Delivery delivery) {
+
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + PARCEL_TABLE + " WHERE " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_DOCUMENT + " = '" + SyncConstant.DOCUMENT + "'", null);
+
+        int parcelIndex = cursor.getColumnIndex(KEY_PARCEL);
+
+        List<String> parcelList = new ArrayList<>();
+
+        while (cursor.moveToNext()) {
+
+            parcelList.add(cursor.getString(parcelIndex));
+        }
+
+        delivery.setParcelNumbers(parcelList);
+
+        return delivery;
+    }
+
+
+    public Delivery getCompletedDocument() {
+
+        Delivery delivery = new Delivery();
+
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + SyncConstant.DOCUMENT + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_COMPLETED + " = 1;", null);
+
+        int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
+        int customerIndex = cursor.getColumnIndex(KEY_CUSTOMER);
+        int addressIndex = cursor.getColumnIndex(KEY_ADDRESS);
+        int contactNameIndex = cursor.getColumnIndex(KEY_CONTACTNAME);
+        int contactNumberIndex = cursor.getColumnIndex(KEY_CONTACTNUMBER);
+        int latitudeIndex = cursor.getColumnIndex(KEY_CAPTUREDLATITUDE);
+        int longitudeIndex = cursor.getColumnIndex(KEY_CAPTUREDLONGITUDE);
+        int parcelsIndex = cursor.getColumnIndex(KEY_PARCELS);
+        int imageIndex = cursor.getColumnIndex(KEY_PIC);
+        int signIndex = cursor.getColumnIndex(KEY_SIGN);
+        int timeIndex = cursor.getColumnIndex(KEY_TIME);
+
+        while (cursor.moveToNext()) {
+
+            delivery.setDocument(cursor.getString(documentIndex));
+            delivery.setCustomerName(cursor.getString(customerIndex));
+            delivery.setAddress(cursor.getString(addressIndex));
+            delivery.setContactName(cursor.getString(contactNameIndex));
+            delivery.setContactNumber(cursor.getString(contactNumberIndex));
+
+            Location location = new Location("");
+            location.setLongitude(cursor.getDouble(longitudeIndex));
+            location.setLatitude(cursor.getDouble(latitudeIndex));
+
+            delivery.setLocation(location);
+            delivery.setNumberOfParcels(cursor.getInt(parcelsIndex));
+            delivery.setImagePath(cursor.getString(imageIndex));
+            delivery.setSignPath(cursor.getString(signIndex));
+            delivery.setTime(cursor.getString(timeIndex));
+        }
+
+        return  delivery;
+    }
+
+
+    public void setDocumentCompleted(String document, String imageFile, String signFile, String date, Context context) {
         Cursor cursor = ourDatabase.rawQuery("UPDATE " + DELIVERY_TABLE + " SET " + KEY_COMPLETED + " = 1, " + KEY_CAPTUREDLATITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLatitude()) + "', " + KEY_CAPTUREDLONGITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLongitude()) + "', " + KEY_PIC + " = '" + imageFile + "', " + KEY_SIGN + " = '" + signFile + "', " + KEY_TIME + " = '" + date + "' WHERE " + KEY_DOCUMENT + " = '" + document + "';", null);
 
         cursor.moveToFirst();
         cursor.close();
+
+        context.sendBroadcast(new Intent().setAction("DeliveryCompleted"));
     }
 
-
-    public String getDataDocu() {
-
-        String[] columns = new String[]{KEY_ROWID,KEY_DOCUMENT, KEY_SIGN, KEY_PIC, KEY_UNIT,KEY_PARCEL1,KEY_TIME,KEY_DRIVER,
-                KEY_VEHICLE,KEY_COMPANY};
-
-        Cursor cs = ourDatabase.query(DOCUMENT_TABLE, columns, null, null, null, null, null);
-
-        String result = "";
-
-        int rowID = cs.getColumnIndex(KEY_ROWID);
-        int docuID = cs.getColumnIndex(KEY_DOCUMENT);
-        int signID = cs.getColumnIndex(KEY_SIGN);
-        int picID = cs.getColumnIndex(KEY_PIC);
-        int unitID = cs.getColumnIndex(KEY_UNIT);
-        int parcelId = cs.getColumnIndex(KEY_PARCEL1);
-        int timeId = cs.getColumnIndex(KEY_TIME);
-        int driverId = cs.getColumnIndex(KEY_DRIVER);
-        int vehicleId = cs.getColumnIndex(KEY_VEHICLE);
-        int companyId = cs.getColumnIndex(KEY_COMPANY);
-
-        if (cs != null && cs.moveToFirst()) {
-
-            result = result + cs.getString(rowID) + ": " + cs.getString(docuID) + " "
-                    + cs.getString(signID) + "," + cs.getString(picID) + "," +cs.getString(parcelId)+
-                    ","+ cs.getString(unitID) + ","+ cs.getString(timeId) +","+ cs.getString(driverId)+","+ cs.getString(vehicleId)
-                    +","+ cs.getString(companyId)+
-                    "\n";
-        }
-
-        //cs.close();
-        return result;
-    }
-
-
-    public void printTableData(){
-
-        Cursor cur = ourDatabase.rawQuery("SELECT * FROM " + DOCUMENT_TABLE, null);
-
-        if(cur.getCount() != 0){
-            cur.moveToFirst();
-
-            do{
-                String row_values = "";
-
-                for(int i = 0 ; i < cur.getColumnCount(); i++){
-                    row_values = row_values + " || " + cur.getString(i);
-                }
-
-                Log.d("LOG_TAG_HERE", row_values);
-
-            }while (cur.moveToNext());
-        }
-    }
-
-
-    public void printParcelTableData(String document){
-
-        Cursor cur = ourDatabase.rawQuery("SELECT * FROM " + PARCEL_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "';", null);
-
-        if(cur.getCount() != 0){
-            cur.moveToFirst();
-
-            do{
-                String row_values = "";
-
-                for(int i = 0 ; i < cur.getColumnCount(); i++){
-                    row_values = row_values + " || " + cur.getString(i);
-                }
-
-                Log.d("LOG_TAG_HERE", row_values);
-
-            }while (cur.moveToNext());
-        }
-    }
-
-
-    public String getDataParcel() {
-
-        String[] columns = new String[]{KEY_ROWID2,KEY_DOCUMENT2, KEY_PARCEL};
-
-        Cursor cs = ourDatabase.query(PARCEL_TABLE, columns, null, null, null, null, null);
-
-        String result = "";
-
-        int rowID = cs.getColumnIndex(KEY_ROWID2);
-
-        int docuID = cs.getColumnIndex(KEY_DOCUMENT2);
-
-        int parcelID = cs.getColumnIndex(KEY_PARCEL);
-
-        if (cs != null && cs.moveToFirst()) {
-
-            result = result + cs.getString(rowID) + ": " + cs.getString(docuID) + " "
-                    + cs.getString(parcelID) +  "\n";
-        }
-
-        //cs.close();
-        return result;
-    }
-
-
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    public List<ItemParcel> getSyncData() {
-        // array of columns to fetch
-
-        String[] columns = new String[]{KEY_ROWID,KEY_DOCUMENT, KEY_SIGN, KEY_PIC, KEY_UNIT,KEY_PARCEL1,KEY_TIME,KEY_DRIVER,KEY_VEHICLE,KEY_COMPANY};
-
-        Cursor cs= ourDatabase.rawQuery("SELECT * from " + DOCUMENT_TABLE,null );
-
-        int rowID= cs.getColumnIndex(KEY_ROWID);
-
-        int docuID=cs.getColumnIndex(KEY_DOCUMENT);
-
-        int signID=cs.getColumnIndex(KEY_SIGN);
-
-        int picID=cs.getColumnIndex(KEY_PIC);
-
-        int unitID=cs.getColumnIndex(KEY_UNIT);
-
-        int parcelID=cs.getColumnIndex(KEY_PARCEL1);
-
-        int timeID=cs.getColumnIndex(KEY_TIME);
-
-        int driverID=cs.getColumnIndex(KEY_DRIVER);
-
-        int vehicleID=cs.getColumnIndex(KEY_VEHICLE);
-
-        int companyID=cs.getColumnIndex(KEY_COMPANY);
-
-        List<ItemParcel> listItems = new ArrayList<ItemParcel>();
-
-        // Traversing through all rows and adding to list
-        if (cs.moveToFirst()) {
-            do {
-
-                ItemParcel itemParcel = new ItemParcel();
-                itemParcel.setDocu(cs.getString(docuID));
-                itemParcel.setSign(cs.getString(signID));
-                itemParcel.setPic(cs.getString(picID));
-                itemParcel.setUnit(cs.getString(unitID));
-                itemParcel.setParcels(cs.getString(parcelID));
-                itemParcel.setCompany(cs.getString(companyID));
-                itemParcel.setVehicle(cs.getString(vehicleID));
-                itemParcel.setDriver(cs.getString(driverID));
-                itemParcel.setTime(cs.getString(timeID));
-
-                // Adding user record to list
-                listItems.add(itemParcel);
-
-            } while (cs.moveToNext());
-        }
-        cs.close();
-        //db.close();
-
-        // return user list
-        return listItems;
-    }
 
     public long deleteEntryAsRow( String rowId){
 
         return ourDatabase.delete(DOCUMENT_TABLE,KEY_DOCUMENT+"=?",new String[]{rowId});
     }
 
-    private void exportDB(){
-
-        File sd = Environment.getExternalStorageDirectory();
-        File data = Environment.getDataDirectory();
-        FileChannel source=null;
-        FileChannel destination=null;
-        String currentDBPath = "/data/"+ "com.clone.DeliveryApp" +"/databases/"+"DeliverDb";
-        String backupDBPath = "BackupDb";
-        File currentDB = new File(data, currentDBPath);
-        File backupDB = new File(sd, backupDBPath);
-
-        try {
-
-            source = new FileInputStream(currentDB).getChannel();
-            destination = new FileOutputStream(backupDB).getChannel();
-            destination.transferFrom(source, 0, source.size());
-            source.close();
-            destination.close();
-
-            Toast.makeText(ourContext, "DB Exported!", Toast.LENGTH_SHORT).show();
-
-        } catch(IOException e) {
-            e.printStackTrace();
-        }
-    }
 }

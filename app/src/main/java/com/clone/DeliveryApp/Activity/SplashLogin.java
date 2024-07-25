@@ -9,6 +9,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
@@ -32,6 +33,7 @@ import android.widget.Toast;
 import com.clone.DeliveryApp.R;
 import com.clone.DeliveryApp.Utility.AppConstant;
 import com.clone.DeliveryApp.Utility.DropboxHelper;
+import com.clone.DeliveryApp.Utility.LocationHelper;
 import com.clone.DeliveryApp.Utility.SyncService;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -51,9 +53,8 @@ public class SplashLogin extends AppCompatActivity {
 
     int REQUEST_ID_MULTIPLE_PERMISSIONS = 10000;
     boolean isAlradyRequested = false;
-
-
     private static final String TAG = "SplashLogin";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,12 +70,10 @@ public class SplashLogin extends AppCompatActivity {
         loadingIcon = findViewById(R.id.progressBar);
         ivLogo = findViewById(R.id.iv_splashLogo);
 
-
         if (!checkAndRequestPermissions()) {
 
             animateLogo();
         }
-
 
         if (GetCompany()!=null && GetCompany().length()>0){
 
@@ -131,15 +130,13 @@ public class SplashLogin extends AppCompatActivity {
                     proceed.setVisibility(View.GONE);
                     loadingIcon.setVisibility(View.VISIBLE);
 
-                    //Toast.makeText(SplashLogin.this, "Downloading Delivery Schedule...", Toast.LENGTH_LONG).show();
+                    LocationHelper.initialise(SplashLogin.this);
+
+                    AppConstant.COMPANY = etCompany.getText().toString();
 
                     Thread thread = new Thread(new Runnable() {
                         @Override
                         public void run() {
-
-                            AppConstant.COMPANY = etCompany.getText().toString();
-
-                            DropboxHelper.downloadAllFiles(SplashLogin.this, AppConstant.COMPANY);
 
                             Intent startSyncIntent = new Intent(SplashLogin.this, SyncService.class);
                             startService(startSyncIntent);
@@ -174,15 +171,6 @@ public class SplashLogin extends AppCompatActivity {
         });
 
     }
-
-/*    @Override
-    public void onResume() {
-        super.onResume();
-
-        Log.i("OnResume", "onResume called");
-
-        animateLogo();
-    }*/
 
 
     public boolean validation() {

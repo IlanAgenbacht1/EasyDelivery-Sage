@@ -5,31 +5,41 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.clone.DeliveryApp.Adapter.TripAdapter;
 import com.clone.DeliveryApp.R;
 import com.clone.DeliveryApp.Utility.AppConstant;
-import com.clone.DeliveryApp.Utility.DropboxHelper;
 import com.clone.DeliveryApp.Utility.ScheduleHelper;
-import com.clone.DeliveryApp.Utility.SyncService;
 
 import java.util.ArrayList;
 
 public class TripDash extends AppCompatActivity {
 
+    TextView title;
     RecyclerView recyclerView;
     TripAdapter adapter;
     ArrayList<String> tripList;
-
     ProgressBar loadingIcon;
     ImageView logo;
+
+    ConstraintLayout layout;
+    boolean layoutAnimated;
+
+    int count = 1;
+    boolean tripsLoaded;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,28 +49,24 @@ public class TripDash extends AppCompatActivity {
         recyclerView = findViewById(R.id.rv_trip);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        layout = findViewById(R.id.trip_dash_main);
+
+        title = findViewById(R.id.tv_tripSelection);
+
         loadingIcon = findViewById(R.id.progressBarTrip);
 
         logo = findViewById(R.id.iv_logoTrip);
 
         tripList = new ArrayList<>();
 
-        for (String item : getFilesDir().list()) {
-
-            if (item.contains(".json")) {
-
-                tripList.add(item.substring(0, item.length() - 5));
-            }
-        }
-
-        adapter = new TripAdapter(this, tripList, new TripAdapter.OnItemClickListener() {
+        adapter = new TripAdapter(this, AppConstant.tripList, new TripAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(String tripName) {
 
-                //recyclerView.setFocusable(false);
+                recyclerView.setFocusable(false);
 
-                //logo.setVisibility(View.INVISIBLE);
-                //loadingIcon.setVisibility(View.VISIBLE);
+                logo.setVisibility(View.INVISIBLE);
+                loadingIcon.setVisibility(View.VISIBLE);
 
                 Thread thread = new Thread(new Runnable() {
                     @Override
@@ -69,6 +75,9 @@ public class TripDash extends AppCompatActivity {
                         AppConstant.TRIP_NAME = tripName;
 
                         ScheduleHelper.getSchedule(TripDash.this, AppConstant.COMPANY, tripName);
+
+                        //sendBroadcast(new Intent().setAction("TripStarted"));
+                        sendBroadcast(new Intent().setAction("DeliveryCompleted"));
 
                         startActivity(new Intent(TripDash.this, DashHeader.class));
                         finish();
@@ -80,6 +89,53 @@ public class TripDash extends AppCompatActivity {
         });
 
         recyclerView.setAdapter(adapter);
+
+        //sendBroadcast(new Intent().setAction("DeliveryCompleted"));
+
+        loop();
+    }
+
+
+    public void loop() {
+
+        Handler textHandler = new Handler();
+        textHandler.post(new Runnable() {
+            @Override
+            public void run() {
+
+                if (!AppConstant.tripList.isEmpty() && !layoutAnimated) {
+
+                    loadingIcon.setVisibility(View.INVISIBLE);
+                    title.setVisibility(View.INVISIBLE);
+                    recyclerView.setVisibility(View.INVISIBLE);
+
+                    Animation fadeIn = new AlphaAnimation(0, 1);
+                    fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
+                    fadeIn.setDuration(1000);
+                    fadeIn.setStartOffset(250);
+
+                    logo.startAnimation(fadeIn);
+                    recyclerView.startAnimation(fadeIn);
+                    title.startAnimation(fadeIn);
+
+                    title.setText("SELECT A TRIP :");
+
+                    logo.setVisibility(View.VISIBLE);
+                    title.setVisibility(View.VISIBLE);
+                    recyclerView.setVisibility(View.VISIBLE);
+
+                    layoutAnimated = true;
+
+                    textHandler.postDelayed(this, 500);
+
+                } else {
+
+                    adapter.notifyDataSetChanged();
+
+                    textHandler.postDelayed(this, 500);
+                }
+            }
+        });
     }
 
 

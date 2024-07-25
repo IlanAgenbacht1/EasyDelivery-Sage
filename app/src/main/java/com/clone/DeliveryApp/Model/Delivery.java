@@ -4,7 +4,7 @@ import android.location.Location;
 
 import java.util.List;
 
-public class Schedule {
+public class Delivery {
 
     private String tripId;
     private String document;
@@ -19,6 +19,9 @@ public class Schedule {
     private int numberOfParcels;
     private List<String> parcelNumbers;
     private boolean completed;
+    private String time;
+    private String imagePath;
+    private String signPath;
 
     // Getters and setters
 
@@ -48,6 +51,15 @@ public class Schedule {
 
     public List<String> getParcelNumbers() { return parcelNumbers; }
     public void setParcelNumbers(List<String> parcelNumbers) { this.parcelNumbers = parcelNumbers; }
+
+    public String getTime() { return time; }
+    public void setTime(String time) { this.time = time; }
+
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
+    public String getImagePath() { return imagePath; }
+
+    public void setSignPath(String signPath) { this.signPath = signPath; }
+    public String getSignPath() { return  signPath; }
 
     public boolean completed() {
         return completed;
