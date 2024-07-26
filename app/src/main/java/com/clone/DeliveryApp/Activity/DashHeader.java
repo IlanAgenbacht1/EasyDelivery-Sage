@@ -41,8 +41,6 @@ public class DashHeader extends AppCompatActivity {
         database = new DeliveryDb(this);
         database.open();
 
-        //after downloading, file is moved to InProgress folder in dropbox
-
         for (String document : AppConstant.documentList) {
 
             if (ScheduleHelper.documentExists(database, document, true)) {

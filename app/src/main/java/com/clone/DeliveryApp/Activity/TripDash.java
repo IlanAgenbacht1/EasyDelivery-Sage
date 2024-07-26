@@ -38,9 +38,6 @@ public class TripDash extends AppCompatActivity {
     ConstraintLayout layout;
     boolean layoutAnimated;
 
-    int count = 1;
-    boolean tripsLoaded;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,6 +45,7 @@ public class TripDash extends AppCompatActivity {
 
         recyclerView = findViewById(R.id.rv_trip);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setVisibility(View.INVISIBLE);
 
         layout = findViewById(R.id.trip_dash_main);
 
@@ -57,7 +55,7 @@ public class TripDash extends AppCompatActivity {
 
         logo = findViewById(R.id.iv_logoTrip);
 
-        tripList = new ArrayList<>();
+        ScheduleHelper.getLocalTrips(TripDash.this);
 
         adapter = new TripAdapter(this, AppConstant.tripList, new TripAdapter.OnItemClickListener() {
             @Override
@@ -68,29 +66,16 @@ public class TripDash extends AppCompatActivity {
                 logo.setVisibility(View.INVISIBLE);
                 loadingIcon.setVisibility(View.VISIBLE);
 
-                Thread thread = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
+                AppConstant.TRIP_NAME = tripName;
 
-                        AppConstant.TRIP_NAME = tripName;
+                ScheduleHelper.getSchedule(TripDash.this, AppConstant.COMPANY, tripName);
 
-                        ScheduleHelper.getSchedule(TripDash.this, AppConstant.COMPANY, tripName);
-
-                        //sendBroadcast(new Intent().setAction("TripStarted"));
-                        //sendBroadcast(new Intent().setAction("DeliveryCompleted"));
-
-                        startActivity(new Intent(TripDash.this, DashHeader.class));
-                        finish();
-                    }
-                });
-
-                thread.start();
+                startActivity(new Intent(TripDash.this, DashHeader.class));
+                finish();
             }
         });
 
         recyclerView.setAdapter(adapter);
-
-        //sendBroadcast(new Intent().setAction("DeliveryCompleted"));
 
         loop();
     }
@@ -107,7 +92,6 @@ public class TripDash extends AppCompatActivity {
 
                     loadingIcon.setVisibility(View.INVISIBLE);
                     title.setVisibility(View.INVISIBLE);
-                    recyclerView.setVisibility(View.INVISIBLE);
 
                     Animation fadeIn = new AlphaAnimation(0, 1);
                     fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
@@ -129,6 +113,8 @@ public class TripDash extends AppCompatActivity {
                     textHandler.postDelayed(this, 500);
 
                 } else {
+
+                    ScheduleHelper.getLocalTrips(TripDash.this);
 
                     adapter.notifyDataSetChanged();
 

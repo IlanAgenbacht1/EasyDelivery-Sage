@@ -100,11 +100,11 @@ public class LocationHelper {
 
                         final Location[] coord = {null};
 
-                        locationManager.getCurrentLocation(LocationManager.GPS_PROVIDER, null, ContextCompat.getMainExecutor(context), new Consumer<Location>() {
+                        locationManager.getCurrentLocation(LocationManager.NETWORK_PROVIDER, null, ContextCompat.getMainExecutor(context), new Consumer<Location>() {
                             @Override
                             public void accept(Location location) {
 
-                                providerName = "GPS_PROVIDER";
+                                providerName = "NETWORK_PROVIDER";
 
                                 Log.i("LocationFetch", String.valueOf(location.getLatitude()) + " " + String.valueOf(location.getLongitude()));
 
@@ -130,13 +130,15 @@ public class LocationHelper {
                 }
                 else {
 
+                    initialise(context);
+
                     locationManager.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, locationListener, Looper.getMainLooper());
 
                     Location coord = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 
                     Log.i("Location","Using last known location: " + String.valueOf(coord.getLatitude()) + " " + String.valueOf(coord.getLongitude()));
 
-                    providerName = "GPS_PROVIDER";
+                    providerName = "NETWORK_PROVIDER";
 
                     double closestDistance = Double.MAX_VALUE;
 

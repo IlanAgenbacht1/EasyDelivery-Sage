@@ -159,16 +159,24 @@ public class ScheduleHelper {
 
     public static void getLocalTrips(Context context) {
 
-        File file = new File(context.getFilesDir() + "/Trip/");
+        try {
 
-        for (String item : file.list()) {
+            File file = new File(context.getFilesDir() + "/Trip/");
 
-            if (!AppConstant.tripList.contains(item.substring(0, item.length() - 5))) {
+            for (String item : file.list()) {
 
-                AppConstant.tripList.add(item.substring(0, item.length() - 5));
+                String trimmedItem = item.substring(0, item.length() - 5);
+
+                if (!AppConstant.tripList.contains(trimmedItem)) {
+
+                    AppConstant.tripList.add(trimmedItem);
+                }
             }
-        }
 
+        } catch (NullPointerException e) {
+
+            e.printStackTrace();
+        }
     }
 
 

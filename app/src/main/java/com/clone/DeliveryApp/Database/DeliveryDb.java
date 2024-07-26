@@ -282,12 +282,12 @@ public class DeliveryDb {
     }
 
 
-    public List<String> getCompletedDocumentList() {
+    public List<String> getCompletedDocumentList(String tripID) {
 
         //return specified document data from the ScheduleTable that matches the tripId in the current trip file.
         //the tripId is how data in the local db is validated against the downloaded delivery.
 
-        Cursor cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE + " WHERE " + KEY_TRIPID + " = '" + SyncConstant.TRIP_ID + "' AND " + KEY_COMPLETED + " = 1;", null);
+        Cursor cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE + " WHERE " + KEY_TRIPID + " = '" + tripID + "' AND " + KEY_COMPLETED + " = 1;", null);
 
         int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
 
@@ -297,7 +297,7 @@ public class DeliveryDb {
 
             documents.add(cursor.getString(documentIndex));
 
-            Log.i("Completed Documents", cursor.getString(documentIndex));
+            Log.i("Completed Documents", tripID + " : " + cursor.getString(documentIndex));
         }
 
         cursor.close();
@@ -308,7 +308,7 @@ public class DeliveryDb {
 
     public Delivery getCompletedParcels(Delivery delivery) {
 
-        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + PARCEL_TABLE + " WHERE " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_DOCUMENT + " = '" + SyncConstant.DOCUMENT + "'", null);
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + PARCEL_TABLE + " WHERE " + KEY_TRIPID + " = '" + delivery.getTripId() + "' AND " + KEY_DOCUMENT + " = '" + delivery.getDocument() + "'", null);
 
         int parcelIndex = cursor.getColumnIndex(KEY_PARCEL);
 
@@ -325,11 +325,11 @@ public class DeliveryDb {
     }
 
 
-    public Delivery getCompletedDocument() {
+    public Delivery getCompletedDocument(String document, String tripID) {
 
         Delivery delivery = new Delivery();
 
-        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + SyncConstant.DOCUMENT + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_COMPLETED + " = 1;", null);
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + tripID + "' AND " + KEY_COMPLETED + " = 1;", null);
 
         int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
         int customerIndex = cursor.getColumnIndex(KEY_CUSTOMER);
@@ -345,6 +345,7 @@ public class DeliveryDb {
 
         while (cursor.moveToNext()) {
 
+            delivery.setTripId(tripID);
             delivery.setDocument(cursor.getString(documentIndex));
             delivery.setCustomerName(cursor.getString(customerIndex));
             delivery.setAddress(cursor.getString(addressIndex));
@@ -367,7 +368,7 @@ public class DeliveryDb {
 
 
     public void setDocumentCompleted(String document, String imageFile, String signFile, String date, Context context) {
-        Cursor cursor = ourDatabase.rawQuery("UPDATE " + DELIVERY_TABLE + " SET " + KEY_COMPLETED + " = 1, " + KEY_CAPTUREDLATITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLatitude()) + "', " + KEY_CAPTUREDLONGITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLongitude()) + "', " + KEY_PIC + " = '" + imageFile + "', " + KEY_SIGN + " = '" + signFile + "', " + KEY_TIME + " = '" + date + "' WHERE " + KEY_DOCUMENT + " = '" + document + "';", null);
+        Cursor cursor = ourDatabase.rawQuery("UPDATE " + DELIVERY_TABLE + " SET " + KEY_COMPLETED + " = 1, " + KEY_CAPTUREDLATITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLatitude()) + "', " + KEY_CAPTUREDLONGITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLongitude()) + "', " + KEY_PIC + " = '" + imageFile + "', " + KEY_SIGN + " = '" + signFile + "', " + KEY_TIME + " = '" + date + "' WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "';", null);
 
         cursor.moveToFirst();
         cursor.close();

@@ -7,8 +7,10 @@ import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.v2.DbxClientV2;
+import com.dropbox.core.v2.files.ListFolderErrorException;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.files.RelocationErrorException;
+import com.dropbox.core.v2.paper.Cursor;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -107,15 +109,15 @@ public class DropboxHelper {
     }
 
 
-    public static void uploadCompletedDelivery() {
+    public static void uploadCompletedDelivery(String filePath, String tripName, String document) {
 
         try {
 
-            String path = "/Company/" + AppConstant.COMPANY + "/Completed/" + SyncConstant.TRIP_NAME + "/" + SyncConstant.DOCUMENT + "/" + SyncConstant.DOCUMENT + ".json";
+            String path = "/Company/" + AppConstant.COMPANY + "/Completed/" + tripName + "/" + document + "/" + document + ".json";
 
             createUploadFolders();
 
-            try(InputStream inputStream = new FileInputStream(new File(SyncConstant.DOCUMENT_FILE_PATH))) {
+            try(InputStream inputStream = new FileInputStream(new File(filePath))) {
 
                 getClient().files().uploadBuilder(path).uploadAndFinish(inputStream);
             }
@@ -175,6 +177,25 @@ public class DropboxHelper {
         } catch(Exception e) {
 
             e.printStackTrace();
+        }
+    }
+
+
+    public void detectChanges() {
+
+        try {
+
+            ListFolderResult result = getClient().files().listFolder("/Company/" + AppConstant.COMPANY + "/");
+
+            Cursor cursor = new Cursor(result.getCursor());
+
+        } catch (ListFolderErrorException e) {
+
+            throw new RuntimeException(e);
+
+        } catch (DbxException e) {
+
+            throw new RuntimeException(e);
         }
     }
 

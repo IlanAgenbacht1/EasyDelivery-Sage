@@ -16,6 +16,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class SyncService extends IntentService {
 
@@ -50,7 +52,8 @@ public class SyncService extends IntentService {
             unregisterReceiver(receiver);
         }
 
-        if (database.isOpen()) {
+        if (database != null && database.isOpen()) {
+
             database.close();
         }
     }
@@ -63,6 +66,19 @@ public class SyncService extends IntentService {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+
+                DropboxHelper.downloadAllTrips(getApplicationContext(), AppConstant.COMPANY);
+                syncCompletedDelivery();
+
+                Log.i("Timer", "Timer task complete");
+
+            }
+        },60000, 10000);
 
         IntentFilter filter = new IntentFilter();
 
@@ -138,6 +154,7 @@ public class SyncService extends IntentService {
                         thread.start();
 
                         Log.i("SyncService", "Trip Started");
+
                     break;
 
                     case "TripCompleted" :
@@ -152,7 +169,7 @@ public class SyncService extends IntentService {
 
                     case "DeliveryCompleted":
 
-                        Thread threadDocumnetSync = new Thread(new Runnable() {
+                        Thread threadDocumentSync = new Thread(new Runnable() {
                             @Override
                             public void run() {
 
@@ -160,9 +177,10 @@ public class SyncService extends IntentService {
                             }
                         });
 
-                        threadDocumnetSync.start();
+                        threadDocumentSync.start();
                         
                         Log.i("SyncService", "Delivery Completed");
+
                     break;
                 }
             }
@@ -185,16 +203,13 @@ public class SyncService extends IntentService {
 
                 //iterate through current trips stored on the device
 
-                SyncConstant.TRIP_NAME = trip;
-                AppConstant.TRIP_NAME = trip;
+                JSONObject jsonData = JsonHandler.syncReadFile(getApplicationContext(), trip);
 
-                JSONObject jsonData = JsonHandler.readFile(getApplicationContext());
-
-                SyncConstant.TRIP_ID = jsonData.getString("tripId");
+                String tripID = jsonData.getString("tripId");
 
                 //check if there are completed deliveries for this trip
 
-                List<String> documents = database.getCompletedDocumentList();
+                List<String> documents = database.getCompletedDocumentList(tripID);
 
                 if (!documents.isEmpty()) {
 
@@ -202,15 +217,13 @@ public class SyncService extends IntentService {
 
                         //create delivery json and upload to dropbox
 
-                        SyncConstant.DOCUMENT = document;
-
-                        Delivery delivery = database.getCompletedDocument();
+                        Delivery delivery = database.getCompletedDocument(document, tripID);
 
                         delivery = database.getCompletedParcels(delivery);
 
-                        JsonHandler.writeDeliveryFile(getApplicationContext(), delivery);
+                        String filePath = JsonHandler.writeDeliveryFile(getApplicationContext(), delivery);
 
-                        DropboxHelper.uploadCompletedDelivery();
+                        DropboxHelper.uploadCompletedDelivery(filePath, trip, document);
                     }
                 }
             }
