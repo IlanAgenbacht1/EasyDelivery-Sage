@@ -22,6 +22,10 @@ public class DropboxHelper {
     private static String REFRESH_TOKEN = "uTGEl3_OaeEAAAAAAAAAAZVbfJWNL2fdJPvT7lyhrfHjTLGQP9UtIKVotmqrT_96";
     private static String APP_KEY = "s901k3tmrktbc58";
     private static String APP_SECRET = "ddef3k5ox2xsams";
+
+    private static final String CLIENT_PATH = "dropbox/Apps/EasyDelivery";
+    private static final String LOCAL_IMAGE_PATH = "/DeliveryApp/DeliveryImage/";
+    private static final String LOCAL_SIGNATURE_PATH = "/DeliveryApp/DeliverySignature/";
     private static DbxClientV2 dropboxClient;
 
 
@@ -29,7 +33,7 @@ public class DropboxHelper {
 
         if (dropboxClient == null) {
 
-            DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/Apps/EasyDelivery").build();
+            DbxRequestConfig config = DbxRequestConfig.newBuilder(CLIENT_PATH).build();
 
             DbxCredential credential = new DbxCredential("", 0L, REFRESH_TOKEN, APP_KEY, APP_SECRET);
 
@@ -147,9 +151,9 @@ public class DropboxHelper {
 
             String dropboxPath = "/Company/" + AppConstant.COMPANY + "/Completed/" + tripName + "/" + document;
 
-            String localImage = context.getFilesDir() + "/DeliveryApp/DeliveryImage/" + image + ".jpg";
+            String localImage = context.getFilesDir() + LOCAL_IMAGE_PATH + image + ".jpg";
 
-            String localSignature = context.getFilesDir() + "/DeliveryApp/DeliverySignature/" + signature + ".jpg";
+            String localSignature = context.getFilesDir() + LOCAL_SIGNATURE_PATH + signature + ".jpg";
 
             createUploadFolders(tripName, document);
 
