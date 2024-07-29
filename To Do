@@ -6,3 +6,5 @@ FUNCTIONALITY
 - Delivery document syncing. App isn't able to handle partially completed trips when restarting.
 
 - Barcode scanner.
+
+- Add file path constants for both local and dropbox.
