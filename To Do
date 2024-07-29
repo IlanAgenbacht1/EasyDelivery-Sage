@@ -1,10 +1,8 @@
 UI
-- Remove new/exit screen after completing delivery. Return to updated delivery dashboard.
-
 
 FUNCTIONALITY
-- Exporting data.
+- Add emails to SyncService
 
-- Redo or recreate sync service.
+- Delivery document syncing. App isn't able to handle partially completed trips when restarting.
 
 - Barcode scanner.
