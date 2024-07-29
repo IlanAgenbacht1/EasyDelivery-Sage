@@ -182,16 +182,6 @@ public class Preview extends AppCompatActivity {
                 updateDatabase();
 
                 email();
-
-                sendBroadcast(new Intent().setAction("DeliveryCompleted"));
-
-                /*new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        WebUrl();
-                    }
-                },2000);*/
             }
         });
     }
@@ -235,11 +225,16 @@ public class Preview extends AppCompatActivity {
 
             db.close();
 
-            ViewDialog alert = new ViewDialog();
-            alert.showDialog(Preview.this);
+            startActivity(new Intent(Preview.this, DashHeader.class));
+
+            finishAffinity();
+
+            /*alert.showDialog(Preview.this);
+            ViewDialog alert = new ViewDialog();*/
         }
 
         catch(SQLException e){
+
 
             e.printStackTrace();
         }

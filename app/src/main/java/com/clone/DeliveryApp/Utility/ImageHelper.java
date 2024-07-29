@@ -236,4 +236,47 @@ public class ImageHelper {
 
         return inSampleSize;
     }
+
+
+    public static void deleteImageFiles() {
+
+        if (AppConstant.PIC_PATH != null) {
+
+            File pictureFile = new File(AppConstant.PIC_PATH);
+
+            if (pictureFile.exists()) {
+
+                pictureFile.delete();
+            }
+        }
+
+        if (AppConstant.SIGN_PATH != null) {
+
+            File signFile = new File(AppConstant.SIGN_PATH);
+
+            if (signFile.exists()) {
+
+                signFile.delete();
+            }
+        }
+    }
+
+
+    public static void syncDeleteImageFiles(Context context, String imageName, String signName) {
+
+        File imageFile = new File(context.getFilesDir() + "/DeliveryApp/" + "DeliveryImage/", imageName + ".jpg");
+
+        if (imageFile.exists()) {
+
+            imageFile.delete();
+        }
+
+        File signFile = new File(context.getFilesDir() + "/DeliveryApp/" + "DeliverySignature/", signName + ".jpg");
+
+        if (signFile.exists()) {
+
+            signFile.delete();
+        }
+    }
+
 }

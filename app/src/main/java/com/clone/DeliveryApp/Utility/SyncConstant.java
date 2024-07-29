@@ -2,6 +2,7 @@ package com.clone.DeliveryApp.Utility;
 
 public class SyncConstant {
 
+    public static String COMPLETED_TRIP_ID = "";
     public static String STARTED_TRIP = "";
 
     public static String DOCUMENT = "";

@@ -25,7 +25,7 @@ public class JsonHandler {
 
         JSONObject tripData = new JSONObject();
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(new File(context.getFilesDir() + "/Trip/", AppConstant.TRIP_NAME + ".json")))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(new File(context.getFilesDir() + "/Trip/", AppConstant.TRIPID + ".json")))) {
 
             String line;
 

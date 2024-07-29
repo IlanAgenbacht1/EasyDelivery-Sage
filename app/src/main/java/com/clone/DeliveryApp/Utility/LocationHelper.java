@@ -192,9 +192,14 @@ public class LocationHelper {
     }
 
 
-    public static void getLocation(boolean isOnline) {
+    public static void getLocation(boolean isOnline, Context context) {
 
-        locationManager.removeUpdates(locationListener);
+        if (locationManager != null || locationListener != null) {
+
+            locationManager.removeUpdates(locationListener);
+        }
+
+        initialise(context);
 
         startLocationUpdates(isOnline);
     }

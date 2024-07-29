@@ -16,6 +16,7 @@ import com.clone.DeliveryApp.Model.Delivery;
 import com.clone.DeliveryApp.R;
 import com.clone.DeliveryApp.Utility.AppConstant;
 import com.clone.DeliveryApp.Utility.ScheduleHelper;
+import com.clone.DeliveryApp.Utility.SyncConstant;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,14 +54,20 @@ public class DashHeader extends AppCompatActivity {
 
         if (deliveryList == null || deliveryList.isEmpty()) {
 
+            AppConstant.completedTrips.add(AppConstant.TRIPID);
+            SyncConstant.COMPLETED_TRIP_ID = AppConstant.TRIPID;
+            SyncConstant.STARTED_TRIP = "";
+
+            ScheduleHelper.deleteTripFile(getApplicationContext(), AppConstant.TRIPID);
+            AppConstant.tripList.remove(AppConstant.TRIPID);
+
             AlertDialog alertDialog = new AlertDialog.Builder(DashHeader.this, R.style.AlertDialogStyle).create();
             alertDialog.setTitle("Deliveries Completed!");
             alertDialog.setMessage("Returning to trip selection...");
+
             alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Ok", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-
-                    AppConstant.completedTrips.add(AppConstant.TRIP_NAME);
 
                     startActivity(new Intent(DashHeader.this, TripDash.class));
                     finish();
@@ -108,6 +115,9 @@ public class DashHeader extends AppCompatActivity {
                 new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+
+                        SyncConstant.STARTED_TRIP = "";
+                        AppConstant.TRIPID = "";
 
                         startActivity(new Intent(DashHeader.this, TripDash.class));
                         finish();

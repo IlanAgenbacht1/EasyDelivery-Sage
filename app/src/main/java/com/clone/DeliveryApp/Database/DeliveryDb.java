@@ -377,9 +377,15 @@ public class DeliveryDb {
     }
 
 
-    public long deleteEntryAsRow( String rowId){
+    public void deleteCompletedDocument(String document, String trip) {
 
-        return ourDatabase.delete(DOCUMENT_TABLE,KEY_DOCUMENT+"=?",new String[]{rowId});
+        Cursor cursor = ourDatabase.rawQuery("DELETE FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + trip + "';", null);
+        cursor.moveToFirst();
+        cursor.close();
+
+        cursor = ourDatabase.rawQuery("DELETE FROM " + PARCEL_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + trip + "';", null);
+        cursor.moveToFirst();
+        cursor.close();
     }
 
 }

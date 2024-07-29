@@ -130,8 +130,6 @@ public class SplashLogin extends AppCompatActivity {
                     proceed.setVisibility(View.GONE);
                     loadingIcon.setVisibility(View.VISIBLE);
 
-                    LocationHelper.initialise(SplashLogin.this);
-
                     AppConstant.COMPANY = etCompany.getText().toString();
 
                     Thread thread = new Thread(new Runnable() {

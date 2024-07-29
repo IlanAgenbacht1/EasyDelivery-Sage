@@ -16,11 +16,9 @@ public class AppConstant {
     public static  String PIC_PATH = " ";
     public static  String ZOOM = " ";
     public static Location GPS_LOCATION;
-    public static String TRIPID;
-    public static String TRIP_NAME;
+    public static String TRIPID = "";
 
-    public static boolean deliveryStarted;
-    public static boolean tripStarted;
+    public static boolean PARCEL_VALIDATION;
 
     public static ArrayList<Location> gpsList = new ArrayList<>();
     public static ArrayList<String> documentList = new ArrayList<>();

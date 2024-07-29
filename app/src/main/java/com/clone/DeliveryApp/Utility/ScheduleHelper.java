@@ -17,9 +17,8 @@ import java.util.List;
 
 public class ScheduleHelper {
 
-    public static void getSchedule(Context context, String companyName, String tripNumber) {
+    public static void getSchedule(Context context) {
 
-        //downloadSchedule(context, companyName, tripNumber);
         parseAndInsertScheduleData(context);
     }
 
@@ -36,8 +35,6 @@ public class ScheduleHelper {
                 //Set TripId for this delivery
 
                 String tripId = jsonData.getString("tripId");
-
-                AppConstant.TRIPID = tripId;
 
                 AppConstant.documentList.clear();
 
@@ -85,7 +82,7 @@ public class ScheduleHelper {
                     }
 
                     delivery.setDocument(documentNumber);
-                    delivery.setTripId(tripId);
+                    delivery.setTripId(AppConstant.TRIPID);
                     delivery.setCustomerName(customerName);
                     delivery.setAddress(street + ", " + city + ", " + state + ", " + postalCode + ", " + country);
                     delivery.setContactName(customerContactName);
@@ -179,5 +176,19 @@ public class ScheduleHelper {
         }
     }
 
+
+    public static void deleteTripFile(Context context, String tripName) {
+
+        try {
+
+            File file = new File(context.getFilesDir() + "/Trip/", tripName + ".json");
+
+            file.delete();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+    }
 
 }

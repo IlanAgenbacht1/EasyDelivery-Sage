@@ -1,6 +1,7 @@
 package com.clone.DeliveryApp.Adapter;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -53,6 +54,13 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
             holder.rl_main.setVisibility(View.VISIBLE);
             holder.etNumber.setText((holder.getAdapterPosition() + 1) + "." + " " + listItems.get(position));
         }
+
+        if (AppConstant.PARCEL_VALIDATION) {
+
+            holder.iv_check.setVisibility(View.VISIBLE);
+
+            AppConstant.PARCEL_VALIDATION = false;
+        }
     }
 
     @Override
@@ -65,35 +73,21 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
 
         boolean valid = false;
 
-        ViewHolder holder = (ViewHolder) recyclerView.findViewHolderForAdapterPosition(position);
 
-        for (String parcel : delivery.getParcelNumbers()) {
-
-            if (parcelInput.equals(parcel)) {
-
-                holder.iv_check.setVisibility(View.VISIBLE);
-
-                AppConstant.validatedParcels.add(parcel);
-
-                valid = true;
-            }
-        }
 
         return valid;
     }
 
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
+    public static class ViewHolder extends RecyclerView.ViewHolder {
 
         private TextView etNumber;
-        private TextInputLayout ll_number;
-        private ImageView iv_edit, iv_cross, iv_check;
+        private ImageView iv_check;
         private ConstraintLayout rl_main;
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
 
             etNumber = itemView.findViewById(R.id.tv_number);
-            ll_number=itemView.findViewById(R.id.ll_number);
             iv_check = itemView.findViewById(R.id.iv_check);
             rl_main=itemView.findViewById(R.id.rl_main);
         }

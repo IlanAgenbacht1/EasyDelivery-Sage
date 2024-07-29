@@ -158,14 +158,14 @@ public class Dash extends AppCompatActivity {
         recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(adapter);
 
-        if (recyclerView.getChildCount() == adapterList.size()){
+        /*if (recyclerView.getChildCount() == adapterList.size()){
 
             linearLayoutManager.setStackFromEnd(true);
         }
         else{
 
             linearLayoutManager.setStackFromEnd(false);
-        }
+        }*/
 
         AppConstant.validatedParcels.clear();
 
@@ -202,38 +202,35 @@ public class Dash extends AppCompatActivity {
 
                         rl_1.setVisibility(View.VISIBLE);
 
-                        int position = 0;
-
                         for (int i = 0; i < adapterList.size(); i++) {
 
                             if (input.equals(adapterList.get(i))) {
 
-                                position = i;
+                                AppConstant.PARCEL_VALIDATION = true;
+
+                                adapter.notifyItemChanged(i);
+
+                                AppConstant.validatedParcels.add(input);
+
+                                enter_num.setText("");
+
+                                if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
+
+                                    btn_next.setTextColor(getResources().getColor(R.color.black, null));
+                                    btn_next.setText("Complete Delivery");
+
+                                    enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                                    enter_num.setHint("PARCELS VALID");
+                                    enter_num.setFocusable(false);
+                                    enter_num.setCursorVisible(false);
+                                }
                             }
                         }
 
-                        if (adapter.validParcel(position, input, deliveryData)) {
+                        /*if (adapter.validParcel(position, input, deliveryData)) {
 
-                            if (!AppConstant.deliveryStarted) {
 
-                                sendBroadcast(new Intent().setAction("DeliveryStarted"));
-
-                                AppConstant.deliveryStarted = true;
-                            }
-
-                            enter_num.setText("");
-
-                            if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
-
-                                btn_next.setTextColor(getResources().getColor(R.color.black, null));
-                                btn_next.setText("Complete Delivery");
-
-                                enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                                enter_num.setHint("PARCELS VALID");
-                                enter_num.setFocusable(false);
-                                enter_num.setCursorVisible(false);
-                            }
-                        }
+                        }*/
                     }
                 }
             }
@@ -332,7 +329,7 @@ public class Dash extends AppCompatActivity {
 
         textViewCustomer.setText(deliveryData.getCustomerName());
 
-        textViewTrip.setText(AppConstant.TRIP_NAME);
+        textViewTrip.setText(AppConstant.TRIPID);
 
         adapterList.addAll(deliveryData.getParcelNumbers());
 
@@ -579,7 +576,7 @@ public class Dash extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
 
-        if (resultCode == RESULT_OK && requestCode == REQUEST_CAPTURE ) {
+        if (resultCode == RESULT_OK && requestCode == REQUEST_CAPTURE) {
 
             rlTick2.setVisibility(View.VISIBLE);
             isPic = true;
@@ -609,30 +606,6 @@ public class Dash extends AppCompatActivity {
     }
 
 
-    public void deleteImageFiles() {
-
-        if (AppConstant.PIC_PATH != null) {
-
-            File pictureFile = new File(AppConstant.PIC_PATH);
-
-            if (pictureFile.exists()) {
-
-                pictureFile.delete();
-            }
-        }
-
-        if (AppConstant.SIGN_PATH != null) {
-
-            File signFile = new File(AppConstant.SIGN_PATH);
-
-            if (signFile.exists()) {
-
-                signFile.delete();
-            }
-        }
-    }
-
-
     private SpannableStringBuilder enlargedText (String text) {
 
         SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
@@ -646,7 +619,7 @@ public class Dash extends AppCompatActivity {
     public void onBackPressed() {
         super.onBackPressed();
 
-        deleteImageFiles();
+        ImageHelper.deleteImageFiles();
 
         startActivity(new Intent(this, DashHeader.class));
         finish();
