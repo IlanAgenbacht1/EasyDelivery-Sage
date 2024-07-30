@@ -4,5 +4,3 @@ FUNCTIONALITY
 - Add emails to SyncService
 
 - Delivery document syncing. App isn't able to handle partially completed trips when restarting.
-
-- Barcode scanner.
