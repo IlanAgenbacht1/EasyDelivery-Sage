@@ -20,9 +20,11 @@ import android.view.View;
 import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,6 +46,8 @@ import com.clone.DeliveryApp.Utility.LocationHelper;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 import com.kyanogen.signatureview.SignatureView;
 
 import java.io.File;
@@ -60,6 +64,8 @@ public class Dash extends AppCompatActivity {
     private TextView textViewTrip, textViewDocument, textViewCustomer;
 
     private Button btnSign, btnPic, btnSave, btnReset;
+
+    private Switch barcodeSwitch;
 
     private RecyclerView recyclerView;
 
@@ -116,6 +122,8 @@ public class Dash extends AppCompatActivity {
 
     public static Dash activity;
 
+    private boolean BARCODE;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,6 +131,8 @@ public class Dash extends AppCompatActivity {
         setContentView(R.layout.activity_dash);
 
         btn_next = findViewById(R.id.btn_next);
+
+        barcodeSwitch = findViewById(R.id.switch_barcode);
 
         textViewDocument = findViewById(R.id.tv_dashDocTitle);
         textViewCustomer = findViewById(R.id.tv_dashCustomer);
@@ -169,10 +179,39 @@ public class Dash extends AppCompatActivity {
 
         AppConstant.validatedParcels.clear();
 
+        barcodeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+                if (isChecked) {
+
+                    btn_next.setText("SCAN BARCODE");
+
+                    BARCODE = true;
+
+                } else {
+
+                    btn_next.setText("NEXT");
+
+                    BARCODE = false;
+                }
+
+            }
+        });
 
         btn_next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
+                if (BARCODE) {
+
+                    IntentIntegrator integrator = new IntentIntegrator(Dash.this);
+
+                    integrator.setPrompt("Scan Barcode");
+                    integrator.setBeepEnabled(true);
+
+                    integrator.initiateScan();
+                }
 
                 String input = enter_num.getText().toString();
 
@@ -223,14 +262,11 @@ public class Dash extends AppCompatActivity {
                                     enter_num.setHint("PARCELS VALID");
                                     enter_num.setFocusable(false);
                                     enter_num.setCursorVisible(false);
+
+                                    barcodeSwitch.setClickable(false);
                                 }
                             }
                         }
-
-                        /*if (adapter.validParcel(position, input, deliveryData)) {
-
-
-                        }*/
                     }
                 }
             }
@@ -319,6 +355,9 @@ public class Dash extends AppCompatActivity {
         getAndDisplayData();
         validateLocation();
     }
+
+
+
 
 
     public void getAndDisplayData() {
@@ -575,6 +614,86 @@ public class Dash extends AppCompatActivity {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
+        IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+
+        if (result != null) {
+
+            if (result.getContents() == null) {
+
+                Log.d("Barcode Scanner", "Cancelled scan");
+
+            } else {
+
+                enter_num.setText(result.getContents());
+
+                String input = enter_num.getText().toString();
+
+                if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
+
+                    if (validation()){
+
+                        AppConstant.PARCEL_NO = String.valueOf(adapterList.size());
+
+                        startActivity(new Intent(Dash.this, Preview.class));
+
+                    }
+
+                } else {
+
+                    boolean duplicate = false;
+
+                    for (String item : AppConstant.validatedParcels) {
+
+                        if (item.equals(input)) {
+
+                            duplicate = true;
+                        }
+                    }
+
+                    if (!duplicate) {
+
+                        rl_1.setVisibility(View.VISIBLE);
+
+                        for (int i = 0; i < adapterList.size(); i++) {
+
+                            if (input.equals(adapterList.get(i))) {
+
+                                AppConstant.PARCEL_VALIDATION = true;
+
+                                adapter.notifyItemChanged(i);
+
+                                AppConstant.validatedParcels.add(input);
+
+                                enter_num.setText("");
+
+                                if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
+
+                                    btn_next.setTextColor(getResources().getColor(R.color.black, null));
+                                    btn_next.setText("Complete Delivery");
+
+                                    enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                                    enter_num.setHint("PARCELS VALID");
+                                    enter_num.setFocusable(false);
+                                    enter_num.setCursorVisible(false);
+
+                                    barcodeSwitch.setClickable(false);
+                                }
+                            }
+                        }
+
+                        /*if (adapter.validParcel(position, input, deliveryData)) {
+
+
+                        }*/
+                    }
+                }
+
+                Log.d("Barcode Scanner", "Scanned");
+            }
+        } else {
+            // This is important, otherwise the result will not be passed to the fragment
+            super.onActivityResult(requestCode, resultCode, data);
+        }
 
         if (resultCode == RESULT_OK && requestCode == REQUEST_CAPTURE) {
 

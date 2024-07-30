@@ -92,7 +92,7 @@ android:background="@color/theme">
             android:textSize="14sp"
             android:visibility="visible"
             app:fontFamily="@font/roboto_medium"
-            app:layout_constraintEnd_toEndOf="@+id/ll_number"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/ll_number" />
 
@@ -138,6 +138,22 @@ android:background="@color/theme">
                 android:textColor="@color/gold"
                 android:textSize="16sp"
                 app:fontFamily="@font/roboto_medium" />
+
+            <Switch
+                android:id="@+id/switch_barcode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_marginEnd="0dp"
+                android:thumbTint="@color/gold" />
+
+            <ImageView
+                android:id="@+id/iv_barcode"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginEnd="5dp"
+                android:layout_toStartOf="@+id/switch_barcode"
+                app:srcCompat="@drawable/barcode" />
 
 
         </RelativeLayout>
@@ -186,12 +202,12 @@ android:background="@color/theme">
 
 
         <RelativeLayout
-            android:layout_width="132dp"
-            android:layout_height="60dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
             android:layout_weight="1"
-            android:paddingRight="15dp"
-            android:paddingLeft="15dp">
+            android:paddingLeft="15dp"
+            android:paddingRight="15dp">
 
 
             <Button
@@ -226,12 +242,12 @@ android:background="@color/theme">
 
 
         <RelativeLayout
-            android:layout_width="132dp"
+            android:layout_width="wrap_content"
             android:layout_height="60dp"
             android:layout_gravity="center_vertical"
             android:layout_weight="1"
-            android:paddingRight="15dp"
-            android:paddingLeft="15dp">
+            android:paddingLeft="15dp"
+            android:paddingRight="15dp">
 
 
             <!--        <com.google.android.material.button.MaterialButton-->

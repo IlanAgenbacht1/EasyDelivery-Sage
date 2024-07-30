@@ -100,6 +100,8 @@ public class LocationHelper {
 
                         final Location[] coord = {null};
 
+                        initialise(context);
+
                         locationManager.getCurrentLocation(LocationManager.NETWORK_PROVIDER, null, ContextCompat.getMainExecutor(context), new Consumer<Location>() {
                             @Override
                             public void accept(Location location) {

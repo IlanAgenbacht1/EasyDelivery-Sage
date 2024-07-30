@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -116,6 +117,8 @@ public class SyncService extends IntentService {
 
                             if (connected) {
 
+                                Log.i("SyncService", "Connected");
+
                                 LocationHelper.getLocation(true, getApplicationContext());
 
                                 thread = new Thread(new Runnable() {
@@ -212,7 +215,13 @@ public class SyncService extends IntentService {
             }
         };
 
-        registerReceiver(receiver,filter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+            registerReceiver(receiver,filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+
+            registerReceiver(receiver, filter);
+        }
 
         return START_STICKY;
     }

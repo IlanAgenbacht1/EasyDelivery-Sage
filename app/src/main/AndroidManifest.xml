@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.clone.DeliveryApp" >
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.clone.DeliveryApp">
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -53,7 +54,11 @@
             android:theme="@style/MaterialActionBar"
             android:windowSoftInputMode="stateHidden|adjustPan" />
         <activity android:name=".MainActivity" />
-
+        <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:screenOrientation="portrait"
+            tools:replace="android:screenOrientation"
+            android:stateNotNeeded="true"/>
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />

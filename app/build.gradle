@@ -44,6 +44,8 @@ dependencies {
     implementation 'org.json:json:20240303'
 
     implementation 'com.dropbox.core:dropbox-core-sdk:5.4.0'
+    implementation 'com.journeyapps:zxing-android-embedded:3.0.2@aar'
+    implementation 'com.google.zxing:core:3.2.0'
 
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.navigation:navigation-fragment:2.7.7'
