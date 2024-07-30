@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.clone.DeliveryApp.Adapter.TripAdapter;
 import com.clone.DeliveryApp.R;
 import com.clone.DeliveryApp.Utility.AppConstant;
+import com.clone.DeliveryApp.Utility.ConnectionHelper;
 import com.clone.DeliveryApp.Utility.DropboxHelper;
 import com.clone.DeliveryApp.Utility.ScheduleHelper;
 import com.clone.DeliveryApp.Utility.SyncConstant;
@@ -58,8 +59,6 @@ public class TripDash extends AppCompatActivity {
         logo = findViewById(R.id.iv_logoTrip);
 
         layoutAnimated = false;
-
-        ScheduleHelper.getLocalTrips(TripDash.this);
 
         adapter = new TripAdapter(this, AppConstant.tripList, new TripAdapter.OnItemClickListener() {
             @Override
@@ -130,10 +129,27 @@ public class TripDash extends AppCompatActivity {
 
         SyncConstant.STARTED_TRIP = AppConstant.TRIPID;
 
-        ScheduleHelper.getSchedule(TripDash.this);
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
 
-        startActivity(new Intent(TripDash.this, DashHeader.class));
-        finish();
+                ScheduleHelper.getSchedule(TripDash.this);
+
+                startActivity(new Intent(TripDash.this, DashHeader.class));
+                finish();
+            }
+        });
+
+        thread.start();
+
+        /*try {
+
+            thread.join();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }*/
     }
 
 

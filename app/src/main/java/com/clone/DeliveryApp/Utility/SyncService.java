@@ -75,10 +75,51 @@ public class SyncService extends IntentService {
 
                 Log.i("Timer", "Timer task started");
 
-                syncTripStatus();
-                DropboxHelper.downloadAllTrips(getApplicationContext(), AppConstant.COMPANY);
-                syncCompletedDelivery();
-                syncCompletedTrip();
+                Thread threadDownloadTrips = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        DropboxHelper.downloadAllTrips(getApplicationContext(), AppConstant.COMPANY);
+                    }
+                });
+
+                Thread threadUploadedTrips = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        syncUploadedDocuments();
+                    }
+                });
+
+                Thread threadTripStatus = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        syncTripStatus();
+                    }
+                });
+
+                Thread threadCompletedDelivery = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        syncCompletedDelivery();
+                    }
+                });
+
+                Thread threadCompleteTrip = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        syncCompletedTrip();
+                    }
+                });
+
+                threadDownloadTrips.start();
+                //threadUploadedTrips.start();
+                threadTripStatus.start();
+                threadCompletedDelivery.start();
+                threadCompleteTrip.start();
 
                 Log.i("Timer", "Timer task complete");
             }
@@ -239,7 +280,7 @@ public class SyncService extends IntentService {
 
                 JSONObject jsonData = JsonHandler.syncReadFile(getApplicationContext(), trip);
 
-                //check if there are completed deliveries for this trip
+                //check if there are completed deliveries for this trip locally
 
                 List<String> documents = database.getCompletedDocumentList(trip);
 
@@ -299,6 +340,19 @@ public class SyncService extends IntentService {
 
             DropboxHelper.moveIncompleteTrip();
             DropboxHelper.moveTripInProgress();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+    }
+
+
+    private void syncUploadedDocuments() {
+
+        try {
+
+            AppConstant.uploadedDocuments = DropboxHelper.getUploadedDocuments();
 
         } catch (Exception e) {
 

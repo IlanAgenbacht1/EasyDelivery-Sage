@@ -34,6 +34,7 @@ import com.clone.DeliveryApp.R;
 import com.clone.DeliveryApp.Utility.AppConstant;
 import com.clone.DeliveryApp.Utility.DropboxHelper;
 import com.clone.DeliveryApp.Utility.LocationHelper;
+import com.clone.DeliveryApp.Utility.ScheduleHelper;
 import com.clone.DeliveryApp.Utility.SyncService;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -135,6 +136,8 @@ public class SplashLogin extends AppCompatActivity {
                     Thread thread = new Thread(new Runnable() {
                         @Override
                         public void run() {
+
+                            ScheduleHelper.getLocalTrips(SplashLogin.this);
 
                             Intent startSyncIntent = new Intent(SplashLogin.this, SyncService.class);
                             startService(startSyncIntent);

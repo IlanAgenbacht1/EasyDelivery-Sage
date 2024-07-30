@@ -90,7 +90,7 @@ public class ScheduleHelper {
                     delivery.setLocation(location);
                     delivery.setNumberOfParcels(numParcels);
                     delivery.setCompleted(false);
-
+                    delivery.setUploaded(false);
                     delivery.setParcelNumbers(parcelList);
 
                     insertScheduleData(context, delivery);

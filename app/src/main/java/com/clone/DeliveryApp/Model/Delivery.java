@@ -18,7 +18,7 @@ public class Delivery {
     private double longitude;
     private int numberOfParcels;
     private List<String> parcelNumbers;
-    private boolean completed;
+    private boolean completed, uploaded;
     private String time;
     private String imagePath;
     private String signPath;
@@ -64,7 +64,8 @@ public class Delivery {
     public boolean completed() {
         return completed;
     }
-    public void setCompleted(boolean complete) {
-        completed = complete;
-    }
+    public void setCompleted(boolean complete) { this.completed = complete; }
+
+    public boolean uploaded() { return uploaded; }
+    public void setUploaded(boolean uploaded) { this.uploaded = uploaded; }
 }

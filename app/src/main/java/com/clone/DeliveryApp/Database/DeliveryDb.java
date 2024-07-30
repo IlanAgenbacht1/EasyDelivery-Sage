@@ -52,6 +52,7 @@ public class DeliveryDb {
     public static final String KEY_CAPTUREDLATITUDE = "_capturedLatitude";
     public static final String KEY_CAPTUREDLONGITUDE = "_capturedLongitude";
     public static final String KEY_PARCELS = "_parcelQty";
+    public static final String KEY_UPLOADED = "_uploaded";
 
 
     public static final String KEY_ROWID2 = "_id2";
@@ -77,20 +78,6 @@ public class DeliveryDb {
         @Override
         public void onCreate(SQLiteDatabase db) {
 
-            String sqlCreateDocuTable = "CREATE TABLE " + DOCUMENT_TABLE + " (" +
-                    KEY_ROWID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    KEY_DOCUMENT + " TEXT NOT NULL, " +
-                    KEY_SIGN + " TEXT NOT NULL, " +
-                    KEY_PIC + " TEXT NOT NULL, " +
-                    KEY_PARCEL1 + " TEXT NOT NULL, " +
-                    KEY_TIME + " TEXT NOT NULL, " +
-                    KEY_DRIVER + " TEXT NOT NULL, " +
-                    KEY_VEHICLE + " TEXT NOT NULL, " +
-                    KEY_COMPANY + " TEXT NOT NULL, " +
-                    KEY_UNIT + " TEXT NOT NULL);";
-
-            db.execSQL(sqlCreateDocuTable);
-
             String sqlCreateParcelTable = "CREATE TABLE " + PARCEL_TABLE + " (" +
                     KEY_ROWID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     KEY_TRIPID + " TEXT, " +
@@ -115,7 +102,8 @@ public class DeliveryDb {
                     KEY_SIGN + " TEXT, " +
                     KEY_PIC + " TEXT, " +
                     KEY_TIME + " TEXT, " +
-                    KEY_COMPLETED + " BOOLEAN NOT NULL);";
+                    KEY_COMPLETED + " BOOLEAN NOT NULL, " +
+                    KEY_UPLOADED + " BOOLEAN NOT NULL);";
 
             db.execSQL(sqlCreateDeliveryTable);
         }
@@ -168,25 +156,9 @@ public class DeliveryDb {
         cv.put(KEY_CAPTUREDLATITUDE, "NULL");
         cv.put(KEY_CAPTUREDLONGITUDE, "NULL");
         cv.put(KEY_COMPLETED, delivery.completed());
+        cv.put(KEY_UPLOADED, delivery.uploaded());
 
         return ourDatabase.insert(DELIVERY_TABLE, null, cv);
-    }
-
-
-    public long createDocuEntry(ItemParcel item) {
-        ContentValues cv = new ContentValues();
-
-        cv.put(KEY_DOCUMENT, item.getDocu());
-        cv.put(KEY_SIGN, item.getSign());
-        cv.put(KEY_PIC, item.getPic());
-        cv.put(KEY_UNIT, item.getUnit());
-        cv.put(KEY_PARCEL1, item.getParcels());
-        cv.put(KEY_TIME, item.getTime());
-        cv.put(KEY_DRIVER, item.getDriver());
-        cv.put(KEY_VEHICLE, item.getVehicle());
-        cv.put(KEY_COMPANY, item.getCompany());
-
-        return ourDatabase.insert(DOCUMENT_TABLE, null, cv);
     }
 
 

@@ -26,6 +26,7 @@ public class AppConstant {
     public static ArrayList<String> validatedParcels = new ArrayList<>();
     public static ArrayList<String> tripList = new ArrayList<>();
     public static ArrayList<String> completedTrips = new ArrayList<>();
+    public static ArrayList<String> uploadedDocuments = new ArrayList<>();
     public static ArrayList<ItemParcel> syncList=new ArrayList<>();
 
     public static String SAVED_DOCUMENT;

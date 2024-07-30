@@ -16,6 +16,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DropboxHelper {
 
@@ -249,6 +251,44 @@ public class DropboxHelper {
         } catch(Exception e) {
 
             e.printStackTrace();
+        }
+    }
+
+
+    public static ArrayList<String> getUploadedDocuments() {
+
+        try {
+
+            ArrayList<String> list = new ArrayList<>();
+
+            String path = "/Company/" + AppConstant.COMPANY + "/Completed/";
+
+            ListFolderResult resultTrip = getClient().files().listFolder(path);
+
+            for (int i = 0; i < resultTrip.getEntries().size(); i++) {
+
+                String resultString = resultTrip.getEntries().get(i).getName();
+
+                ListFolderResult resultDocument = getClient().files().listFolder("/Company/" + AppConstant.COMPANY + "/Completed/" + resultString + "/");
+
+                for (int x = 0; x < resultDocument.getEntries().size(); x++) {
+
+                    String resultString2 = resultDocument.getEntries().get(x).getName();
+
+                    if (!resultString2.contains(".json")) {
+
+                        list.add(resultString2);
+                    }
+                }
+            }
+
+            return list;
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            return null;
         }
     }
 
