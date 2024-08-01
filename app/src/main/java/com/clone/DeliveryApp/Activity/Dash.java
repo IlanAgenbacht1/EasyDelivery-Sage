@@ -187,11 +187,15 @@ public class Dash extends AppCompatActivity {
 
                     btn_next.setText("SCAN BARCODE");
 
+                    enter_num.setFocusable(false);
+
                     BARCODE = true;
 
                 } else {
 
                     btn_next.setText("NEXT");
+
+                    enter_num.setFocusable(true);
 
                     BARCODE = false;
                 }
@@ -222,24 +226,17 @@ public class Dash extends AppCompatActivity {
                         AppConstant.PARCEL_NO = String.valueOf(adapterList.size());
 
                         startActivity(new Intent(Dash.this, Preview.class));
-
                     }
 
-                } else {
+                } else if (!BARCODE) {
 
-                    boolean duplicate = false;
+                    rl_1.setVisibility(View.VISIBLE);
 
-                    for (String item : AppConstant.validatedParcels) {
+                    if (AppConstant.validatedParcels.contains(input)) {
 
-                        if (item.equals(input)) {
+                        Toast.makeText(Dash.this, "Item already entered", Toast.LENGTH_LONG).show();
 
-                            duplicate = true;
-                        }
-                    }
-
-                    if (!duplicate) {
-
-                        rl_1.setVisibility(View.VISIBLE);
+                    } else {
 
                         for (int i = 0; i < adapterList.size(); i++) {
 
@@ -251,9 +248,9 @@ public class Dash extends AppCompatActivity {
 
                                 AppConstant.validatedParcels.add(input);
 
-                                enter_num.setText("");
-
                                 if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
+
+                                    barcodeSwitch.setClickable(false);
 
                                     btn_next.setTextColor(getResources().getColor(R.color.black, null));
                                     btn_next.setText("Complete Delivery");
@@ -262,12 +259,12 @@ public class Dash extends AppCompatActivity {
                                     enter_num.setHint("PARCELS VALID");
                                     enter_num.setFocusable(false);
                                     enter_num.setCursorVisible(false);
-
-                                    barcodeSwitch.setClickable(false);
                                 }
                             }
                         }
                     }
+
+                    enter_num.setText("");
                 }
             }
         });
@@ -355,9 +352,6 @@ public class Dash extends AppCompatActivity {
         getAndDisplayData();
         validateLocation();
     }
-
-
-
 
 
     public void getAndDisplayData() {
@@ -517,22 +511,6 @@ public class Dash extends AppCompatActivity {
     }
 
 
-    private void updateDatabase() {
-
-        try{
-            SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyyyy - HHmmss", Locale.getDefault());
-
-            String date = dateFormat.format(new Date());
-
-            database.setDocumentCompleted(AppConstant.DOCUMENT, AppConstant.PIC_PATH, AppConstant.SIGN_PATH, date, context);
-
-        } catch(SQLException e){
-
-            e.printStackTrace();
-        }
-    }
-
-
     public class ViewDialog {
 
         public void showDialog(Activity activity) {
@@ -624,75 +602,47 @@ public class Dash extends AppCompatActivity {
 
             } else {
 
-                enter_num.setText(result.getContents());
+                String input = result.getContents();
 
-                String input = enter_num.getText().toString();
+                rl_1.setVisibility(View.VISIBLE);
 
-                if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
+                enter_num.setText(input);
 
-                    if (validation()){
+                if (AppConstant.validatedParcels.contains(input)) {
 
-                        AppConstant.PARCEL_NO = String.valueOf(adapterList.size());
-
-                        startActivity(new Intent(Dash.this, Preview.class));
-
-                    }
+                    Toast.makeText(Dash.this, "Item already scanned", Toast.LENGTH_LONG).show();
 
                 } else {
 
-                    boolean duplicate = false;
+                    for (int i = 0; i < adapterList.size(); i++) {
 
-                    for (String item : AppConstant.validatedParcels) {
+                        if (input.equals(adapterList.get(i))) {
 
-                        if (item.equals(input)) {
+                            AppConstant.PARCEL_VALIDATION = true;
 
-                            duplicate = true;
-                        }
-                    }
+                            adapter.notifyItemChanged(i);
 
-                    if (!duplicate) {
+                            AppConstant.validatedParcels.add(input);
 
-                        rl_1.setVisibility(View.VISIBLE);
+                            if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
 
-                        for (int i = 0; i < adapterList.size(); i++) {
+                                barcodeSwitch.setChecked(false);
+                                barcodeSwitch.setClickable(false);
 
-                            if (input.equals(adapterList.get(i))) {
+                                btn_next.setTextColor(getResources().getColor(R.color.black, null));
+                                btn_next.setText("Complete Delivery");
 
-                                AppConstant.PARCEL_VALIDATION = true;
-
-                                adapter.notifyItemChanged(i);
-
-                                AppConstant.validatedParcels.add(input);
-
-                                enter_num.setText("");
-
-                                if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
-
-                                    btn_next.setTextColor(getResources().getColor(R.color.black, null));
-                                    btn_next.setText("Complete Delivery");
-
-                                    enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                                    enter_num.setHint("PARCELS VALID");
-                                    enter_num.setFocusable(false);
-                                    enter_num.setCursorVisible(false);
-
-                                    barcodeSwitch.setClickable(false);
-                                }
+                                enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                                enter_num.setHint("PARCELS VALID");
+                                enter_num.setFocusable(false);
+                                enter_num.setCursorVisible(false);
                             }
                         }
-
-                        /*if (adapter.validParcel(position, input, deliveryData)) {
-
-
-                        }*/
                     }
                 }
 
-                Log.d("Barcode Scanner", "Scanned");
+                enter_num.setText("");
             }
-        } else {
-            // This is important, otherwise the result will not be passed to the fragment
-            super.onActivityResult(requestCode, resultCode, data);
         }
 
         if (resultCode == RESULT_OK && requestCode == REQUEST_CAPTURE) {
@@ -703,20 +653,9 @@ public class Dash extends AppCompatActivity {
             img_isthere = 1;
             imageType = 2;
 
-
-            //StoreUserImageUp(img_URI);
-//
-//
-//
-//            ViewDialog2 alert = new ViewDialog2();
-//            alert.showDialog(Dash.this);
-//
-//            ivPic.setImageBitmap(BitmapFactory.decodeFile(compressImage(img_URI)));
             String CompressPath = ImageHelper.compressImage(Dash.this, img_URI, IMAGE_DIRECTORY, SiGN_DIRECTORY);
 
             signImagePath = CompressPath;
-
-//            picBite=getBytes(BitmapFactory.decodeFile(CompressPath));
 
             ImagefileUri = Uri.parse(CompressPath);
 

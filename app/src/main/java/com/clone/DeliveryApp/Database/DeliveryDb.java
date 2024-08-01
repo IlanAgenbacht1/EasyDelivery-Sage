@@ -2,7 +2,6 @@ package com.clone.DeliveryApp.Database;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
@@ -11,7 +10,6 @@ import android.location.Location;
 import android.util.Log;
 
 import com.clone.DeliveryApp.Model.Delivery;
-import com.clone.DeliveryApp.Model.ItemParcel;
 import com.clone.DeliveryApp.Utility.AppConstant;
 import com.clone.DeliveryApp.Utility.SyncConstant;
 
@@ -24,7 +22,8 @@ public class DeliveryDb {
     private static final String DOCUMENT_TABLE = "DocumentTable";
     private static final String PARCEL_TABLE = "ParcelTable";
     private static final String DELIVERY_TABLE = "DeliveryTable";
-    private final int DATABASE_VERSION = 14;
+    private static final String SYNC_TABLE = "SyncTable";
+    private final int DATABASE_VERSION = 15;
     private Context ourContext;
     private SQLiteDatabase ourDatabase;
     private DBHelper ourHelper;
@@ -53,6 +52,11 @@ public class DeliveryDb {
     public static final String KEY_CAPTUREDLONGITUDE = "_capturedLongitude";
     public static final String KEY_PARCELS = "_parcelQty";
     public static final String KEY_UPLOADED = "_uploaded";
+
+    public static final String KEY_DOCUMENT_QTY = "_documentQty";
+    public static final String KEY_DOCUMENT_SYNC_QTY = "_documentSyncQty";
+
+
 
 
     public static final String KEY_ROWID2 = "_id2";
@@ -106,6 +110,13 @@ public class DeliveryDb {
                     KEY_UPLOADED + " BOOLEAN NOT NULL);";
 
             db.execSQL(sqlCreateDeliveryTable);
+
+            String sqlCreateSyncTable = "CREATE TABLE " + SYNC_TABLE + " (" +
+                    KEY_TRIPID + " TEXT UNIQUE, " +
+                    KEY_DOCUMENT_QTY + " INTEGER NOT NULL, " +
+                    KEY_DOCUMENT_SYNC_QTY + " INTEGER NOT NULL);";
+
+            db.execSQL(sqlCreateSyncTable);
         }
 
         @Override
@@ -114,6 +125,7 @@ public class DeliveryDb {
             db.execSQL("DROP TABLE IF EXISTS " + DOCUMENT_TABLE);
             db.execSQL("DROP TABLE IF EXISTS " + PARCEL_TABLE);
             db.execSQL("DROP TABLE IF EXISTS " + DELIVERY_TABLE);
+            db.execSQL("DROP TABLE IF EXISTS " + SYNC_TABLE);
 
             onCreate(db);
         }
@@ -173,6 +185,18 @@ public class DeliveryDb {
     }
 
 
+    public long createSyncEntry(String trip, int documents) {
+
+        ContentValues cv = new ContentValues();
+
+        cv.put(KEY_TRIPID, trip);
+        cv.put(KEY_DOCUMENT_QTY, documents);
+        cv.put(KEY_DOCUMENT_SYNC_QTY, 0);
+
+        return ourDatabase.insert(SYNC_TABLE, null, cv);
+    }
+
+
     public List<String> getDocumentList(boolean incompleteDocument) {
 
         //return list of document numbers that have _completed = 0 (false)
@@ -183,7 +207,7 @@ public class DeliveryDb {
 
         if (incompleteDocument) {
 
-            cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE + " WHERE " + KEY_COMPLETED + " = 0" + " AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "'", null);
+            cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE + " WHERE " + KEY_COMPLETED + " = 0" + " AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_UPLOADED + " = 0", null);
         }
         else {
 
@@ -259,7 +283,7 @@ public class DeliveryDb {
         //return specified document data from the ScheduleTable that matches the tripId in the current trip file.
         //the tripId is how data in the local db is validated against the downloaded delivery.
 
-        Cursor cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE + " WHERE " + KEY_TRIPID + " = '" + tripID + "' AND " + KEY_COMPLETED + " = 1;", null);
+        Cursor cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + " FROM " + DELIVERY_TABLE + " WHERE " + KEY_TRIPID + " = '" + tripID + "' AND " + KEY_COMPLETED + " = 1 " + "AND " + KEY_UPLOADED + " = 0;", null);
 
         int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
 
@@ -301,7 +325,7 @@ public class DeliveryDb {
 
         Delivery delivery = new Delivery();
 
-        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + tripID + "' AND " + KEY_COMPLETED + " = 1;", null);
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + tripID + "' AND " + KEY_COMPLETED + " = 1 AND " + KEY_UPLOADED + " = 0", null);
 
         int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
         int customerIndex = cursor.getColumnIndex(KEY_CUSTOMER);
@@ -340,24 +364,98 @@ public class DeliveryDb {
 
 
     public void setDocumentCompleted(String document, String imageFile, String signFile, String date, Context context) {
+
         Cursor cursor = ourDatabase.rawQuery("UPDATE " + DELIVERY_TABLE + " SET " + KEY_COMPLETED + " = 1, " + KEY_CAPTUREDLATITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLatitude()) + "', " + KEY_CAPTUREDLONGITUDE + " = '" + String.valueOf(AppConstant.GPS_LOCATION.getLongitude()) + "', " + KEY_PIC + " = '" + imageFile + "', " + KEY_SIGN + " = '" + signFile + "', " + KEY_TIME + " = '" + date + "' WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "';", null);
 
         cursor.moveToFirst();
         cursor.close();
-
-        context.sendBroadcast(new Intent().setAction("DeliveryCompleted"));
     }
 
 
-    public void deleteCompletedDocument(String document, String trip) {
+    public void setDocumentUploaded(String document, String trip) {
 
-        Cursor cursor = ourDatabase.rawQuery("DELETE FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + trip + "';", null);
+        Cursor cursor = ourDatabase.rawQuery("UPDATE " + DELIVERY_TABLE + " SET " + KEY_UPLOADED + " = 1 WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + trip + "';", null);
+
         cursor.moveToFirst();
         cursor.close();
 
-        cursor = ourDatabase.rawQuery("DELETE FROM " + PARCEL_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + trip + "';", null);
+        cursor = ourDatabase.rawQuery("UPDATE " + SYNC_TABLE + " SET " + KEY_DOCUMENT_SYNC_QTY + " = " + KEY_DOCUMENT_SYNC_QTY + " + 1 " + "WHERE " + KEY_TRIPID + " = '" + trip + "';", null);
+
         cursor.moveToFirst();
         cursor.close();
+
+        Log.i("SyncService", "Document " + document + " set to uploaded = 1");
+    }
+
+
+    public void deleteUploadedData(String trip) {
+
+        Cursor cursor = ourDatabase.rawQuery("DELETE FROM " + DELIVERY_TABLE + " WHERE "  + KEY_TRIPID + " = '" + trip + "' AND " + KEY_UPLOADED + " = 1;", null);
+        cursor.moveToFirst();
+        cursor.close();
+
+        cursor = ourDatabase.rawQuery("DELETE FROM " + PARCEL_TABLE + " WHERE " + KEY_TRIPID + " = '" + trip + "';", null);
+        cursor.moveToFirst();
+        cursor.close();
+
+        cursor = ourDatabase.rawQuery("DELETE FROM " + SYNC_TABLE + " WHERE " + KEY_TRIPID + " = '" + trip + "';", null);
+        cursor.moveToFirst();
+        cursor.close();
+    }
+
+
+    public boolean isDataSynced(String trip) {
+
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + SYNC_TABLE + " WHERE " + KEY_DOCUMENT_QTY + " = " + KEY_DOCUMENT_SYNC_QTY + " AND " + KEY_TRIPID + " = '" + trip + "'", null);
+
+        if (cursor.moveToNext()) {
+
+            cursor.close();
+
+            return true;
+        }
+
+        cursor.close();
+
+        return false;
+    }
+
+
+    public List<String> getIncompleteTripSyncList() {
+
+        Cursor cursor = ourDatabase.rawQuery("SELECT " + KEY_TRIPID + " FROM " + SYNC_TABLE + " WHERE " + KEY_DOCUMENT_QTY + " != " + KEY_DOCUMENT_SYNC_QTY + " OR " + KEY_DOCUMENT_SYNC_QTY + " = 0", null);
+
+        int tripIndex = cursor.getColumnIndex(KEY_TRIPID);
+
+        List<String> list = new ArrayList<>();
+
+        while (cursor.moveToNext()) {
+
+            list.add(cursor.getString(tripIndex));
+
+            Log.i("SyncService", "Sync Table: " + cursor.getString(tripIndex));
+        }
+
+        cursor.close();
+
+        return list;
+    }
+
+
+    public boolean tripStarted(String trip) {
+
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_TRIPID + " = '" + trip + "' AND " + KEY_COMPLETED + " = 1", null);
+
+        if (cursor.moveToNext()) {
+
+            cursor.close();
+
+            return true;
+        }
+
+        cursor.close();
+
+        return false;
     }
 
 }

@@ -44,7 +44,7 @@ public class DashHeader extends AppCompatActivity {
 
         for (String document : AppConstant.documentList) {
 
-            if (ScheduleHelper.documentExists(database, document, true)) {
+            if (ScheduleHelper.documentValid(database, document, true)) {
 
                 Delivery delivery = database.getDeliveryData(document);
 
@@ -54,12 +54,7 @@ public class DashHeader extends AppCompatActivity {
 
         if (deliveryList == null || deliveryList.isEmpty()) {
 
-            AppConstant.completedTrips.add(AppConstant.TRIPID);
-            SyncConstant.COMPLETED_TRIP_ID = AppConstant.TRIPID;
-            SyncConstant.STARTED_TRIP = "";
-
             ScheduleHelper.deleteTripFile(getApplicationContext(), AppConstant.TRIPID);
-            AppConstant.tripList.remove(AppConstant.TRIPID);
 
             AlertDialog alertDialog = new AlertDialog.Builder(DashHeader.this, R.style.AlertDialogStyle).create();
             alertDialog.setTitle("Deliveries Completed!");
@@ -125,5 +120,15 @@ public class DashHeader extends AppCompatActivity {
                 });
 
         alertDialog.show();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        if (database != null && database.isOpen()) {
+
+            database.close();
+        }
     }
 }

@@ -17,6 +17,8 @@ import java.util.List;
 
 public class ScheduleHelper {
 
+    private static int documentQty;
+
     public static void getSchedule(Context context) {
 
         parseAndInsertScheduleData(context);
@@ -27,6 +29,8 @@ public class ScheduleHelper {
         Delivery delivery = new Delivery();
 
         JSONObject jsonData = JsonHandler.readFile(context);
+
+        documentQty = 0;
 
         if (jsonData != null) {
 
@@ -94,9 +98,19 @@ public class ScheduleHelper {
                     delivery.setParcelNumbers(parcelList);
 
                     insertScheduleData(context, delivery);
+
+                    documentQty++;
                 }
 
-            } catch (JSONException e) {
+                DeliveryDb database = new DeliveryDb(context);
+
+                database.open();
+
+                database.createSyncEntry(AppConstant.TRIPID, documentQty);
+
+                database.close();
+
+            } catch (Exception e) {
 
                 e.printStackTrace();
             }
@@ -113,7 +127,7 @@ public class ScheduleHelper {
 
             //Check if document exists first.
 
-            if (!documentExists(database, delivery.getDocument(), false)) {
+            if (!documentValid(database, delivery.getDocument(), false)) {
 
                 database.createScheduleEntry(delivery);
 
@@ -136,7 +150,7 @@ public class ScheduleHelper {
     }
 
 
-    public static boolean documentExists(DeliveryDb database, String document, boolean isIncompleteDocument) {
+    public static boolean documentValid(DeliveryDb database, String document, boolean isIncompleteDocument) {
 
         List<String> documentList = database.getDocumentList(isIncompleteDocument);
 
@@ -164,7 +178,7 @@ public class ScheduleHelper {
 
                 String trimmedItem = item.substring(0, item.length() - 5);
 
-                if (!AppConstant.tripList.contains(trimmedItem)) {
+                if (!AppConstant.tripList.contains(trimmedItem) && !AppConstant.completedTrips.contains(trimmedItem)) {
 
                     AppConstant.tripList.add(trimmedItem);
                 }

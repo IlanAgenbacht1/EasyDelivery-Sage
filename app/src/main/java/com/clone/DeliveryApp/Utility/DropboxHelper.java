@@ -3,6 +3,7 @@ package com.clone.DeliveryApp.Utility;
 import android.content.Context;
 import android.util.Log;
 
+import com.clone.DeliveryApp.Database.DeliveryDb;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.oauth.DbxCredential;
@@ -117,7 +118,7 @@ public class DropboxHelper {
     }
 
 
-    public static void moveIncompleteTrip() {
+    public static void moveIncompleteTrip(Context context, DeliveryDb database) {
 
         try {
 
@@ -129,15 +130,20 @@ public class DropboxHelper {
 
                     String item = result.getEntries().get(i).getName();
 
-                    if (!SyncConstant.STARTED_TRIP.equals(item.substring(0, item.length() - 5))) {
+                    if (!SyncConstant.STARTED_TRIP.equals(item.substring(0, item.length() - 5)) && !AppConstant.completedTrips.contains(item.substring(0, item.length() - 5))) {
 
-                        String fromFile = "/Company/" + AppConstant.COMPANY + "/InProgress/" + item;
+                        if (!database.tripStarted(item.substring(0, item.length() - 5))) {
 
-                        String toFile = "/Company/" + AppConstant.COMPANY + "/" + item;
+                            String fromFile = "/Company/" + AppConstant.COMPANY + "/InProgress/" + item;
 
-                        getClient().files().moveV2(fromFile, toFile);
+                            String toFile = "/Company/" + AppConstant.COMPANY + "/" + item;
+
+                            getClient().files().moveV2(fromFile, toFile);
+                        }
                     }
                 }
+
+                database.close();
             }
 
         } catch (Exception e) {

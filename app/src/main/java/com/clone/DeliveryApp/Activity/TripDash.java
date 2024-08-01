@@ -110,7 +110,7 @@ public class TripDash extends AppCompatActivity {
 
                     layoutAnimated = true;
 
-                    textHandler.postDelayed(this, 500);
+                    textHandler.postDelayed(this, 250);
 
                 } else {
 
@@ -118,7 +118,7 @@ public class TripDash extends AppCompatActivity {
 
                     adapter.notifyDataSetChanged();
 
-                    textHandler.postDelayed(this, 500);
+                    textHandler.postDelayed(this, 250);
                 }
             }
         });
@@ -141,15 +141,6 @@ public class TripDash extends AppCompatActivity {
         });
 
         thread.start();
-
-        /*try {
-
-            thread.join();
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-        }*/
     }
 
 

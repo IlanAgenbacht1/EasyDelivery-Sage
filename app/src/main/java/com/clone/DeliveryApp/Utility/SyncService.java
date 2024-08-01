@@ -13,9 +13,7 @@ import androidx.annotation.Nullable;
 import com.clone.DeliveryApp.Database.DeliveryDb;
 import com.clone.DeliveryApp.Model.Delivery;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import java.io.File;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -73,8 +71,6 @@ public class SyncService extends IntentService {
             @Override
             public void run() {
 
-                Log.i("Timer", "Timer task started");
-
                 Thread threadDownloadTrips = new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -83,11 +79,11 @@ public class SyncService extends IntentService {
                     }
                 });
 
-                Thread threadUploadedTrips = new Thread(new Runnable() {
+                Thread threadCompletedTrip = new Thread(new Runnable() {
                     @Override
                     public void run() {
 
-                        syncUploadedDocuments();
+                        syncCompletedTrip();
                     }
                 });
 
@@ -99,29 +95,19 @@ public class SyncService extends IntentService {
                     }
                 });
 
-                Thread threadCompletedDelivery = new Thread(new Runnable() {
+                Thread threadCompletedData = new Thread(new Runnable() {
                     @Override
                     public void run() {
 
-                        syncCompletedDelivery();
-                    }
-                });
-
-                Thread threadCompleteTrip = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        syncCompletedTrip();
+                        syncCompletedData();
                     }
                 });
 
                 threadDownloadTrips.start();
-                //threadUploadedTrips.start();
                 threadTripStatus.start();
-                threadCompletedDelivery.start();
-                threadCompleteTrip.start();
+                threadCompletedData.start();
+                threadCompletedTrip.start();
 
-                Log.i("Timer", "Timer task complete");
             }
         },0, 10000);
 
@@ -193,7 +179,7 @@ public class SyncService extends IntentService {
                             @Override
                             public void run() {
 
-                                DropboxHelper.moveTripInProgress();
+                                //DropboxHelper.moveTripInProgress();
                             }
                         });
 
@@ -209,7 +195,7 @@ public class SyncService extends IntentService {
                             @Override
                             public void run() {
 
-                                syncCompletedTrip();
+                                //syncCompletedTrip();
                             }
                         });
 
@@ -243,7 +229,7 @@ public class SyncService extends IntentService {
                             @Override
                             public void run() {
 
-                                syncCompletedDelivery();
+                                syncCompletedData();
                             }
                         });
 
@@ -268,17 +254,15 @@ public class SyncService extends IntentService {
     }
 
 
-    private void syncCompletedDelivery() {
+    private void syncCompletedData() {
 
         try {
 
             openDatabase();
 
-            for (String trip : AppConstant.tripList) {
+            List<String> trips = database.getIncompleteTripSyncList();
 
-                //iterate through current trips stored on the device
-
-                JSONObject jsonData = JsonHandler.syncReadFile(getApplicationContext(), trip);
+            for (String trip : trips) {
 
                 //check if there are completed deliveries for this trip locally
 
@@ -298,9 +282,19 @@ public class SyncService extends IntentService {
 
                         if (DropboxHelper.uploadCompletedDelivery(getApplicationContext(), filePath, trip, document, delivery.getImagePath(), delivery.getSignPath())) {
 
-                            database.deleteCompletedDocument(document, trip);
+                            Log.i("SyncService", "Uploaded " + document);
+
+                            File file = new File(filePath);
+                            file.delete();
 
                             ImageHelper.syncDeleteImageFiles(getApplicationContext(), delivery.getImagePath(), delivery.getSignPath());
+
+                            database.setDocumentUploaded(document, trip);
+                        }
+
+                        if (database.isDataSynced(trip)) {
+
+                            AppConstant.completedTrips.add(trip);
                         }
                     }
                 }
@@ -313,32 +307,13 @@ public class SyncService extends IntentService {
     }
 
 
-    private void syncCompletedTrip() {
+    private void syncTripStatus() {
 
         try {
 
             openDatabase();
 
-            if (!AppConstant.completedTrips.isEmpty()) {
-
-                for (String trip : AppConstant.completedTrips) {
-
-                    DropboxHelper.moveCompletedTrip(trip);
-                }
-            }
-
-        } catch(Exception e) {
-
-            e.printStackTrace();
-        }
-    }
-
-
-    private void syncTripStatus() {
-
-        try {
-
-            DropboxHelper.moveIncompleteTrip();
+            DropboxHelper.moveIncompleteTrip(getApplicationContext(), database);
             DropboxHelper.moveTripInProgress();
 
         } catch (Exception e) {
@@ -348,15 +323,28 @@ public class SyncService extends IntentService {
     }
 
 
-    private void syncUploadedDocuments() {
+    private void syncCompletedTrip() {
 
-        try {
+        if (!AppConstant.completedTrips.isEmpty()) {
 
-            AppConstant.uploadedDocuments = DropboxHelper.getUploadedDocuments();
+            openDatabase();
 
-        } catch (Exception e) {
+            for (String completedTrip : AppConstant.completedTrips) {
 
-            e.printStackTrace();
+                DropboxHelper.moveCompletedTrip(completedTrip);
+
+                AppConstant.completedTrips.remove(completedTrip);
+                AppConstant.tripList.remove(completedTrip);
+
+                database.deleteUploadedData(completedTrip);
+
+                if (SyncConstant.STARTED_TRIP.equals(completedTrip)) {
+
+                    SyncConstant.STARTED_TRIP = "";
+                }
+
+                Log.i("SyncService", completedTrip + " uploaded");
+            }
         }
     }
 
