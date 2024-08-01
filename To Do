@@ -3,7 +3,4 @@ UI
 FUNCTIONALITY
 - Add emails to SyncService
 
-- Completed trips that aren't fully synced due to code not fully executing for whatever reason:
-  - Create a TripSync table that records amount of orders and amount of orders that have synced. Once both columns equal one another, sync and ensure data in DropBox is correct.
-  - Only delete data from table once Dropbox is correctly synced.
   
