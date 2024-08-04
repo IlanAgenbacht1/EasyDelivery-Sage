@@ -13,6 +13,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ScheduleHelper {
@@ -174,13 +175,27 @@ public class ScheduleHelper {
 
             File file = new File(context.getFilesDir() + "/Trip/");
 
+            List<String> localFiles = new ArrayList<>();
+
             for (String item : file.list()) {
 
                 String trimmedItem = item.substring(0, item.length() - 5);
 
+                localFiles.add(trimmedItem);
+
                 if (!AppConstant.tripList.contains(trimmedItem) && !AppConstant.completedTrips.contains(trimmedItem)) {
 
                     AppConstant.tripList.add(trimmedItem);
+
+                    Log.i("Trip List", "Added: " + trimmedItem);
+                }
+            }
+
+            for (String listItem : AppConstant.tripList){
+
+                if (!localFiles.contains(listItem)) {
+
+                    AppConstant.tripList.remove(listItem);
                 }
             }
 

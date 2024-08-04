@@ -292,7 +292,7 @@ public class SyncService extends IntentService {
                             database.setDocumentUploaded(document, trip);
                         }
 
-                        if (database.isDataSynced(trip)) {
+                        if (database.isDataSynced(trip) && !AppConstant.completedTrips.contains(trip)) {
 
                             AppConstant.completedTrips.add(trip);
                         }
@@ -334,6 +334,7 @@ public class SyncService extends IntentService {
                 DropboxHelper.moveCompletedTrip(completedTrip);
 
                 AppConstant.completedTrips.remove(completedTrip);
+
                 AppConstant.tripList.remove(completedTrip);
 
                 database.deleteUploadedData(completedTrip);
