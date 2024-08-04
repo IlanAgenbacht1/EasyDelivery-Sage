@@ -15,4 +15,15 @@
   - All fields can be edited when capturing parcels. Once completed, data is inserted into a seperate ("CustomDelivery" or "OfflineDelivery") table which can then be validated at a later stage.
  
 - Web Based Progress Tracker.
-  - 
+- Web based Trip Entry Screen.
+  - Add New Trip (Name it)
+  - Add new Stop (Enter header details, Waybill/Order Number (Mandatory), Select Location on Map or enter Address, Enter relevant fields.
+  - Add Parcels to Trip (Add a list of Parcels to deliver) - If you dont want to enter parcels, create a Single Parcel = Waybill/Order Number
+  - Can select a Trip and add to it
+  - Can Update Delivery STOP number (Order trip displays the Stops in
+  - Can remove a Delivery
+  - Writes Direct to JSON in Dropbox for that Customer.   
+  - Can Review deliveries completed (Simple Dashboard Showing Trips In Progress and Trips Completed and on the Trips showing Deliveries and Parcels per Delivery (Probably a tree structure)
+
+Dropbox Structure should probably change now, while we are doing it as \..\EasyDeliveryCustomer\Site\.....
+
