@@ -3,4 +3,4 @@ UI
 FUNCTIONALITY
 - Add emails to SyncService
 
-  
+- Remove case sensitivity from parcel input
