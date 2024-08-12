@@ -119,8 +119,6 @@ public class TripDash extends AppCompatActivity {
 
                     adapter.notifyDataSetChanged();
 
-                    Log.i("Trip Loop", "Looping");
-
                     textHandler.postDelayed(this, 250);
                 }
             }
