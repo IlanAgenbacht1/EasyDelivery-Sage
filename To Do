@@ -3,4 +3,5 @@ UI
 FUNCTIONALITY
 - Add emails to SyncService
 
-- Remove case sensitivity from parcel input
+- Seperate build for capturing temperature.
+  - Add a 'Capture temperature' button between image and signature capture buttons.
