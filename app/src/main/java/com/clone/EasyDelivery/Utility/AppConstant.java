@@ -1,0 +1,34 @@
+package com.clone.EasyDelivery.Utility;
+
+
+import android.location.Location;
+
+import com.clone.EasyDelivery.Model.ItemParcel;
+
+import java.util.ArrayList;
+
+public class AppConstant {
+
+    public static  String DOCUMENT=" ";
+    public static  String PARCEL_NO=" ";
+    public static String COMPANY = " ";
+    public static  String SIGN_PATH = " ";
+    public static  String PIC_PATH = " ";
+    public static  String ZOOM = " ";
+    public static Location GPS_LOCATION;
+    public static String TRIPID = "";
+
+    public static boolean PARCEL_VALIDATION;
+
+    public static ArrayList<Location> gpsList = new ArrayList<>();
+    public static ArrayList<String> documentList = new ArrayList<>();
+
+    public static ArrayList<String> validatedParcels = new ArrayList<>();
+    public static ArrayList<String> tripList = new ArrayList<>();
+    public static ArrayList<String> completedTrips = new ArrayList<>();
+    public static ArrayList<String> uploadedDocuments = new ArrayList<>();
+    public static ArrayList<ItemParcel> syncList=new ArrayList<>();
+
+    public static String SAVED_DOCUMENT;
+
+}

@@ -2,11 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/My_Application.iml" filepath="$PROJECT_DIR$/.idea/modules/My_Application.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/My_Application.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/My_Application.app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/My_Application.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/My_Application.app.androidTest.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/My_Application.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/My_Application.app.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/My_Application.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/My_Application.app.unitTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Easy_Delivery.iml" filepath="$PROJECT_DIR$/.idea/modules/Easy_Delivery.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Easy_Delivery.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Easy_Delivery.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Easy_Delivery.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Easy_Delivery.app.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Easy_Delivery.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Easy_Delivery.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Easy_Delivery.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Easy_Delivery.app.unitTest.iml" />
     </modules>
   </component>
 </project>

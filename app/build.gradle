@@ -2,10 +2,10 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 34
-    namespace 'com.clone.DeliveryApp'
+    namespace 'com.clone.EasyDelivery'
 
     defaultConfig {
-        applicationId "com.clone.DeliveryApp"
+        applicationId 'com.clone.EasyDelivery'
         minSdkVersion 24
         targetSdkVersion 34
         versionCode 1
