@@ -1,7 +1,7 @@
 UI
 
 FUNCTIONALITY
-- Add emails to SyncService
+- Change the way InProgress trips are checked. At the moment a started trip is only validated against a devices local data.
 
 - Seperate build for capturing temperature.
   - Add a 'Capture temperature' button between image and signature capture buttons.
