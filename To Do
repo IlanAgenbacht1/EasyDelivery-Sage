@@ -11,5 +11,3 @@ FUNCTIONALITY
 
 ! BUGS !
 - Green tick showing validated parcels appears randomly on big parcel lists. Occurs when most of the items are validated and the remaining few randomly appear to be validated. (Android 9)
-
-- ConcurrentModificationException. Likely happens when the same list (AppConstant.tripList) is being modified within different threads.
