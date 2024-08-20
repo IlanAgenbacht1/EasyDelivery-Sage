@@ -1,10 +1,5 @@
 package com.clone.EasyDelivery.Activity;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -28,6 +23,11 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.clone.EasyDelivery.R;
 import com.clone.EasyDelivery.Utility.AppConstant;
@@ -129,6 +129,9 @@ public class SplashLogin extends AppCompatActivity {
                     loadingIcon.setVisibility(View.VISIBLE);
 
                     AppConstant.COMPANY = etCompany.getText().toString();
+                    AppConstant.EMAIL = etEmail.getText().toString();
+                    AppConstant.DRIVER = etDriver.getText().toString();
+                    AppConstant.VEHICLE = etVehicle.getText().toString();
 
                     Thread thread = new Thread(new Runnable() {
                         @Override

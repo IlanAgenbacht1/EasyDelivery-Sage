@@ -49,37 +49,6 @@ public class JsonHandler {
     }
 
 
-    public static JSONObject syncReadFile(Context context, String tripName) {
-
-        StringBuilder jsonString = new StringBuilder();
-
-        JSONObject tripData = new JSONObject();
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(new File(context.getFilesDir() + "/Trip/", tripName + ".json")))) {
-
-            String line;
-
-            while ((line = reader.readLine()) != null) {
-
-                jsonString.append(line);
-
-            }
-
-            tripData = new JSONObject(jsonString.toString());
-
-        } catch (IOException e) {
-
-            e.printStackTrace();
-
-        } catch (JSONException e) {
-
-            throw new RuntimeException(e);
-        }
-
-        return tripData;
-    }
-
-
     public static String writeDeliveryFile(Context context, Delivery delivery) {
 
         try {

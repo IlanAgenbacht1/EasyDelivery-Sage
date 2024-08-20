@@ -189,13 +189,17 @@ public class ScheduleHelper {
                 }
             }
 
+            List<String> toRemove = new ArrayList<>();
+
             for (String listItem : AppConstant.tripList){
 
                 if (!localFiles.contains(listItem)) {
 
-                    AppConstant.tripList.remove(listItem);
+                    toRemove.add(listItem);
                 }
             }
+
+            AppConstant.tripList.removeAll(toRemove);
 
         } catch (NullPointerException e) {
 

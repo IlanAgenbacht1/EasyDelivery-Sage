@@ -2,14 +2,26 @@ package com.clone.EasyDelivery.Activity;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.database.SQLException;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.text.Html;
 import android.text.TextUtils;
+import android.util.Log;
+import android.view.View;
 import android.view.Window;
+import android.widget.Button;
 import android.widget.RelativeLayout;
-
 import android.widget.RelativeLayout.LayoutParams;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,22 +29,7 @@ import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.content.ActivityNotFoundException;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.database.SQLException;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
-import android.text.Html;
-import android.util.Log;
-import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
-
 import com.clone.EasyDelivery.Adapter.PreviewAdapter;
-//import com.clone.EasyDelivery.BuildConfig;
 import com.clone.EasyDelivery.Database.DeliveryDb;
 import com.clone.EasyDelivery.Model.ItemParcel;
 import com.clone.EasyDelivery.R;
@@ -113,10 +110,7 @@ public class Preview extends AppCompatActivity {
         tvDriver.setText(GetDriver());
 
         tvVehicle.setText(GetVehicle());
-
-
-        currentDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
-
+        
 
         Log.d(TAG, "onCreate:current "+currentDate);
 
@@ -178,7 +172,7 @@ public class Preview extends AppCompatActivity {
 
                 updateDatabase();
 
-                email();
+                //email();
             }
         });
     }
@@ -214,11 +208,11 @@ public class Preview extends AppCompatActivity {
 
             String signatureFile = result.substring(0, result.length() - 4);
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyyyy - HHmmss", Locale.getDefault());
+            currentDate = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US).format(new Date());
 
-            String date = dateFormat.format(new Date());
-
-            db.setDocumentCompleted(itemParcel.getDocu(), imageFile, signatureFile, date, this);
+            db.setDocumentCompleted(itemParcel.getDocu(), imageFile, signatureFile, currentDate, this);
+            db.createEmailEntry(itemParcel.getDocu(), AppConstant.TRIPID);
+            Log.i("SyncService", "Email queued: " + AppConstant.TRIPID + ":" + itemParcel.getDocu());
 
             db.close();
 
@@ -305,8 +299,8 @@ public class Preview extends AppCompatActivity {
                         .append("<p><b>"+"7. Number of Parcels: "+tvParcels.getText().toString()+"</b></p>")
                         .append("<p><b>"+"8. Parcel Details: "+"</b></p>")
                         .append("<small><p>"+strList+"</p></small>")
-                        .append("<p><b>"+"9. Customer Signature: "+result +"(See Attached File)"+"</b></p>")
-                        .append("<p><b>"+"10. Parcel Photograph: "+result1 +"(See Attached File)"+"</b></p>")
+                        .append("<p><b>"+"9. Customer Signature: "+ result +"(See Attached File)"+"</b></p>")
+                        .append("<p><b>"+"10. Parcel Photograph: "+ result1 +"(See Attached File)"+"</b></p>")
 
                     .append("<p><b>"+"Warm Regards, "+"</b></p>")
                     .append("<p><b>"+"EasyDelivery Team"+"</b></p>")

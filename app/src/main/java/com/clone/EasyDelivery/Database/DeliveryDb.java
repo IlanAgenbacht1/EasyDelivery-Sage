@@ -22,6 +22,8 @@ public class DeliveryDb {
     private static final String PARCEL_TABLE = "ParcelTable";
     private static final String DELIVERY_TABLE = "DeliveryTable";
     private static final String SYNC_TABLE = "SyncTable";
+    private static final String EMAIL_TABLE = "EmailTable";
+
     private final int DATABASE_VERSION = 15;
     private Context ourContext;
     private SQLiteDatabase ourDatabase;
@@ -55,7 +57,7 @@ public class DeliveryDb {
     public static final String KEY_DOCUMENT_QTY = "_documentQty";
     public static final String KEY_DOCUMENT_SYNC_QTY = "_documentSyncQty";
 
-
+    public static final String KEY_SENT = "_sent";
 
 
     public static final String KEY_ROWID2 = "_id2";
@@ -116,6 +118,14 @@ public class DeliveryDb {
                     KEY_DOCUMENT_SYNC_QTY + " INTEGER NOT NULL);";
 
             db.execSQL(sqlCreateSyncTable);
+
+            String sqlCreateEmailTable = "CREATE TABLE " + EMAIL_TABLE + " (" +
+                    KEY_DOCUMENT + " TEXT NOT NULL, " +
+                    KEY_TRIPID + " TEXT NOT NULL, " +
+                    KEY_SENT + " BOOLEAN NOT NULL);";
+
+            db.execSQL(sqlCreateEmailTable);
+
         }
 
         @Override
@@ -125,6 +135,7 @@ public class DeliveryDb {
             db.execSQL("DROP TABLE IF EXISTS " + PARCEL_TABLE);
             db.execSQL("DROP TABLE IF EXISTS " + DELIVERY_TABLE);
             db.execSQL("DROP TABLE IF EXISTS " + SYNC_TABLE);
+            db.execSQL("DROP TABLE IF EXISTS " + EMAIL_TABLE);
 
             onCreate(db);
         }
@@ -196,6 +207,18 @@ public class DeliveryDb {
     }
 
 
+    public long createEmailEntry(String document, String trip) {
+
+        ContentValues cv = new ContentValues();
+
+        cv.put(KEY_DOCUMENT, document);
+        cv.put(KEY_TRIPID, trip);
+        cv.put(KEY_SENT, "0");
+
+        return ourDatabase.insert(EMAIL_TABLE, null, cv);
+    }
+
+
     public List<String> getDocumentList(boolean incompleteDocument) {
 
         //return list of document numbers that have _completed = 0 (false)
@@ -230,6 +253,59 @@ public class DeliveryDb {
         //the tripId is how data in the local db is validated against the downloaded delivery.
 
         Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_COMPLETED + " = 0;", null);
+
+        int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
+        int customerIndex = cursor.getColumnIndex(KEY_CUSTOMER);
+        int addressIndex = cursor.getColumnIndex(KEY_ADDRESS);
+        int contactNameIndex = cursor.getColumnIndex(KEY_CONTACTNAME);
+        int contactNumberIndex = cursor.getColumnIndex(KEY_CONTACTNUMBER);
+        int latitudeIndex = cursor.getColumnIndex(KEY_LATITUDE);
+        int longitudeIndex = cursor.getColumnIndex(KEY_LONGITUDE);
+        int parcelsIndex = cursor.getColumnIndex(KEY_PARCELS);
+
+        Delivery delivery = new Delivery();
+
+        while (cursor.moveToNext()) {
+
+            delivery.setDocument(cursor.getString(documentIndex));
+            delivery.setCustomerName(cursor.getString(customerIndex));
+            delivery.setAddress(cursor.getString(addressIndex));
+            delivery.setContactName(cursor.getString(contactNameIndex));
+            delivery.setContactNumber(cursor.getString(contactNumberIndex));
+
+            Location location = new Location("");
+            location.setLatitude(cursor.getDouble(latitudeIndex));
+            location.setLongitude(cursor.getDouble(longitudeIndex));
+            delivery.setLocation(location);
+
+            delivery.setNumberOfParcels(cursor.getInt(parcelsIndex));
+        }
+
+        cursor.close();
+
+        cursor = ourDatabase.rawQuery("SELECT * FROM " + PARCEL_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "';", null);
+
+        int parcelNumberIndex = cursor.getColumnIndex(KEY_PARCEL);
+
+        List<String> parcels = new ArrayList<>();
+
+        while (cursor.moveToNext()) {
+
+            parcels.add(cursor.getString(parcelNumberIndex));
+        }
+
+        delivery.setParcelNumbers(parcels);
+
+        return delivery;
+    }
+
+
+    public Delivery syncGetDeliveryData(String document) {
+
+        //return specified document data from the ScheduleTable that matches the tripId in the current trip file.
+        //the tripId is how data in the local db is validated against the downloaded delivery.
+
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_COMPLETED + " = 1;", null);
 
         int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
         int customerIndex = cursor.getColumnIndex(KEY_CUSTOMER);
@@ -409,11 +485,24 @@ public class DeliveryDb {
 
         Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + SYNC_TABLE + " WHERE " + KEY_DOCUMENT_QTY + " = " + KEY_DOCUMENT_SYNC_QTY + " AND " + KEY_TRIPID + " = '" + trip + "'", null);
 
+        Cursor cursor2 = ourDatabase.rawQuery("SELECT * FROM " + EMAIL_TABLE + " WHERE " + KEY_SENT + " = 0 AND " + KEY_TRIPID + " = '" + trip + "'", null);
+
         if (cursor.moveToNext()) {
 
             cursor.close();
 
-            return true;
+            if (cursor2.moveToNext()) {
+
+                cursor2.close();
+
+                return false;
+
+            } else {
+
+                cursor2.close();
+
+                return true;
+            }
         }
 
         cursor.close();
@@ -459,5 +548,40 @@ public class DeliveryDb {
 
         return false;
     }
+
+
+    public List<Delivery> getAllUnsentEmails() {
+
+        Cursor cursor = ourDatabase.rawQuery("SELECT " + KEY_DOCUMENT + ", " + KEY_TRIPID + " FROM " + EMAIL_TABLE + " WHERE " + KEY_SENT + " = 0;", null);
+
+        int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
+        int tripIndex = cursor.getColumnIndex(KEY_TRIPID);
+
+        List<Delivery> list = new ArrayList<>();
+
+        while(cursor.moveToNext()) {
+
+            Delivery delivery = new Delivery();
+
+            delivery.setDocument(cursor.getString(documentIndex));
+            delivery.setTripId(cursor.getString(tripIndex));
+
+            list.add(delivery);
+        }
+
+        return list;
+    }
+
+
+    public void setEmailSent(String document, String trip) {
+
+        Cursor cursor = ourDatabase.rawQuery("UPDATE " + EMAIL_TABLE + " SET " + KEY_SENT + " = 1 WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + trip + "';", null);
+
+        cursor.moveToFirst();
+        cursor.close();
+
+        Log.i("SyncService", document + " email set _sent = 1");
+    }
+
 
 }

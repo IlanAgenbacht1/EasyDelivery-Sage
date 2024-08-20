@@ -255,7 +255,7 @@ public class DropboxHelper {
 
         try {
 
-            String toPath = CUSTOMER_PATH + "Completed/" + tripName + ".json";
+            String toPath = CUSTOMER_PATH + "Completed/" + tripName + "/" + tripName + ".json";
 
             String fromPath = CUSTOMER_PATH + "InProgress/" + tripName + ".json";
 
@@ -264,44 +264,6 @@ public class DropboxHelper {
         } catch(Exception e) {
 
             e.printStackTrace();
-        }
-    }
-
-
-    public static ArrayList<String> getUploadedDocuments() {
-
-        try {
-
-            ArrayList<String> list = new ArrayList<>();
-
-            String path = CUSTOMER_PATH + "Completed/";
-
-            ListFolderResult resultTrip = getClient().files().listFolder(path);
-
-            for (int i = 0; i < resultTrip.getEntries().size(); i++) {
-
-                String resultString = resultTrip.getEntries().get(i).getName();
-
-                ListFolderResult resultDocument = getClient().files().listFolder(CUSTOMER_PATH + "Completed/" + resultString + "/");
-
-                for (int x = 0; x < resultDocument.getEntries().size(); x++) {
-
-                    String resultString2 = resultDocument.getEntries().get(x).getName();
-
-                    if (!resultString2.contains(".json")) {
-
-                        list.add(resultString2);
-                    }
-                }
-            }
-
-            return list;
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            return null;
         }
     }
 

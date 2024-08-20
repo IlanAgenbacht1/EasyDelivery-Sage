@@ -17,6 +17,9 @@ public class AppConstant {
     public static  String ZOOM = " ";
     public static Location GPS_LOCATION;
     public static String TRIPID = "";
+    public static String EMAIL = "";
+    public static String DRIVER = "";
+    public static String VEHICLE = "";
 
     public static boolean PARCEL_VALIDATION;
 

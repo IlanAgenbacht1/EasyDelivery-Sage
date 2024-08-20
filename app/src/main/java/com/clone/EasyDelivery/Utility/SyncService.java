@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -14,9 +15,26 @@ import com.clone.EasyDelivery.Database.DeliveryDb;
 import com.clone.EasyDelivery.Model.Delivery;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import jakarta.activation.DataHandler;
+import jakarta.mail.Authenticator;
+import jakarta.mail.Multipart;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.util.ByteArrayDataSource;
+
 
 public class SyncService extends IntentService {
 
@@ -49,6 +67,11 @@ public class SyncService extends IntentService {
         if (receiver != null) {
 
             unregisterReceiver(receiver);
+        }
+
+        if (database != null && database.isOpen()) {
+
+            database.close();
         }
     }
 
@@ -98,13 +121,24 @@ public class SyncService extends IntentService {
                     }
                 });
 
+                Thread threadEmail = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        syncEmail();
+                    }
+                });
+
                 threadDownloadTrips.start();
                 threadTripStatus.start();
+                threadEmail.start();
                 threadCompletedData.start();
                 threadCompletedTrip.start();
 
             }
-        },0, 10000);
+        },0, 20000);
+
+
 
         IntentFilter filter = new IntentFilter();
 
@@ -149,7 +183,7 @@ public class SyncService extends IntentService {
 
                                         DropboxHelper.downloadAllTrips(getApplicationContext());
 
-                                        ScheduleHelper.getLocalTrips(getApplicationContext());
+                                        //ScheduleHelper.getLocalTrips(getApplicationContext());
                                     }
                                 });
 
@@ -224,7 +258,7 @@ public class SyncService extends IntentService {
                             @Override
                             public void run() {
 
-                                syncCompletedData();
+                                //syncCompletedData();
                             }
                         });
 
@@ -343,6 +377,144 @@ public class SyncService extends IntentService {
     }
 
 
+    private void syncEmail() {
+
+        try {
+
+            openDatabase();
+
+            List<Delivery> emailList = database.getAllUnsentEmails();
+
+            for (Delivery queuedEmail : emailList) {
+
+                Delivery data = database.getCompletedDocument(queuedEmail.getDocument(), queuedEmail.getTripId());
+
+                data = database.getCompletedParcels(data);
+
+                if (sendEmail(data)) {
+
+                    database.setEmailSent(queuedEmail.getDocument(), queuedEmail.getTripId());
+
+                    Log.i("SyncService", queuedEmail.getDocument() + " email sent.");
+                }
+            }
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+    }
+
+
+    private boolean sendEmail(Delivery delivery) {
+
+        try {
+
+            String recipient = AppConstant.EMAIL;
+            String subject = "ePOD Document Number: " + delivery.getDocument();
+
+            String parcels;
+
+            parcels = TextUtils.join(", ", delivery.getParcelNumbers());
+            parcels = parcels.replaceAll("\\s", " ");
+
+            String date = delivery.getTime().substring(0, 10);
+
+            String time = delivery.getTime().substring(delivery.getTime().length() - 8);
+
+            String body = new StringBuilder()
+
+                    .append("<p>" + "Dear Admin," + "</p>")
+                    .append("<p>" + "Please find the Delivery Details for Document Number: " + delivery.getDocument() + " below:" + "</p>")
+                    .append("<br />")
+                    .append("<p><b>" + "1. Company: " + delivery.getCustomerName() + "</b></p>")
+                    .append("<p><b>" + "2. Driver Name: " + AppConstant.DRIVER + "</b></p>")
+                    .append("<p><b>" + "3. Delivery Vehicle: " + AppConstant.VEHICLE + "</b></p>")
+                    .append("<p><b>" + "4. Date of Delivery: " + date + "</b></p>")
+                    .append("<p><b>" + "5. Time of Delivery: " + time + "</b></p>")
+                    .append("<p><b>" + "6. Document Number: " + delivery.getDocument() + "</b></p>")
+                    .append("<p><b>" + "7. Number of Parcels: " + delivery.getNumberOfParcels() + "</b></p>")
+                    .append("<p><b>" + "8. Parcel Details: " + "</b></p>")
+                    .append("<small><p>" + parcels + "</p></small>")
+                    .append("<p><b>" + "9. Customer Signature: " + delivery.getSignPath() + " (See Attached File)" + "</b></p>")
+                    .append("<p><b>" + "10. Parcel Photograph: " + delivery.getImagePath() + " (See Attached File)" + "</b></p>")
+                    .append("<br />")
+                    .append("<p>" + "Warm Regards, " + "</p>")
+                    .append("<p>" + "EasyDelivery Team" + "</p>")
+
+                    .toString();
+
+            final String username = "dev@easydelivery.biz"; // SMTP username
+            final String password = "nnmg ywbr fyud epwo"; // SMTP password
+
+            Properties properties = new Properties();
+            properties.put("mail.smtp.host", "smtp.gmail.com");
+            properties.put("mail.smtp.port", "587");
+            properties.put("mail.smtp.auth", "true");
+            properties.put("mail.smtp.starttls.enable", "true");
+
+            Session session = Session.getInstance(properties, new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+
+                    return new PasswordAuthentication(username, password);
+                }
+            });
+
+            MimeMessage message = new MimeMessage(session);
+            message.setFrom(new InternetAddress("dev@easydelivery.biz"));
+            message.addRecipient(MimeMessage.RecipientType.TO, new InternetAddress(recipient));
+            message.setSubject(subject);
+
+            Multipart multipart = new MimeMultipart();
+            MimeBodyPart messageBodyPart = new MimeBodyPart();
+
+            messageBodyPart.setContent(body, "text/html");
+            multipart.addBodyPart(messageBodyPart);
+
+            addAttachment(multipart, getApplicationContext().getFilesDir() + "/DeliveryApp/DeliverySignature/" + delivery.getSignPath() + ".jpg");
+            addAttachment(multipart, getApplicationContext().getFilesDir() + "/DeliveryApp/DeliveryImage/" + delivery.getImagePath() + ".jpg");
+
+            message.setContent(multipart);
+
+            Transport.send(message);
+
+            return true;
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            return false;
+        }
+    }
+
+
+    private void addAttachment(Multipart multipart, String filePath) {
+
+        try {
+
+            File file = new File(filePath);
+
+            if (file.exists()) {
+
+                MimeBodyPart attachmentBodyPart = new MimeBodyPart();
+
+                try (FileInputStream fis = new FileInputStream(file)) {
+
+                    attachmentBodyPart.setDataHandler(new DataHandler(new ByteArrayDataSource(fis, "image/jpeg")));
+                    attachmentBodyPart.setFileName(file.getName());
+                    multipart.addBodyPart(attachmentBodyPart);
+                }
+            }
+
+        } catch(Exception e) {
+
+            e.printStackTrace();
+        }
+    }
+
+
     private void openDatabase() {
 
         if (database == null) {
@@ -354,12 +526,7 @@ public class SyncService extends IntentService {
 
             database.open();
         }
-/*
-
-        if (!database.isOpen()) {
-
-            database.open();
-        }*/
     }
+
 
 }

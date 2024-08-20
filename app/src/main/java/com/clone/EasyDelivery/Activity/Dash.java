@@ -134,15 +134,11 @@ public class Dash extends AppCompatActivity {
         textViewCustomer = findViewById(R.id.tv_dashCustomer);
         textViewTrip = findViewById(R.id.tv_dashTripTitle);
 
-       // btnFinish = findViewById(R.id.btn_finish);
-
         rlTick1 = findViewById(R.id.rl_tick1);
         rlTick2 = findViewById(R.id.rl_tick2);
 
         enter_num = findViewById(R.id.et_number);
         ll_number= findViewById(R.id.ll_number);
-
-        //btnReset = findViewById(R.id.bt);
 
         rlRv = findViewById(R.id.rl_rv);
         rl_1= findViewById(R.id.rl_1);
@@ -683,6 +679,11 @@ public class Dash extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
 
+        if (database != null && database.isOpen()) {
+
+            database.close();
+        }
+
         Log.i("Debug", "onDestroy Called");
     }
 
@@ -696,8 +697,6 @@ public class Dash extends AppCompatActivity {
         super.onPause();
 
         Log.i("Debug", "onPause Called");
-
-        database.close();
     }
 }
 
