@@ -183,7 +183,12 @@ public class SyncService extends IntentService {
 
                                         DropboxHelper.downloadAllTrips(getApplicationContext());
 
+<<<<<<< master
                                         //ScheduleHelper.getLocalTrips(getApplicationContext());
+=======
+                                        ScheduleHelper.getLocalTrips(getApplicationContext());
+
+>>>>>>> bayco
                                     }
                                 });
 
@@ -274,6 +279,7 @@ public class SyncService extends IntentService {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
             registerReceiver(receiver,filter, Context.RECEIVER_NOT_EXPORTED);
+
         } else {
 
             registerReceiver(receiver, filter);
@@ -520,6 +526,7 @@ public class SyncService extends IntentService {
         if (database == null) {
 
             database = new DeliveryDb(getApplicationContext());
+
             database.open();
 
         } else {
