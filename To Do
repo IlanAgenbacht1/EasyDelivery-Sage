@@ -3,5 +3,7 @@ UI
 FUNCTIONALITY
 - Change the way InProgress trips are checked. At the moment a started trip is only validated against a devices local data.
 
+- When syncing data after app comes online for first time, trip status isnt updated correctly and trip isnt correctly completed.
+
 - Seperate build for capturing temperature.
   - Add a 'Capture temperature' button between image and signature capture buttons.
