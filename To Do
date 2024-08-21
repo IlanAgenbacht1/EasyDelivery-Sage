@@ -3,7 +3,7 @@ UI
 FUNCTIONALITY
 - Change the way InProgress trips are checked. At the moment a started trip is only validated against a devices local data.
 
-- When syncing data after app comes online for first time (deliveries are completed offline), trip status isnt updated correctly and trip isnt correctly completed.
+- When syncing data after app comes online for first time (deliveries are completed offline), trip status isnt updated correctly (trip is never moved to InProgress) and trip isnt correctly completed.
 
 - Dialog for entering a delivery comment when opening a delivery (after location validation).
 
