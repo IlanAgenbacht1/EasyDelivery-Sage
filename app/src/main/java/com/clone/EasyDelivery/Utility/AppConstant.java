@@ -9,17 +9,18 @@ import java.util.ArrayList;
 
 public class AppConstant {
 
-    public static  String DOCUMENT=" ";
-    public static  String PARCEL_NO=" ";
+    public static String DOCUMENT=" ";
+    public static String PARCEL_NO=" ";
     public static String COMPANY = " ";
-    public static  String SIGN_PATH = " ";
-    public static  String PIC_PATH = " ";
-    public static  String ZOOM = " ";
+    public static String SIGN_PATH = " ";
+    public static String PIC_PATH = " ";
+    public static String ZOOM = " ";
     public static Location GPS_LOCATION;
     public static String TRIPID = "";
     public static String EMAIL = "";
     public static String DRIVER = "";
     public static String VEHICLE = "";
+    public static String COMMENT = "";
 
     public static boolean PARCEL_VALIDATION;
     public static String PARCEL_INPUT = "";

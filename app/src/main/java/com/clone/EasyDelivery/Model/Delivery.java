@@ -22,6 +22,7 @@ public class Delivery {
     private String time;
     private String imagePath;
     private String signPath;
+    private String comment;
 
     // Getters and setters
 
@@ -68,4 +69,7 @@ public class Delivery {
 
     public boolean uploaded() { return uploaded; }
     public void setUploaded(boolean uploaded) { this.uploaded = uploaded; }
+
+    public void setComment(String comment) { this.comment = comment; }
+    public String getComment() { return comment; }
 }

@@ -45,7 +45,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 public class Preview extends AppCompatActivity {
-    private TextView tvCompany,tvDriver,tvVehicle,tvDate,tvTime,tvDocu,tvParcels;
+    private TextView tvCompany,tvDriver,tvVehicle,tvDate,tvTime,tvDocu,tvParcels,tvComment;
     private Button btnBack,btnConfirm;
     private RecyclerView recyclerView;
     private String date_final,time_final,currentDate;
@@ -58,15 +58,12 @@ public class Preview extends AppCompatActivity {
 
     private Context context;
 
-//    private ImageView ivSign,ivPic;
     ArrayList<String> parcelId;
 
     ArrayList<String> filePaths;
     String  strList;
 
     private TextView tvPic,tvSign;
-
-    String sign, pic;
 
     private static final String TAG = "Preview";
 
@@ -95,6 +92,7 @@ public class Preview extends AppCompatActivity {
         tvDate = findViewById(R.id.tv_date);
         tvTime = findViewById(R.id.tv_time);
         tvDocu = findViewById(R.id.tv_docu);
+        tvComment = findViewById(R.id.tv_comment);
         tvParcels = findViewById(R.id.tv_parcel);
 
 
@@ -118,6 +116,7 @@ public class Preview extends AppCompatActivity {
         tvTime.setText(new SimpleDateFormat("HH:mm", Locale.US).format(new Date())+" Hours");
 
         tvDocu.setText(AppConstant.DOCUMENT);
+        tvComment.setText(AppConstant.COMMENT);
         tvParcels.setText(AppConstant.PARCEL_NO);
 
         btnBack.setOnClickListener(new View.OnClickListener() {
@@ -207,10 +206,14 @@ public class Preview extends AppCompatActivity {
             currentDate = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US).format(new Date());
 
             db.setDocumentCompleted(itemParcel.getDocu(), imageFile, signatureFile, currentDate, this);
+            db.updateComment();
             db.createEmailEntry(itemParcel.getDocu(), AppConstant.TRIPID);
             Log.i("SyncService", "Email queued: " + AppConstant.TRIPID + ":" + itemParcel.getDocu());
 
             db.close();
+
+            AppConstant.DOCUMENT = "";
+            AppConstant.COMMENT = "";
 
             startActivity(new Intent(Preview.this, DashHeader.class));
 

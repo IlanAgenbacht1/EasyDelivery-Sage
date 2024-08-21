@@ -183,12 +183,8 @@ public class SyncService extends IntentService {
 
                                         DropboxHelper.downloadAllTrips(getApplicationContext());
 
-<<<<<<< master
                                         //ScheduleHelper.getLocalTrips(getApplicationContext());
-=======
                                         ScheduleHelper.getLocalTrips(getApplicationContext());
-
->>>>>>> bayco
                                     }
                                 });
 
@@ -439,11 +435,12 @@ public class SyncService extends IntentService {
                     .append("<p><b>" + "4. Date of Delivery: " + date + "</b></p>")
                     .append("<p><b>" + "5. Time of Delivery: " + time + "</b></p>")
                     .append("<p><b>" + "6. Document Number: " + delivery.getDocument() + "</b></p>")
-                    .append("<p><b>" + "7. Number of Parcels: " + delivery.getNumberOfParcels() + "</b></p>")
-                    .append("<p><b>" + "8. Parcel Details: " + "</b></p>")
+                    .append("<p><b>" + "7. Comment: " + delivery.getComment() + "</b></p>")
+                    .append("<p><b>" + "8. Number of Parcels: " + delivery.getNumberOfParcels() + "</b></p>")
+                    .append("<p><b>" + "9. Parcel Details: " + "</b></p>")
                     .append("<small><p>" + parcels + "</p></small>")
-                    .append("<p><b>" + "9. Customer Signature: " + delivery.getSignPath() + " (See Attached File)" + "</b></p>")
-                    .append("<p><b>" + "10. Parcel Photograph: " + delivery.getImagePath() + " (See Attached File)" + "</b></p>")
+                    .append("<p><b>" + "10. Customer Signature: " + delivery.getSignPath() + " (See Attached File)" + "</b></p>")
+                    .append("<p><b>" + "11. Parcel Photograph: " + delivery.getImagePath() + " (See Attached File)" + "</b></p>")
                     .append("<br />")
                     .append("<p>" + "Warm Regards, " + "</p>")
                     .append("<p>" + "EasyDelivery Team" + "</p>")

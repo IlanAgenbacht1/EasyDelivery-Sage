@@ -53,6 +53,7 @@ public class DeliveryDb {
     public static final String KEY_CAPTUREDLONGITUDE = "_capturedLongitude";
     public static final String KEY_PARCELS = "_parcelQty";
     public static final String KEY_UPLOADED = "_uploaded";
+    public static final String KEY_COMMENT = "_comment";
 
     public static final String KEY_DOCUMENT_QTY = "_documentQty";
     public static final String KEY_DOCUMENT_SYNC_QTY = "_documentSyncQty";
@@ -108,7 +109,8 @@ public class DeliveryDb {
                     KEY_PIC + " TEXT, " +
                     KEY_TIME + " TEXT, " +
                     KEY_COMPLETED + " BOOLEAN NOT NULL, " +
-                    KEY_UPLOADED + " BOOLEAN NOT NULL);";
+                    KEY_UPLOADED + " BOOLEAN NOT NULL, " +
+                    KEY_COMMENT + " TEXT);";
 
             db.execSQL(sqlCreateDeliveryTable);
 
@@ -415,6 +417,7 @@ public class DeliveryDb {
         int imageIndex = cursor.getColumnIndex(KEY_PIC);
         int signIndex = cursor.getColumnIndex(KEY_SIGN);
         int timeIndex = cursor.getColumnIndex(KEY_TIME);
+        int commentIndex = cursor.getColumnIndex(KEY_COMMENT);
 
         while (cursor.moveToNext()) {
 
@@ -434,6 +437,7 @@ public class DeliveryDb {
             delivery.setImagePath(cursor.getString(imageIndex));
             delivery.setSignPath(cursor.getString(signIndex));
             delivery.setTime(cursor.getString(timeIndex));
+            delivery.setComment(cursor.getString(commentIndex));
         }
 
         return  delivery;
@@ -581,6 +585,15 @@ public class DeliveryDb {
         cursor.close();
 
         Log.i("SyncService", document + " email set _sent = 1");
+    }
+
+
+    public void updateComment() {
+
+        Cursor cursor = ourDatabase.rawQuery("UPDATE " + DELIVERY_TABLE + " SET " + KEY_COMMENT + " = '" + AppConstant.COMMENT + "' WHERE " + KEY_DOCUMENT + " = '" + AppConstant.DOCUMENT + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "'", null);
+
+        cursor.moveToFirst();
+        cursor.close();
     }
 
 

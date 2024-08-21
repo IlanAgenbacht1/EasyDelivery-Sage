@@ -84,6 +84,7 @@ public class JsonHandler {
                 json.put("image", delivery.getImagePath());
                 json.put("signature", delivery.getSignPath());
                 json.put("time", delivery.getTime());
+                json.put("comment", delivery.getComment());
 
                 Writer writer = new BufferedWriter(new FileWriter(file));
                 writer.write(json.toString());

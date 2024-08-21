@@ -66,15 +66,7 @@ public class Dash extends AppCompatActivity {
 
     private RecyclerView recyclerView;
 
-    private NestedScrollView nestedScrollView;
-
     private RelativeLayout rlRv,rl_1;
-
-    private Spinner spinnerDoc;
-
-    private ArrayAdapter<String> spinnerAdapter;
-
-    private ArrayList<String> spinnerList;
 
     private ArrayList<String> adapterList;
 
@@ -82,7 +74,7 @@ public class Dash extends AppCompatActivity {
 
     private Context context = this;
 
-    private boolean isIncre = false;
+    private EditText commentEditText;
 
     LinearLayoutManager linearLayoutManager;
     View parentLayout;
@@ -102,8 +94,6 @@ public class Dash extends AppCompatActivity {
     private Button btn_next;
     private int imageType = 0;
     private Uri ImagefileUri;
-    String currentPicturePath;
-    String tempPicturePath;
     public int img_isthere = 0;
     public static final int REQUEST_CAPTURE = 7;
     File file;
@@ -161,19 +151,10 @@ public class Dash extends AppCompatActivity {
         linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
 
         linearLayoutManager.setSmoothScrollbarEnabled(true);
-        linearLayoutManager.setStackFromEnd(true);
 
         recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(adapter);
 
-        /*if (recyclerView.getChildCount() == adapterList.size()){
-
-            linearLayoutManager.setStackFromEnd(true);
-        }
-        else{
-
-            linearLayoutManager.setStackFromEnd(false);
-        }*/
 
         AppConstant.validatedParcels.clear();
 
@@ -412,12 +393,43 @@ public class Dash extends AppCompatActivity {
                         public void onClick(DialogInterface dialog, int which) {
 
                             dialog.dismiss();
+
+                            displayCommentDialog();
                         }
                     }
             );
 
             alertDialog.show();
+
+        } else {
+
+            displayCommentDialog();
         }
+    }
+
+
+    public void displayCommentDialog() {
+
+        commentEditText = new EditText(this);
+        commentEditText.setTextColor(getResources().getColor(R.color.ic_launcher_background));
+        commentEditText.setHintTextColor(getResources().getColor(R.color.gold));
+
+        AlertDialog dialog = new AlertDialog.Builder(this, R.style.AlertDialogStyle)
+                .setTitle("Enter Comment")
+                .setView(commentEditText)
+                .setCancelable(false)
+                .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+
+                        AppConstant.COMMENT = commentEditText.getText().toString();
+                    }
+
+                }).create();
+
+        dialog.show();
+
+        commentEditText.requestFocus();
     }
 
 
