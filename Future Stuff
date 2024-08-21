@@ -2,17 +2,6 @@
 
 - Discrepancy activity that can be used to track and manage any discrepancies. Driver can select an issue from a list of common discrepancies with minimal or no input needed. 
   Capture an image depending on the issue. Can then enable a validation override.
-
-- Settings screen for certain variables like location validation distance, offline only mode etc. (Perhaps these are hardcoded per customer?)
-
-- Scanning barcode with camera when capturing parcels.
-
-- Keep completed documents in header dashboard (can be colored green and set to unclickable). Once all deliveries are done the app will automatically sync. 
-  If no internet, driver can trigger it manually once he has an internet connection (If the app doesnt pick up the connection automatically).
-
-- Capturing of data when completely offline. IE no delivery.
-  - Add/Plus/New button in dash header that appears only when no delivery is found (or the existing delivery is completed) and internet cannot be accessed.
-  - All fields can be edited when capturing parcels. Once completed, data is inserted into a seperate ("CustomDelivery" or "OfflineDelivery") table which can then be validated at a later stage.
  
 - Web Based Progress Tracker.
 - Web based Trip Entry Screen.
