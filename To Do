@@ -5,9 +5,7 @@ FUNCTIONALITY
 
 - When syncing data after app comes online for first time (deliveries are completed offline), trip status isnt updated correctly and trip isnt correctly completed.
 
-- Seperate build for capturing temperature.
-  - Add a 'Capture temperature' button between image and signature capture buttons.
+- 
 
 
 ! BUGS !
-- Green tick showing validated parcels appears randomly on big parcel lists. Occurs when most of the items are validated and the remaining few randomly appear to be validated. (Android 9)
