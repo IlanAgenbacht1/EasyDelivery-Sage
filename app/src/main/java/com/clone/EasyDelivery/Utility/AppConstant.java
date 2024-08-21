@@ -22,6 +22,9 @@ public class AppConstant {
     public static String VEHICLE = "";
 
     public static boolean PARCEL_VALIDATION;
+    public static String PARCEL_INPUT = "";
+    public static int PARCEL_POSITION;
+
 
     public static ArrayList<Location> gpsList = new ArrayList<>();
     public static ArrayList<String> documentList = new ArrayList<>();

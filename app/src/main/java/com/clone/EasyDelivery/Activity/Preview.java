@@ -110,19 +110,15 @@ public class Preview extends AppCompatActivity {
         tvDriver.setText(GetDriver());
 
         tvVehicle.setText(GetVehicle());
-        
 
         Log.d(TAG, "onCreate:current "+currentDate);
-
 
         tvDate.setText(new SimpleDateFormat("dd-MMM-yyyy", Locale.US).format(new Date()));
 
         tvTime.setText(new SimpleDateFormat("HH:mm", Locale.US).format(new Date())+" Hours");
 
-
         tvDocu.setText(AppConstant.DOCUMENT);
         tvParcels.setText(AppConstant.PARCEL_NO);
-
 
         btnBack.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -220,8 +216,6 @@ public class Preview extends AppCompatActivity {
 
             finishAffinity();
 
-            /*alert.showDialog(Preview.this);
-            ViewDialog alert = new ViewDialog();*/
         }
 
         catch(SQLException e){

@@ -31,6 +31,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
+import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -64,6 +65,8 @@ public class Dash extends AppCompatActivity {
     private Switch barcodeSwitch;
 
     private RecyclerView recyclerView;
+
+    private NestedScrollView nestedScrollView;
 
     private RelativeLayout rlRv,rl_1;
 
@@ -157,6 +160,9 @@ public class Dash extends AppCompatActivity {
 
         linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
 
+        linearLayoutManager.setSmoothScrollbarEnabled(true);
+        linearLayoutManager.setStackFromEnd(true);
+
         recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(adapter);
 
@@ -234,11 +240,14 @@ public class Dash extends AppCompatActivity {
 
                             if (input.equalsIgnoreCase(adapterList.get(i))) {
 
-                                AppConstant.PARCEL_VALIDATION = true;
+                                Log.w("DEBUG", "input pos: " + i);
+
+                                AppConstant.PARCEL_POSITION = i;
+                                AppConstant.PARCEL_INPUT = input;
+
+                                AppConstant.validatedParcels.add(adapterList.get(i));
 
                                 adapter.notifyItemChanged(i);
-
-                                AppConstant.validatedParcels.add(input);
 
                                 if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
 
@@ -252,6 +261,8 @@ public class Dash extends AppCompatActivity {
                                     enter_num.setFocusable(false);
                                     enter_num.setCursorVisible(false);
                                 }
+
+                                AppConstant.PARCEL_VALIDATION = false;
                             }
                         }
                     }

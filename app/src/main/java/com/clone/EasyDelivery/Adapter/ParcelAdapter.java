@@ -1,6 +1,7 @@
 package com.clone.EasyDelivery.Adapter;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -54,27 +55,30 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
             holder.etNumber.setText((holder.getAdapterPosition() + 1) + "." + " " + listItems.get(position));
         }
 
-        if (AppConstant.PARCEL_VALIDATION) {
+
+        if (AppConstant.validatedParcels.contains(holder.etNumber.getText().toString().substring(3))) {
+
 
             holder.iv_check.setVisibility(View.VISIBLE);
 
-            AppConstant.PARCEL_VALIDATION = false;
+        } else if (AppConstant.validatedParcels.contains(holder.etNumber.getText().toString().substring(4))) {
+
+            holder.iv_check.setVisibility(View.VISIBLE);
+
+        } else if (AppConstant.validatedParcels.contains(holder.etNumber.getText().toString().substring(5))) {
+
+            holder.iv_check.setVisibility(View.VISIBLE);
+
+        } else {
+
+            holder.iv_check.setVisibility(View.INVISIBLE);
         }
     }
+
 
     @Override
     public int getItemCount() {
         return listItems.size();
-    }
-
-
-    public boolean validParcel(int position, String parcelInput, Delivery delivery) {
-
-        boolean valid = false;
-
-
-
-        return valid;
     }
 
 
@@ -83,6 +87,7 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
         private TextView etNumber;
         private ImageView iv_check;
         private ConstraintLayout rl_main;
+
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
 
