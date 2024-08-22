@@ -19,14 +19,36 @@ android:background="@color/theme">
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:padding="15dp">
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:paddingLeft="25dp"
+        android:paddingRight="25dp">
 
-        <com.google.android.material.textfield.TextInputLayout
+        <EditText
+            android:id="@+id/et_number"
+            android:layout_width="0dp"
+            android:layout_height="59dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/parcelinput_border"
+            android:ems="10"
+            android:hint="Enter Parcel"
+            android:inputType="text"
+            android:paddingLeft="15dp"
+            android:paddingRight="15dp"
+            android:textColor="@color/white"
+            android:textColorHint="@color/gold"
+            android:textSize="16sp"
+            app:fontFamily="@font/roboto_light"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_dashDocTitle" />
+
+        <!--<com.google.android.material.textfield.TextInputLayout
             android:id="@+id/ll_number"
             style="@style/textInputLogin"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
+            android:layout_height="59dp"
+            android:layout_marginTop="10dp"
             android:textColorHint="@color/theme"
             android:visibility="visible"
             app:errorEnabled="true"
@@ -46,7 +68,7 @@ android:background="@color/theme">
                 android:visibility="visible"
                 app:fontFamily="@font/roboto_light" />
 
-        </com.google.android.material.textfield.TextInputLayout>
+        </com.google.android.material.textfield.TextInputLayout>-->
 
         <TextView
             android:id="@+id/tv_dashTripTitle"
@@ -86,6 +108,7 @@ android:background="@color/theme">
             android:id="@+id/btn_next"
             android:layout_width="0dp"
             android:layout_height="65dp"
+            android:layout_marginTop="2dp"
             android:backgroundTint="@color/gold"
             android:text="Next"
             android:textColor="@color/theme"
@@ -94,7 +117,7 @@ android:background="@color/theme">
             app:fontFamily="@font/roboto_medium"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/ll_number" />
+            app:layout_constraintTop_toBottomOf="@+id/et_number" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -122,7 +145,7 @@ android:background="@color/theme">
         </RelativeLayout>
 
 
-        <RelativeLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/rl_1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -132,38 +155,50 @@ android:background="@color/theme">
 
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:id="@+id/tv_parcels"
+                android:layout_width="62dp"
+                android:layout_height="0dp"
+                android:layout_marginBottom="10dp"
+                android:gravity="center_vertical"
                 android:text=" Parcels:"
                 android:textColor="@color/gold"
                 android:textSize="16sp"
-                app:fontFamily="@font/roboto_medium" />
+                app:fontFamily="@font/roboto_medium"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <Switch
                 android:id="@+id/switch_barcode"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
-                android:layout_marginEnd="0dp"
-                android:thumbTint="@color/gold" />
+                android:layout_marginBottom="7dp"
+                android:thumbTint="@color/gold"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <ImageView
                 android:id="@+id/iv_barcode"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
                 android:layout_marginEnd="5dp"
-                android:layout_toStartOf="@+id/switch_barcode"
+                android:layout_marginBottom="7dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/switch_barcode"
+                app:layout_constraintTop_toTopOf="parent"
                 app:srcCompat="@drawable/barcode" />
 
 
-        </RelativeLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
 
         <LinearLayout
             android:id="@+id/ll_1"
             android:layout_width="match_parent"
             android:layout_height="1.5dp"
-            android:layout_below="@id/tv_1"
+            android:layout_below="@id/header"
             android:layout_marginTop="1dp"
             android:background="@color/cardview_dark_background"
             android:orientation="horizontal"
@@ -176,15 +211,12 @@ android:background="@color/theme">
         <RelativeLayout
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_below="@id/rl_1"
-            android:layout_marginTop="5dp">
+            android:layout_below="@id/rl_1">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rv"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:paddingHorizontal="3dp"
-                android:paddingVertical="3dp" />
+                android:layout_height="match_parent" />
 
         </RelativeLayout>
     </RelativeLayout>
@@ -207,7 +239,8 @@ android:background="@color/theme">
             android:layout_gravity="center_vertical"
             android:layout_weight="1"
             android:paddingLeft="15dp"
-            android:paddingRight="15dp">
+            android:paddingRight="15dp"
+            android:layout_marginTop="5dp">
 
 
             <Button
@@ -247,7 +280,8 @@ android:background="@color/theme">
             android:layout_gravity="center_vertical"
             android:layout_weight="1"
             android:paddingLeft="15dp"
-            android:paddingRight="15dp">
+            android:paddingRight="15dp"
+            android:layout_marginTop="5dp">
 
 
             <!--        <com.google.android.material.button.MaterialButton-->

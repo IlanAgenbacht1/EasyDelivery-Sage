@@ -39,6 +39,12 @@
         <item name="colorAccent">@color/gold</item>
     </style>
 
+    <style name="textInputDiscrepancy" parent="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+        <item name="boxStrokeColor">@color/parcel_input_discrepancy</item>
+        <item name="hintTextColor">@color/red</item>
+        <item name="colorAccent">@color/red</item>
+    </style>
+
     <style name="Material" parent="Theme.MaterialComponents.Light.NoActionBar">
         <!-- Customize your theme here. -->
 

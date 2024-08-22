@@ -15,12 +15,16 @@ import android.provider.MediaStore;
 import android.text.SpannableStringBuilder;
 import android.text.style.RelativeSizeSpan;
 import android.util.Log;
+import android.view.ContextThemeWrapper;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.Switch;
@@ -30,6 +34,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.FileProvider;
 import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -58,15 +63,19 @@ import java.util.List;
 public class Dash extends AppCompatActivity {
 
 
-    private TextView textViewTrip, textViewDocument, textViewCustomer;
+    private TextView textViewTrip, textViewDocument, textViewCustomer, textViewParcelTitle;
 
     private Button btnSign, btnPic, btnSave, btnReset;
 
     private Switch barcodeSwitch;
 
+    private ImageView barcodeImage;
+
     private RecyclerView recyclerView;
 
-    private RelativeLayout rlRv,rl_1;
+    private ConstraintLayout rl_1;
+
+    private RelativeLayout rlRv;
 
     private ArrayList<String> adapterList;
 
@@ -89,7 +98,6 @@ public class Dash extends AppCompatActivity {
     private static final String IMAGE_DIRECTORY = "/DeliveryApp";
     private static final String SiGN_DIRECTORY = "/DeliverySignature";
     private static final String PIC_DIRECTORY = "/DeliveryImages";
-
 
     private Button btn_next;
     private int imageType = 0;
@@ -120,43 +128,49 @@ public class Dash extends AppCompatActivity {
         setContentView(R.layout.activity_dash);
 
         btn_next = findViewById(R.id.btn_next);
-
         barcodeSwitch = findViewById(R.id.switch_barcode);
-
+        barcodeImage = findViewById(R.id.iv_barcode);
         textViewDocument = findViewById(R.id.tv_dashDocTitle);
         textViewCustomer = findViewById(R.id.tv_dashCustomer);
         textViewTrip = findViewById(R.id.tv_dashTripTitle);
-
         rlTick1 = findViewById(R.id.rl_tick1);
         rlTick2 = findViewById(R.id.rl_tick2);
-
         enter_num = findViewById(R.id.et_number);
-        ll_number= findViewById(R.id.ll_number);
-
+        //ll_number= findViewById(R.id.ll_number);
         rlRv = findViewById(R.id.rl_rv);
         rl_1= findViewById(R.id.rl_1);
         recyclerView = findViewById(R.id.rv);
-
         parentLayout = findViewById(android.R.id.content);
-
         btnPic = findViewById(R.id.btn_pic);
         btnSign = findViewById(R.id.btn_sign);
+        textViewParcelTitle = findViewById(R.id.tv_parcels);
 
         adapterList = new ArrayList<>();
 
         database = new DeliveryDb(context).open();
 
-        adapter = new ParcelAdapter(this, adapterList, database, recyclerView);
-
         linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
 
         linearLayoutManager.setSmoothScrollbarEnabled(true);
 
+        adapter = new ParcelAdapter(this, adapterList, recyclerView, new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                int startIndex = adapterList.get(i).indexOf(" ") + 1; // finds the start index of the parcel number
+                String selectedItem = adapterList.get(i).substring(startIndex);
+
+                runDiscrepancyMode(selectedItem, i);
+
+                return false;
+            }
+        });
+
         recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(adapter);
 
-
         AppConstant.validatedParcels.clear();
+        AppConstant.discrepancyParcels.clear();
 
         barcodeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -433,6 +447,64 @@ public class Dash extends AppCompatActivity {
     }
 
 
+    public void runDiscrepancyMode(String item, int position) {
+
+        if (!AppConstant.validatedParcels.contains(item)) {
+
+            if (AppConstant.discrepancyParcels.contains(item)) {
+
+                AppConstant.discrepancyParcels.remove(item);
+
+                adapter.notifyItemChanged(position);
+
+            } else {
+
+                AppConstant.discrepancyParcels.add(item);
+
+                adapter.notifyItemChanged(position);
+            }
+        }
+
+        if (!AppConstant.discrepancyParcels.isEmpty()) {
+
+            enter_num.setTextColor(getResources().getColor(R.color.red, null));
+            enter_num.setHintTextColor(getResources().getColor(R.color.red, null));
+            enter_num.setBackground(getDrawable(R.drawable.parcelinputdiscrepancy_border));
+            enter_num.setHint("Enter Discrepancy Comment");
+
+            textViewParcelTitle.setTextColor(getResources().getColor(R.color.red, null));
+
+            barcodeSwitch.setVisibility(View.INVISIBLE);
+            barcodeImage.setVisibility(View.INVISIBLE);
+
+            btn_next.setBackgroundColor(getResources().getColor(R.color.red, null));
+            btn_next.setText("FLAG PARCEL");
+            btnPic.setTextColor(getResources().getColor(R.color.red, null));
+            btnPic.setText("DISCREPANCY PHOTO");
+            btnSign.setVisibility(View.INVISIBLE);
+
+        } else {
+
+            enter_num.setTextColor(getResources().getColor(R.color.gold, null));
+            enter_num.setHintTextColor(getResources().getColor(R.color.gold, null));
+            enter_num.setBackground(getDrawable(R.drawable.parcelinput_border));
+            enter_num.setHint("Enter Parcel");
+
+            textViewParcelTitle.setTextColor(getResources().getColor(R.color.gold, null));
+
+            barcodeSwitch.setVisibility(View.VISIBLE);
+            barcodeImage.setVisibility(View.VISIBLE);
+
+            btn_next.setBackgroundColor(getResources().getColor(R.color.gold, null));
+            btn_next.setText("NEXT");
+            btnPic.setTextColor(getResources().getColor(R.color.gold, null));
+            btnPic.setText("CAPTURE PHOTO");
+            btnSign.setVisibility(View.VISIBLE);
+        }
+
+    }
+
+
     public boolean validation() {
 
         boolean bool = false;
@@ -637,7 +709,7 @@ public class Dash extends AppCompatActivity {
 
                             adapter.notifyItemChanged(i);
 
-                            AppConstant.validatedParcels.add(input);
+                            AppConstant.validatedParcels.add(adapterList.get(i));
 
                             if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
 

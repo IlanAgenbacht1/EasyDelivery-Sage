@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.textfield.TextInputLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/textInputDiscrepancy"
+    android:layout_width="0dp"
+    android:layout_height="59dp"
+    android:layout_marginTop="10dp"
+    android:textColorHint="@color/theme"
+    android:visibility="visible">
+
+    <com.google.android.material.textfield.TextInputEditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter Parcel"
+        android:inputType="text"
+        android:textColor="@color/white"
+        android:textColorHint="@color/red"
+        android:visibility="visible" />
+
+</com.google.android.material.textfield.TextInputLayout>

@@ -5,6 +5,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -24,17 +25,16 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
 
     private Context context;
     private ArrayList<String> listItems;
-    private DeliveryDb database;
-    boolean isSubmitClick = false;
     private RecyclerView recyclerView;
+    private AdapterView.OnItemLongClickListener listener;
 
 
-    public ParcelAdapter(Context context, ArrayList<String> listItems, DeliveryDb database, RecyclerView recyclerView) {
+    public ParcelAdapter(Context context, ArrayList<String> listItems, RecyclerView recyclerView, AdapterView.OnItemLongClickListener listener) {
 
         this.context = context;
         this.listItems = listItems;
-        this.database = database;
         this.recyclerView = recyclerView;
+        this.listener = listener;
     }
 
     @NonNull
@@ -43,13 +43,13 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
 
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_parcel, parent, false);
 
-        return new ViewHolder(view);
+        return new ViewHolder(view, listener);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, final int position) {
 
-        if (listItems.get(position) != null) {
+        /*if (listItems.get(position) != null) {
 
             holder.rl_main.setVisibility(View.VISIBLE);
             holder.etNumber.setText((holder.getAdapterPosition() + 1) + "." + " " + listItems.get(position));
@@ -78,8 +78,20 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
         } catch (Exception e) {
 
             e.printStackTrace();
-        }
+        }*/
 
+        if (listItems.get(position) != null) {
+
+            holder.rl_main.setVisibility(View.VISIBLE);
+            String itemText = (holder.getAdapterPosition() + 1) + "." + " " + listItems.get(position);
+            holder.etNumber.setText(itemText);
+
+            int startIndex = itemText.indexOf(" ") + 1; // finds the start index of the parcel number
+            String parcelNumber = itemText.substring(startIndex);
+
+            holder.iv_check.setVisibility(AppConstant.validatedParcels.contains(parcelNumber) ? View.VISIBLE : View.INVISIBLE);
+            holder.rl_main.setForeground(AppConstant.discrepancyParcels.contains(parcelNumber) ? context.getDrawable(R.drawable.parcel_discrepancy_border) : null);
+        }
     }
 
 
@@ -95,12 +107,23 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
         private ImageView iv_check;
         private ConstraintLayout rl_main;
 
-        public ViewHolder(@NonNull View itemView) {
+        public ViewHolder(@NonNull View itemView, final AdapterView.OnItemLongClickListener listener) {
             super(itemView);
 
             etNumber = itemView.findViewById(R.id.tv_number);
             iv_check = itemView.findViewById(R.id.iv_check);
             rl_main=itemView.findViewById(R.id.rl_main);
+
+            itemView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (listener != null) {
+                        return listener.onItemLongClick(null, v, getAdapterPosition(), v.getId());
+                    }
+                    return false;
+                }
+            });
+
         }
     }
 }

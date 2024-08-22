@@ -31,6 +31,7 @@ public class AppConstant {
     public static ArrayList<String> documentList = new ArrayList<>();
 
     public static ArrayList<String> validatedParcels = new ArrayList<>();
+    public static ArrayList<String> discrepancyParcels = new ArrayList<>();
     public static ArrayList<String> tripList = new ArrayList<>();
     public static ArrayList<String> completedTrips = new ArrayList<>();
     public static ArrayList<String> uploadedDocuments = new ArrayList<>();
