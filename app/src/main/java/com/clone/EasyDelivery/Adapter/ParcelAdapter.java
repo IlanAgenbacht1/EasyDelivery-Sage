@@ -89,8 +89,18 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
             int startIndex = itemText.indexOf(" ") + 1; // finds the start index of the parcel number
             String parcelNumber = itemText.substring(startIndex);
 
-            holder.iv_check.setVisibility(AppConstant.validatedParcels.contains(parcelNumber) ? View.VISIBLE : View.INVISIBLE);
+            holder.iv_check.setVisibility(AppConstant.uiValidatedParcels.contains(parcelNumber) ? View.VISIBLE : View.INVISIBLE);
             holder.rl_main.setForeground(AppConstant.discrepancyParcels.contains(parcelNumber) ? context.getDrawable(R.drawable.parcel_discrepancy_border) : null);
+
+            if (AppConstant.flaggedParcels.contains(parcelNumber)) {
+
+                holder.rl_main.setForeground(context.getDrawable(R.drawable.parcel_discrepancy_border_filled));
+                holder.iv_flag.setVisibility(View.VISIBLE);
+
+            } else {
+
+                holder.iv_flag.setVisibility(View.INVISIBLE);
+            }
         }
     }
 
@@ -104,7 +114,7 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
     public static class ViewHolder extends RecyclerView.ViewHolder {
 
         private TextView etNumber;
-        private ImageView iv_check;
+        private ImageView iv_check, iv_flag;
         private ConstraintLayout rl_main;
 
         public ViewHolder(@NonNull View itemView, final AdapterView.OnItemLongClickListener listener) {
@@ -113,6 +123,7 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
             etNumber = itemView.findViewById(R.id.tv_number);
             iv_check = itemView.findViewById(R.id.iv_check);
             rl_main=itemView.findViewById(R.id.rl_main);
+            iv_flag = itemView.findViewById(R.id.iv_exclamation);
 
             itemView.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override

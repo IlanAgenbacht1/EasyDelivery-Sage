@@ -54,6 +54,7 @@ public class DeliveryDb {
     public static final String KEY_PARCELS = "_parcelQty";
     public static final String KEY_UPLOADED = "_uploaded";
     public static final String KEY_COMMENT = "_comment";
+    public static final String KEY_FLAGGED = "_flagged";
 
     public static final String KEY_DOCUMENT_QTY = "_documentQty";
     public static final String KEY_DOCUMENT_SYNC_QTY = "_documentSyncQty";
@@ -88,7 +89,8 @@ public class DeliveryDb {
                     KEY_ROWID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     KEY_TRIPID + " TEXT, " +
                     KEY_DOCUMENT + " TEXT NOT NULL, " +
-                    KEY_PARCEL + " TEXT NOT NULL);";
+                    KEY_PARCEL + " TEXT NOT NULL, " +
+                    KEY_FLAGGED + " BOOLEAN NOT NULL);";
 
             db.execSQL(sqlCreateParcelTable);
 
@@ -110,7 +112,8 @@ public class DeliveryDb {
                     KEY_TIME + " TEXT, " +
                     KEY_COMPLETED + " BOOLEAN NOT NULL, " +
                     KEY_UPLOADED + " BOOLEAN NOT NULL, " +
-                    KEY_COMMENT + " TEXT);";
+                    KEY_COMMENT + " TEXT, " +
+                    KEY_FLAGGED + " BOOLEAN NOT NULL);";
 
             db.execSQL(sqlCreateDeliveryTable);
 
@@ -181,6 +184,7 @@ public class DeliveryDb {
         cv.put(KEY_CAPTUREDLONGITUDE, "NULL");
         cv.put(KEY_COMPLETED, delivery.completed());
         cv.put(KEY_UPLOADED, delivery.uploaded());
+        cv.put(KEY_FLAGGED, "0");
 
         return ourDatabase.insert(DELIVERY_TABLE, null, cv);
     }
@@ -192,6 +196,7 @@ public class DeliveryDb {
         cv.put(KEY_DOCUMENT, docu);
         cv.put(KEY_PARCEL, parcel);
         cv.put(KEY_TRIPID, tripId);
+        cv.put(KEY_FLAGGED, "0");
 
         return ourDatabase.insert(PARCEL_TABLE, null, cv);
     }
@@ -594,6 +599,43 @@ public class DeliveryDb {
 
         cursor.moveToFirst();
         cursor.close();
+    }
+
+
+    public void setDocumentFlagged() {
+
+        Cursor cursor = ourDatabase.rawQuery("UPDATE " + DELIVERY_TABLE + " SET " + KEY_FLAGGED + " = 1 " + "WHERE " + KEY_DOCUMENT + " = '" + AppConstant.DOCUMENT + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "'", null);
+
+        cursor.moveToFirst();
+        cursor.close();
+    }
+
+
+    public void setParcelFlagged(String item) {
+
+        Cursor cursor = ourDatabase.rawQuery("UPDATE " + PARCEL_TABLE + " SET " + KEY_FLAGGED + " = 1 " + "WHERE " + KEY_DOCUMENT + " = '" + AppConstant.DOCUMENT + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_PARCEL + " = '" + item + "'", null);
+
+        cursor.moveToFirst();
+        cursor.close();
+    }
+
+
+    public Delivery getFlaggedParcels(Delivery data) {
+
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + PARCEL_TABLE + " WHERE " + KEY_FLAGGED + " = 1" + " AND " + KEY_DOCUMENT + " = '" + data.getDocument() + "' AND " + KEY_TRIPID + " = '" + data.getTripId() + "'", null);
+
+        int parcelIndex = cursor.getColumnIndex(KEY_PARCEL);
+
+        List<String> parcelList = new ArrayList<>();
+
+        while (cursor.moveToNext()) {
+
+            parcelList.add(cursor.getString(parcelIndex));
+        }
+
+        data.setFlaggedParcelNumbers(parcelList);
+
+        return data;
     }
 
 

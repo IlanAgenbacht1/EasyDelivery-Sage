@@ -2,6 +2,7 @@ package com.clone.EasyDelivery.Utility;
 
 
 import android.location.Location;
+import android.widget.ArrayAdapter;
 
 import com.clone.EasyDelivery.Model.ItemParcel;
 
@@ -26,12 +27,13 @@ public class AppConstant {
     public static String PARCEL_INPUT = "";
     public static int PARCEL_POSITION;
 
-
     public static ArrayList<Location> gpsList = new ArrayList<>();
     public static ArrayList<String> documentList = new ArrayList<>();
 
     public static ArrayList<String> validatedParcels = new ArrayList<>();
+    public static ArrayList<String> uiValidatedParcels = new ArrayList<>();
     public static ArrayList<String> discrepancyParcels = new ArrayList<>();
+    public static ArrayList<String> flaggedParcels = new ArrayList<>();
     public static ArrayList<String> tripList = new ArrayList<>();
     public static ArrayList<String> completedTrips = new ArrayList<>();
     public static ArrayList<String> uploadedDocuments = new ArrayList<>();

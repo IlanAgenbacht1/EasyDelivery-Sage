@@ -18,6 +18,7 @@ public class Delivery {
     private double longitude;
     private int numberOfParcels;
     private List<String> parcelNumbers;
+    private List<String> flaggedParcelNumbers;
     private boolean completed, uploaded;
     private String time;
     private String imagePath;
@@ -52,6 +53,9 @@ public class Delivery {
 
     public List<String> getParcelNumbers() { return parcelNumbers; }
     public void setParcelNumbers(List<String> parcelNumbers) { this.parcelNumbers = parcelNumbers; }
+
+    public List<String> getFlaggedParcelNumbers() { return flaggedParcelNumbers; }
+    public void setFlaggedParcelNumbers(List<String> flaggedParcelNumbers) { this.flaggedParcelNumbers = flaggedParcelNumbers; }
 
     public String getTime() { return time; }
     public void setTime(String time) { this.time = time; }

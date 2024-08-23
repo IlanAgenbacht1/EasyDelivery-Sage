@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.clone.EasyDelivery.R;
+import com.clone.EasyDelivery.Utility.AppConstant;
 
 import java.util.ArrayList;
 
@@ -39,6 +40,15 @@ public class PreviewAdapter extends RecyclerView.Adapter<PreviewAdapter.ViewHold
 
         holder.tvTitle.setText(""+String.valueOf(position+1)+": ");
         holder.tvNumber.setText(listItems.get(position));
+
+        if (AppConstant.flaggedParcels.contains(listItems.get(position))) {
+
+            holder.tvNumber.setTextColor(context.getColor(R.color.red));
+
+        } else {
+
+            holder.tvNumber.setTextColor(context.getColor(R.color.black));
+        }
 
     }
 

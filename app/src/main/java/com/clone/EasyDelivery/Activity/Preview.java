@@ -39,7 +39,10 @@ import com.google.gson.Gson;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
@@ -78,10 +81,8 @@ public class Preview extends AppCompatActivity {
         tvPic = findViewById(R.id.tv_pic);
         tvSign = findViewById(R.id.tv_sign);
 
-
         Log.d(TAG, "onCreate: pic"+AppConstant.PIC_PATH);
         Log.d(TAG, "onCreate: sign"+AppConstant.SIGN_PATH);
-
 
         btnBack = findViewById(R.id.btn_back);
         btnConfirm = findViewById(R.id.btn_confirm);
@@ -95,13 +96,12 @@ public class Preview extends AppCompatActivity {
         tvComment = findViewById(R.id.tv_comment);
         tvParcels = findViewById(R.id.tv_parcel);
 
+        Collections.sort(AppConstant.validatedParcels);
 
         adapter = new PreviewAdapter(this, AppConstant.validatedParcels);
 
-
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
         recyclerView.setAdapter(adapter);
-
 
         tvCompany.setText(GetCompany());
 
@@ -176,6 +176,7 @@ public class Preview extends AppCompatActivity {
     private void updateDatabase() {
 
         try{
+
             DeliveryDb db =new DeliveryDb(Preview.this);
 
             db.open();
@@ -205,9 +206,20 @@ public class Preview extends AppCompatActivity {
 
             currentDate = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US).format(new Date());
 
+            if (!AppConstant.flaggedParcels.isEmpty()) {
+
+                db.setDocumentFlagged();
+
+                for (String item : AppConstant.flaggedParcels) {
+
+                    db.setParcelFlagged(item);
+                }
+            }
+
             db.setDocumentCompleted(itemParcel.getDocu(), imageFile, signatureFile, currentDate, this);
             db.updateComment();
             db.createEmailEntry(itemParcel.getDocu(), AppConstant.TRIPID);
+
             Log.i("SyncService", "Email queued: " + AppConstant.TRIPID + ":" + itemParcel.getDocu());
 
             db.close();
@@ -218,11 +230,9 @@ public class Preview extends AppCompatActivity {
             startActivity(new Intent(Preview.this, DashHeader.class));
 
             finishAffinity();
-
         }
 
         catch(SQLException e){
-
 
             e.printStackTrace();
         }

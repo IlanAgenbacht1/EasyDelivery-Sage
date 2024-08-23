@@ -17,6 +17,8 @@ import com.clone.EasyDelivery.Model.Delivery;
 import java.io.File;
 import java.io.FileInputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -393,6 +395,8 @@ public class SyncService extends IntentService {
 
                 data = database.getCompletedParcels(data);
 
+                data = database.getFlaggedParcels(data);
+
                 if (sendEmail(data)) {
 
                     database.setEmailSent(queuedEmail.getDocument(), queuedEmail.getTripId());
@@ -415,37 +419,79 @@ public class SyncService extends IntentService {
             String recipient = AppConstant.EMAIL;
             String subject = "ePOD Document Number: " + delivery.getDocument();
 
-            String parcels;
+            List<String> parcelsList = delivery.getParcelNumbers();
 
-            parcels = TextUtils.join(", ", delivery.getParcelNumbers());
+            Collections.sort(parcelsList);
+
+            String parcels = TextUtils.join(", ", parcelsList);
             parcels = parcels.replaceAll("\\s", " ");
 
             String date = delivery.getTime().substring(0, 10);
 
             String time = delivery.getTime().substring(delivery.getTime().length() - 8);
 
-            String body = new StringBuilder()
+            String body;
 
-                    .append("<p>" + "Dear Admin," + "</p>")
-                    .append("<p>" + "Please find the Delivery Details for Document Number: " + delivery.getDocument() + " below:" + "</p>")
-                    .append("<br />")
-                    .append("<p><b>" + "1. Company: " + delivery.getCustomerName() + "</b></p>")
-                    .append("<p><b>" + "2. Driver Name: " + AppConstant.DRIVER + "</b></p>")
-                    .append("<p><b>" + "3. Delivery Vehicle: " + AppConstant.VEHICLE + "</b></p>")
-                    .append("<p><b>" + "4. Date of Delivery: " + date + "</b></p>")
-                    .append("<p><b>" + "5. Time of Delivery: " + time + "</b></p>")
-                    .append("<p><b>" + "6. Document Number: " + delivery.getDocument() + "</b></p>")
-                    .append("<p><b>" + "7. Comment: " + delivery.getComment() + "</b></p>")
-                    .append("<p><b>" + "8. Number of Parcels: " + delivery.getNumberOfParcels() + "</b></p>")
-                    .append("<p><b>" + "9. Parcel Details: " + "</b></p>")
-                    .append("<small><p>" + parcels + "</p></small>")
-                    .append("<p><b>" + "10. Customer Signature: " + delivery.getSignPath() + " (See Attached File)" + "</b></p>")
-                    .append("<p><b>" + "11. Parcel Photograph: " + delivery.getImagePath() + " (See Attached File)" + "</b></p>")
-                    .append("<br />")
-                    .append("<p>" + "Warm Regards, " + "</p>")
-                    .append("<p>" + "EasyDelivery Team" + "</p>")
+            if (delivery.getFlaggedParcelNumbers().isEmpty()) {
 
-                    .toString();
+                 body = new StringBuilder()
+
+                        .append("<p>" + "Dear Admin," + "</p>")
+                        .append("<p>" + "Please find the Delivery Details for Document Number: " + delivery.getDocument() + " below:" + "</p>")
+                        .append("<br />")
+                        .append("<p><b>" + "1. Company: " + delivery.getCustomerName() + "</b></p>")
+                        .append("<p><b>" + "2. Driver Name: " + AppConstant.DRIVER + "</b></p>")
+                        .append("<p><b>" + "3. Delivery Vehicle: " + AppConstant.VEHICLE + "</b></p>")
+                        .append("<p><b>" + "4. Date of Delivery: " + date + "</b></p>")
+                        .append("<p><b>" + "5. Time of Delivery: " + time + "</b></p>")
+                        .append("<p><b>" + "6. Document Number: " + delivery.getDocument() + "</b></p>")
+                        .append("<p><b>" + "7. Comment: " + delivery.getComment() + "</b></p>")
+                        .append("<p><b>" + "8. Number of Parcels: " + delivery.getNumberOfParcels() + "</b></p>")
+                        .append("<p><b>" + "9. Parcel Details: " + "</b></p>")
+                        .append("<small><p>" + parcels + "</p></small>")
+                        .append("<p><b>" + "10. Customer Signature: " + delivery.getSignPath() + " (See Attached File)" + "</b></p>")
+                        .append("<p><b>" + "11. Parcel Photograph: " + delivery.getImagePath() + " (See Attached File)" + "</b></p>")
+                        .append("<br />")
+                        .append("<p>" + "Warm Regards, " + "</p>")
+                        .append("<p>" + "EasyDelivery Team" + "</p>")
+
+                        .toString();
+
+            } else {
+
+                List<String> flaggedParcelsList = delivery.getFlaggedParcelNumbers();
+
+                Collections.sort(flaggedParcelsList);
+
+                String flaggedParcels = TextUtils.join(", ", flaggedParcelsList);
+                flaggedParcels = flaggedParcels.replaceAll("\\s", " ");
+
+                body = new StringBuilder()
+
+                        .append("<p>" + "Dear Admin," + "</p>")
+                        .append("<p>" + "Please find the Delivery Details for Document Number: " + delivery.getDocument() + " below:" + "</p>")
+                        .append("<br />")
+                        .append("<p><b>" + "1. Company: " + delivery.getCustomerName() + "</b></p>")
+                        .append("<p><b>" + "2. Driver Name: " + AppConstant.DRIVER + "</b></p>")
+                        .append("<p><b>" + "3. Delivery Vehicle: " + AppConstant.VEHICLE + "</b></p>")
+                        .append("<p><b>" + "4. Date of Delivery: " + date + "</b></p>")
+                        .append("<p><b>" + "5. Time of Delivery: " + time + "</b></p>")
+                        .append("<p><b>" + "6. Document Number: " + delivery.getDocument() + "</b></p>")
+                        .append("<p><b>" + "7. Comment: " + delivery.getComment() + "</b></p>")
+                        .append("<p><b>" + "8. Number of Parcels: " + delivery.getNumberOfParcels() + "</b></p>")
+                        .append("<p><b>" + "9. Parcel Details: " + "</b></p>")
+                        .append("<small><p>" + parcels + "</p></small>")
+                        .append("<p><b>" + "10. Customer Signature: " + delivery.getSignPath() + " (See Attached File)" + "</b></p>")
+                        .append("<p><b>" + "11. Parcel Photograph: " + delivery.getImagePath() + " (See Attached File)" + "</b></p>")
+                        .append("<br />")
+                        .append("<p style=\"color:red;\"><b>" + "The following items have been flagged for discrepancies:" + "</b></p>")
+                        .append("<small><p>" + flaggedParcels + "</p></small>")
+                        .append("<br />")
+                        .append("<p>" + "Warm Regards, " + "</p>")
+                        .append("<p>" + "EasyDelivery Team" + "</p>")
+
+                        .toString();
+            }
 
             final String username = "dev@easydelivery.biz"; // SMTP username
             final String password = "nnmg ywbr fyud epwo"; // SMTP password

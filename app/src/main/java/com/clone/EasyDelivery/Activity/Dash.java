@@ -1,5 +1,6 @@
 package com.clone.EasyDelivery.Activity;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -12,13 +13,20 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
+import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -73,7 +81,7 @@ public class Dash extends AppCompatActivity {
 
     private RecyclerView recyclerView;
 
-    private ConstraintLayout rl_1;
+    private ConstraintLayout rl_1, header;
 
     private RelativeLayout rlRv;
 
@@ -84,6 +92,8 @@ public class Dash extends AppCompatActivity {
     private Context context = this;
 
     private EditText commentEditText;
+
+    private boolean animate = true;
 
     LinearLayoutManager linearLayoutManager;
     View parentLayout;
@@ -119,7 +129,7 @@ public class Dash extends AppCompatActivity {
 
     public static Dash activity;
 
-    private boolean BARCODE;
+    private boolean BARCODE, FLAG;
 
 
     @Override
@@ -144,6 +154,7 @@ public class Dash extends AppCompatActivity {
         btnPic = findViewById(R.id.btn_pic);
         btnSign = findViewById(R.id.btn_sign);
         textViewParcelTitle = findViewById(R.id.tv_parcels);
+        header = findViewById(R.id.layout_header);
 
         adapterList = new ArrayList<>();
 
@@ -170,7 +181,8 @@ public class Dash extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
 
         AppConstant.validatedParcels.clear();
-        AppConstant.discrepancyParcels.clear();
+        AppConstant.uiValidatedParcels.clear();
+        AppConstant.flaggedParcels.clear();
 
         barcodeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -199,6 +211,94 @@ public class Dash extends AppCompatActivity {
         btn_next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
+                if (FLAG) {
+
+                    AlertDialog alertDialog = new AlertDialog.Builder(Dash.this, R.style.AlertDialogStyle).create();
+                    alertDialog.setTitle("Confirm");
+                    alertDialog.setMessage("Are you sure you want to flag the selected parcels?");
+
+                    alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Yes",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+
+                                    AppConstant.flaggedParcels.addAll(AppConstant.discrepancyParcels);
+                                    //adding flagged parcels as validated parcels in order to complete delivery. removed later before inserting data into db.
+                                    AppConstant.validatedParcels.addAll(AppConstant.discrepancyParcels);
+                                    AppConstant.discrepancyParcels.clear();
+
+                                    for (String item : AppConstant.flaggedParcels) {
+
+                                        adapter.notifyItemChanged(adapterList.indexOf(item));
+                                    }
+
+                                    Animation fadeIn = new AlphaAnimation(0, 1);
+                                    fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
+                                    fadeIn.setDuration(300);
+                                    fadeIn.setFillAfter(true);
+
+                                    btnPic.setVisibility(View.VISIBLE);
+                                    btnSign.setVisibility(View.VISIBLE);
+                                    barcodeSwitch.setVisibility(View.VISIBLE);
+                                    barcodeImage.setVisibility(View.VISIBLE);
+
+                                    barcodeImage.startAnimation(fadeIn);
+                                    barcodeSwitch.startAnimation(fadeIn);
+                                    btnPic.startAnimation(fadeIn);
+                                    btnSign.startAnimation(fadeIn);
+
+                                    Spannable text = new SpannableString(getSupportActionBar().getTitle());
+                                    text.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.gold, null)), 0, text.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+                                    getSupportActionBar().setTitle(text);
+
+                                    enter_num.setTextColor(getResources().getColor(R.color.gold, null));
+                                    enter_num.setHintTextColor(getResources().getColor(R.color.gold, null));
+                                    enter_num.setBackground(getDrawable(R.drawable.parcelinput_border));
+                                    enter_num.setHint("Enter Parcel");
+                                    enter_num.setFocusable(true);
+                                    enter_num.setFocusableInTouchMode(true);
+
+                                    textViewParcelTitle.setTextColor(getResources().getColor(R.color.gold, null));
+
+                                    barcodeSwitch.setVisibility(View.VISIBLE);
+                                    barcodeImage.setVisibility(View.VISIBLE);
+
+                                    btn_next.setBackgroundColor(getResources().getColor(R.color.gold, null));
+                                    btn_next.setText("NEXT");
+
+                                    if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
+
+                                        barcodeSwitch.setClickable(false);
+
+                                        btn_next.setTextColor(getResources().getColor(R.color.black, null));
+                                        btn_next.setText("Complete Delivery");
+
+                                        enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                                        enter_num.setHint("PARCELS VALID");
+                                        enter_num.setFocusable(false);
+                                        enter_num.setCursorVisible(false);
+                                    }
+
+                                    FLAG = false;
+                                    animate = true;
+
+                                    dialog.dismiss();
+                                }
+                            }
+                    );
+
+                    alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+
+                                    dialog.dismiss();
+                                }
+                            }
+                    );
+
+                    alertDialog.show();
+                }
 
                 if (BARCODE) {
 
@@ -241,6 +341,7 @@ public class Dash extends AppCompatActivity {
                                 AppConstant.PARCEL_INPUT = input;
 
                                 AppConstant.validatedParcels.add(adapterList.get(i));
+                                AppConstant.uiValidatedParcels.add(adapterList.get(i));
 
                                 adapter.notifyItemChanged(i);
 
@@ -256,8 +357,6 @@ public class Dash extends AppCompatActivity {
                                     enter_num.setFocusable(false);
                                     enter_num.setCursorVisible(false);
                                 }
-
-                                AppConstant.PARCEL_VALIDATION = false;
                             }
                         }
                     }
@@ -467,41 +566,91 @@ public class Dash extends AppCompatActivity {
 
         if (!AppConstant.discrepancyParcels.isEmpty()) {
 
-            enter_num.setTextColor(getResources().getColor(R.color.red, null));
-            enter_num.setHintTextColor(getResources().getColor(R.color.red, null));
-            enter_num.setBackground(getDrawable(R.drawable.parcelinputdiscrepancy_border));
-            enter_num.setHint("Enter Discrepancy Comment");
+            FLAG = true;
 
-            textViewParcelTitle.setTextColor(getResources().getColor(R.color.red, null));
+            if (animate) {
 
-            barcodeSwitch.setVisibility(View.INVISIBLE);
-            barcodeImage.setVisibility(View.INVISIBLE);
+                Animation fadeOut = new AlphaAnimation(1, 0);
+                fadeOut.setInterpolator(new DecelerateInterpolator()); //add this
+                fadeOut.setDuration(300);
+                fadeOut.setFillAfter(true);
 
-            btn_next.setBackgroundColor(getResources().getColor(R.color.red, null));
-            btn_next.setText("FLAG PARCEL");
-            btnPic.setTextColor(getResources().getColor(R.color.red, null));
-            btnPic.setText("DISCREPANCY PHOTO");
-            btnSign.setVisibility(View.INVISIBLE);
+                Animation fadeIn = new AlphaAnimation(0, 1);
+                fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
+                fadeIn.setDuration(300);
+                fadeIn.setFillAfter(true);
+
+                btnPic.startAnimation(fadeOut);
+                btnSign.startAnimation(fadeOut);
+                barcodeImage.startAnimation(fadeOut);
+                barcodeSwitch.startAnimation(fadeOut);
+
+                btnPic.setVisibility(View.INVISIBLE);
+                btnSign.setVisibility(View.INVISIBLE);
+                barcodeSwitch.setVisibility(View.INVISIBLE);
+                barcodeImage.setVisibility(View.INVISIBLE);
+
+                Spannable text = new SpannableString(getSupportActionBar().getTitle());
+                text.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.red, null)), 0, text.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+                getSupportActionBar().setTitle(text);
+
+                enter_num.setTextColor(getResources().getColor(R.color.red, null));
+                enter_num.setHintTextColor(getResources().getColor(R.color.red, null));
+                enter_num.setBackground(getDrawable(R.drawable.parcelinputdiscrepancy_border));
+                enter_num.setHint("Select Parcels To Flag");
+                enter_num.setFocusable(false);
+
+                textViewParcelTitle.setTextColor(getResources().getColor(R.color.red, null));
+
+                btn_next.setBackgroundColor(getResources().getColor(R.color.red, null));
+                btn_next.setText("FLAG");
+
+                animate = false;
+            }
 
         } else {
 
-            enter_num.setTextColor(getResources().getColor(R.color.gold, null));
-            enter_num.setHintTextColor(getResources().getColor(R.color.gold, null));
-            enter_num.setBackground(getDrawable(R.drawable.parcelinput_border));
-            enter_num.setHint("Enter Parcel");
+            FLAG = false;
 
-            textViewParcelTitle.setTextColor(getResources().getColor(R.color.gold, null));
+            if (AppConstant.discrepancyParcels.size() < 2) {
 
-            barcodeSwitch.setVisibility(View.VISIBLE);
-            barcodeImage.setVisibility(View.VISIBLE);
+                Animation fadeIn = new AlphaAnimation(0, 1);
+                fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
+                fadeIn.setDuration(300);
+                fadeIn.setFillAfter(true);
 
-            btn_next.setBackgroundColor(getResources().getColor(R.color.gold, null));
-            btn_next.setText("NEXT");
-            btnPic.setTextColor(getResources().getColor(R.color.gold, null));
-            btnPic.setText("CAPTURE PHOTO");
-            btnSign.setVisibility(View.VISIBLE);
+                btnPic.setVisibility(View.VISIBLE);
+                btnSign.setVisibility(View.VISIBLE);
+                barcodeSwitch.setVisibility(View.VISIBLE);
+                barcodeImage.setVisibility(View.VISIBLE);
+
+                barcodeImage.startAnimation(fadeIn);
+                barcodeSwitch.startAnimation(fadeIn);
+                btnPic.startAnimation(fadeIn);
+                btnSign.startAnimation(fadeIn);
+
+                Spannable text = new SpannableString(getSupportActionBar().getTitle());
+                text.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.gold, null)), 0, text.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+                getSupportActionBar().setTitle(text);
+
+                enter_num.setTextColor(getResources().getColor(R.color.gold, null));
+                enter_num.setHintTextColor(getResources().getColor(R.color.gold, null));
+                enter_num.setBackground(getDrawable(R.drawable.parcelinput_border));
+                enter_num.setHint("Enter Parcel");
+                enter_num.setFocusableInTouchMode(true);
+                enter_num.setFocusable(true);
+
+                textViewParcelTitle.setTextColor(getResources().getColor(R.color.gold, null));
+
+                barcodeSwitch.setVisibility(View.VISIBLE);
+                barcodeImage.setVisibility(View.VISIBLE);
+
+                btn_next.setBackgroundColor(getResources().getColor(R.color.gold, null));
+                btn_next.setText("NEXT");
+
+                animate = true;
+            }
         }
-
     }
 
 
@@ -710,6 +859,7 @@ public class Dash extends AppCompatActivity {
                             adapter.notifyItemChanged(i);
 
                             AppConstant.validatedParcels.add(adapterList.get(i));
+                            AppConstant.uiValidatedParcels.add(adapterList.get(i));
 
                             if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
 
