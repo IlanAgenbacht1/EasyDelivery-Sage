@@ -307,59 +307,6 @@ public class DeliveryDb {
     }
 
 
-    public Delivery syncGetDeliveryData(String document) {
-
-        //return specified document data from the ScheduleTable that matches the tripId in the current trip file.
-        //the tripId is how data in the local db is validated against the downloaded delivery.
-
-        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_COMPLETED + " = 1;", null);
-
-        int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
-        int customerIndex = cursor.getColumnIndex(KEY_CUSTOMER);
-        int addressIndex = cursor.getColumnIndex(KEY_ADDRESS);
-        int contactNameIndex = cursor.getColumnIndex(KEY_CONTACTNAME);
-        int contactNumberIndex = cursor.getColumnIndex(KEY_CONTACTNUMBER);
-        int latitudeIndex = cursor.getColumnIndex(KEY_LATITUDE);
-        int longitudeIndex = cursor.getColumnIndex(KEY_LONGITUDE);
-        int parcelsIndex = cursor.getColumnIndex(KEY_PARCELS);
-
-        Delivery delivery = new Delivery();
-
-        while (cursor.moveToNext()) {
-
-            delivery.setDocument(cursor.getString(documentIndex));
-            delivery.setCustomerName(cursor.getString(customerIndex));
-            delivery.setAddress(cursor.getString(addressIndex));
-            delivery.setContactName(cursor.getString(contactNameIndex));
-            delivery.setContactNumber(cursor.getString(contactNumberIndex));
-
-            Location location = new Location("");
-            location.setLatitude(cursor.getDouble(latitudeIndex));
-            location.setLongitude(cursor.getDouble(longitudeIndex));
-            delivery.setLocation(location);
-
-            delivery.setNumberOfParcels(cursor.getInt(parcelsIndex));
-        }
-
-        cursor.close();
-
-        cursor = ourDatabase.rawQuery("SELECT * FROM " + PARCEL_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "';", null);
-
-        int parcelNumberIndex = cursor.getColumnIndex(KEY_PARCEL);
-
-        List<String> parcels = new ArrayList<>();
-
-        while (cursor.moveToNext()) {
-
-            parcels.add(cursor.getString(parcelNumberIndex));
-        }
-
-        delivery.setParcelNumbers(parcels);
-
-        return delivery;
-    }
-
-
     public List<String> getCompletedDocumentList(String tripID) {
 
         //return specified document data from the ScheduleTable that matches the tripId in the current trip file.

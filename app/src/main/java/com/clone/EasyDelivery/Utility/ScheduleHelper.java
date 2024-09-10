@@ -35,10 +35,6 @@ public class ScheduleHelper {
 
             try {
 
-                //Set TripId for this delivery
-
-                String tripId = jsonData.getString("tripId");
-
                 AppConstant.documentList.clear();
 
                 //Continue parsing and inserting data
@@ -56,12 +52,7 @@ public class ScheduleHelper {
                     String customerContactName = customer.getString("contactName");
                     String customerContact = customer.getString("contactNumber");
 
-                    JSONObject address = stop.getJSONObject("address");
-                    String street = address.getString("street");
-                    String city = address.getString("city");
-                    String state = address.getString("state");
-                    String postalCode = address.getString("postalCode");
-                    String country = address.getString("country");
+                    String address = stop.getString("address");
 
                     JSONObject gpsLocation = stop.getJSONObject("gpsLocation");
                     double latitude = gpsLocation.getDouble("latitude");
@@ -87,7 +78,7 @@ public class ScheduleHelper {
                     delivery.setDocument(documentNumber);
                     delivery.setTripId(AppConstant.TRIPID);
                     delivery.setCustomerName(customerName);
-                    delivery.setAddress(street + ", " + city + ", " + state + ", " + postalCode + ", " + country);
+                    delivery.setAddress(address);
                     delivery.setContactName(customerContactName);
                     delivery.setContactNumber(customerContact);
                     delivery.setLocation(location);

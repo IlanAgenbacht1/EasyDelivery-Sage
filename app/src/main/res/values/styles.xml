@@ -52,6 +52,7 @@
         <item name="colorPrimaryDark">@color/theme</item>
         <item name="colorAccent">@color/gold</item>
         <item name="android:windowContentTransitions" tools:ignore="NewApi">true</item>
+        <item name="android:navigationBarColor">@color/theme</item>
     </style>
 
     <style name="MaterialActionBar" parent="Theme.MaterialComponents.Light.DarkActionBar">
@@ -63,6 +64,7 @@
         <item name="android:windowContentTransitions" tools:ignore="NewApi">true</item>
         <item name="actionBarTheme">@style/ActionBarStyle</item>
         <item name="alertDialogTheme">@style/AlertDialogStyle</item>
+        <item name="android:navigationBarColor">@color/theme</item>
     </style>
 
     <style name="AlertDialogStyle" parent="Theme.AppCompat.Light.Dialog.Alert">

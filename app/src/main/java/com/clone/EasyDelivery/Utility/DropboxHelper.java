@@ -1,6 +1,7 @@
 package com.clone.EasyDelivery.Utility;
 
 import android.content.Context;
+import android.os.Handler;
 import android.util.Log;
 
 import com.clone.EasyDelivery.Database.DeliveryDb;
@@ -17,7 +18,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 
 public class DropboxHelper {
 
@@ -31,7 +31,6 @@ public class DropboxHelper {
     private static final String LOCAL_SIGNATURE_PATH = "/DeliveryApp/DeliverySignature/";
 
     private static DbxClientV2 dropboxClient;
-
 
     private static DbxClientV2 getClient() {
 
@@ -185,7 +184,6 @@ public class DropboxHelper {
                     getClient().files().uploadBuilder(dropboxPath + "/" + signature + ".jpg").uploadAndFinish(inputStream);
                 }
             }
-
 
             return true;
 
