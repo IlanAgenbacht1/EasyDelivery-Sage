@@ -16,3 +16,5 @@
 
 Dropbox Structure should probably change now, while we are doing it as \..\EasyDeliveryCustomer\Site\.....
 
+- Ability to change certain settings using the Manager. Settings file placed in customer dropbox and read from driver application.
+  Can be used to specify non driver related information, multiple email addresses etc.
