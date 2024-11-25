@@ -1,4 +1,5 @@
 UI
+- Strange behaviour when going into discrepancy mode whilst in barcode scanning mode.
 
 FUNCTIONALITY
 - Change the way InProgress trips are checked. At the moment a started trip is only validated against a devices local data.
@@ -9,4 +10,6 @@ FUNCTIONALITY
 
 - Change the way trip files are read to match how they are written in ED Manager
 
+
 ! BUGS !
+- Trip jsons not downloading correctly when created through ED manager. File is generated and uploaded correctly. Very unlikely to be an issue with ED manager.
