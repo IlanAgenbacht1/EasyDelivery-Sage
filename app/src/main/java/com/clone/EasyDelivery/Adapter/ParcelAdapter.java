@@ -49,37 +49,6 @@ public class ParcelAdapter extends RecyclerView.Adapter<ParcelAdapter.ViewHolder
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, final int position) {
 
-        /*if (listItems.get(position) != null) {
-
-            holder.rl_main.setVisibility(View.VISIBLE);
-            holder.etNumber.setText((holder.getAdapterPosition() + 1) + "." + " " + listItems.get(position));
-        }
-
-        try {
-
-            if (AppConstant.validatedParcels.contains(holder.etNumber.getText().toString().substring(3))) {
-
-
-                holder.iv_check.setVisibility(View.VISIBLE);
-
-            } else if (AppConstant.validatedParcels.contains(holder.etNumber.getText().toString().substring(4))) {
-
-                holder.iv_check.setVisibility(View.VISIBLE);
-
-            } else if (AppConstant.validatedParcels.contains(holder.etNumber.getText().toString().substring(5))) {
-
-                holder.iv_check.setVisibility(View.VISIBLE);
-
-            } else {
-
-                holder.iv_check.setVisibility(View.INVISIBLE);
-            }
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-        }*/
-
         if (listItems.get(position) != null) {
 
             holder.rl_main.setVisibility(View.VISIBLE);

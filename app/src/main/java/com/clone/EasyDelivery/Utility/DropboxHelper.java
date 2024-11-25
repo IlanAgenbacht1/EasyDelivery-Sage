@@ -57,6 +57,8 @@ public class DropboxHelper {
 
                 String resultString = folders.getEntries().get(i).getName();
 
+                Log.i("Dropbox", "Returned file " + resultString);
+
                 if (resultString.contains(".json") && !AppConstant.tripList.contains(resultString.substring(0, resultString.length() - 5))) {
 
                     downloadFile(context, resultString);
@@ -96,7 +98,6 @@ public class DropboxHelper {
 
 
     public static void moveTripInProgress() {
-
         try {
 
             if (!SyncConstant.STARTED_TRIP.isEmpty()) {

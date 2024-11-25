@@ -24,7 +24,7 @@ public class DeliveryDb {
     private static final String SYNC_TABLE = "SyncTable";
     private static final String EMAIL_TABLE = "EmailTable";
 
-    private final int DATABASE_VERSION = 15;
+    private final int DATABASE_VERSION = 16;
     private Context ourContext;
     private SQLiteDatabase ourDatabase;
     private DBHelper ourHelper;

@@ -530,40 +530,40 @@
         android:orientation="horizontal">
 
         <Button
+            android:id="@+id/btn_back"
             android:layout_width="130dp"
             android:layout_height="60dp"
-            android:id="@+id/btn_back"
             android:layout_alignParentLeft="true"
-            android:layout_weight="1"
-            android:layout_gravity=""
-            android:gravity="center"
-            android:textSize="12sp"
-            android:backgroundTint="@color/darkgray"
-            android:layout_marginLeft="15dp"
-            android:textColor="@color/gold"
-            android:fontFamily="@font/roboto_medium"
             android:layout_centerVertical="true"
+            android:layout_gravity=""
+            android:layout_marginLeft="15dp"
             android:layout_marginRight="25dp"
-            android:background="@drawable/rectangular"
             android:layout_marginBottom="15dp"
-            android:text=" Back to Previous"/>
+            android:layout_weight="1"
+            android:background="@drawable/rectangular"
+            android:backgroundTint="@color/darkgray"
+            android:fontFamily="@font/roboto_medium"
+            android:gravity="center"
+            android:text="Back"
+            android:textColor="@color/gold"
+            android:textSize="12sp" />
 
         <Button
-          android:id="@+id/btn_confirm"
-          android:layout_width="130dp"
-          android:layout_height="60dp"
-          android:layout_alignParentRight="true"
-          android:layout_centerVertical="true"
-          android:layout_marginLeft="25dp"
-          android:layout_marginRight="15dp"
-          android:layout_marginBottom="15dp"
-          android:layout_weight="1"
-          android:background="@drawable/rectangular2"
-          android:fontFamily="@font/roboto_medium"
-          android:gravity="center"
-          android:text="Confirm and Send Email"
-          android:textColor="@color/gold"
-          android:textSize="12sp" />
+            android:id="@+id/btn_confirm"
+            android:layout_width="130dp"
+            android:layout_height="60dp"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="25dp"
+            android:layout_marginRight="15dp"
+            android:layout_marginBottom="15dp"
+            android:layout_weight="1"
+            android:background="@drawable/rectangular2"
+            android:fontFamily="@font/roboto_medium"
+            android:gravity="center"
+            android:text="Confirm"
+            android:textColor="@color/gold"
+            android:textSize="12sp" />
 
     </RelativeLayout>
 

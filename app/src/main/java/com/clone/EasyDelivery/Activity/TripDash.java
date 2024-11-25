@@ -38,6 +38,7 @@ public class TripDash extends AppCompatActivity {
 
     ConstraintLayout layout;
     boolean layoutAnimated;
+    int tripCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,7 +70,7 @@ public class TripDash extends AppCompatActivity {
 
                 AppConstant.TRIPID = tripName;
 
-                startTrip();
+                startTrip(tripName);
             }
         });
 
@@ -100,7 +101,7 @@ public class TripDash extends AppCompatActivity {
                     recyclerView.startAnimation(fadeIn);
                     title.startAnimation(fadeIn);
 
-                    title.setText("SELECT A TRIP :");
+                    title.setText("SELECT TRIP");
 
                     logo.setVisibility(View.VISIBLE);
                     title.setVisibility(View.VISIBLE);
@@ -116,6 +117,8 @@ public class TripDash extends AppCompatActivity {
 
                     adapter.notifyDataSetChanged();
 
+                    tripCount++;
+
                     textHandler.postDelayed(this, 250);
                 }
             }
@@ -123,7 +126,7 @@ public class TripDash extends AppCompatActivity {
     }
 
 
-    public void startTrip() {
+    public void startTrip(String trip) {
 
         SyncConstant.STARTED_TRIP = AppConstant.TRIPID;
 
@@ -131,7 +134,7 @@ public class TripDash extends AppCompatActivity {
             @Override
             public void run() {
 
-                ScheduleHelper.getSchedule(TripDash.this);
+                ScheduleHelper.getSchedule(TripDash.this, trip);
 
                 startActivity(new Intent(TripDash.this, DashHeader.class));
                 finish();

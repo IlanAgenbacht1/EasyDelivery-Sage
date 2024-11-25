@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.clone.EasyDelivery.R;
+import com.clone.EasyDelivery.Utility.JsonHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,7 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
     private List<String> tripFiles;
     private LayoutInflater inflater;
     private OnItemClickListener listener;
+    private Context context;
 
 
     public interface OnItemClickListener {
@@ -28,6 +30,7 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
     public TripAdapter(Context context, ArrayList<String> tripFiles, OnItemClickListener onItemClickListener) {
         this.tripFiles = tripFiles;
         this.listener = onItemClickListener;
+        this.context = context;
     }
 
     @NonNull
@@ -41,6 +44,7 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
     @Override
     public void onBindViewHolder(@NonNull TripViewHolder holder, int position) {
         String tripFile = tripFiles.get(position);
+
         holder.bind(tripFile, listener);
     }
 
@@ -52,16 +56,26 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
     // ViewHolder class
     public static class TripViewHolder extends RecyclerView.ViewHolder {
         private TextView tripNumberTextView;
+        private TextView textViewDeliveryCount;
 
         public TripViewHolder(@NonNull View itemView) {
             super(itemView);
 
             tripNumberTextView = itemView.findViewById(R.id.text_trip_number);
+            textViewDeliveryCount = itemView.findViewById(R.id.textViewDeliveryCount);
         }
 
         public void bind(final String tripName, final TripAdapter.OnItemClickListener listener) {
 
+            int deliveryCount = JsonHandler.returnDeliveryCount(itemView.getContext(), tripName);
+
             tripNumberTextView.setText(tripName);
+
+            if (deliveryCount > 1) {
+                textViewDeliveryCount.setText(deliveryCount + " Deliveries");
+            } else {
+                textViewDeliveryCount.setText(deliveryCount + " Delivery");
+            }
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override

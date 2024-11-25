@@ -6,8 +6,6 @@
     android:theme="@style/Material"
     android:layout_height="match_parent">
 
-
-
     <com.kyanogen.signatureview.SignatureView
         xmlns:sign="http://schemas.android.com/apk/res-auto"
         android:id="@+id/signature_view"

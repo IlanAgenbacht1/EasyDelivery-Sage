@@ -34,6 +34,7 @@ import com.clone.EasyDelivery.Database.DeliveryDb;
 import com.clone.EasyDelivery.Model.ItemParcel;
 import com.clone.EasyDelivery.R;
 import com.clone.EasyDelivery.Utility.AppConstant;
+import com.clone.EasyDelivery.Utility.ToastLogger;
 import com.google.gson.Gson;
 
 import java.io.File;
@@ -235,6 +236,8 @@ public class Preview extends AppCompatActivity {
         catch(SQLException e){
 
             e.printStackTrace();
+
+            ToastLogger.exception(getApplicationContext(), e);
         }
 
     }

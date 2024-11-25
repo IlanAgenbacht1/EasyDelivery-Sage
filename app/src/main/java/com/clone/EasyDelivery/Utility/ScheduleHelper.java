@@ -18,16 +18,16 @@ public class ScheduleHelper {
 
     private static int documentQty;
 
-    public static void getSchedule(Context context) {
+    public static void getSchedule(Context context, String trip) {
 
-        parseAndInsertScheduleData(context);
+        parseAndInsertScheduleData(context, trip);
     }
 
-    private static void parseAndInsertScheduleData(Context context) {
+    private static void parseAndInsertScheduleData(Context context, String trip) {
 
         Delivery delivery = new Delivery();
 
-        JSONObject jsonData = JsonHandler.readFile(context);
+        JSONObject jsonData = JsonHandler.readFile(context, trip);
 
         documentQty = 0;
 
@@ -103,13 +103,14 @@ public class ScheduleHelper {
             } catch (Exception e) {
 
                 e.printStackTrace();
+
+                //ToastLogger.exception(context, e);
             }
         }
     }
 
 
     private static void insertScheduleData(Context context, Delivery delivery) {
-
         try {
             DeliveryDb database = new DeliveryDb(context);
 
@@ -159,7 +160,6 @@ public class ScheduleHelper {
 
 
     public static void getLocalTrips(Context context) {
-
         try {
 
             File file = new File(context.getFilesDir() + "/Trip/");
@@ -200,7 +200,6 @@ public class ScheduleHelper {
 
 
     public static void deleteTripFile(Context context, String tripName) {
-
         try {
 
             File file = new File(context.getFilesDir() + "/Trip/", tripName + ".json");

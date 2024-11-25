@@ -69,12 +69,10 @@ public class HeaderAdapter extends RecyclerView.Adapter<HeaderAdapter.CustomerVi
 
             if (AppConstant.SAVED_DOCUMENT != null && AppConstant.SAVED_DOCUMENT.equals(delivery.getDocument())) {
 
-                imageViewExclamation.setVisibility(View.VISIBLE);
                 itemView.setBackgroundResource(R.drawable.dash_border_red);
             }
             else {
 
-                imageViewExclamation.setVisibility(View.INVISIBLE);
                 itemView.setBackgroundResource(R.drawable.dash_border);
             }
 

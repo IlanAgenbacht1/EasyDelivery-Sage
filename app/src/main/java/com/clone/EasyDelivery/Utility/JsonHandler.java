@@ -19,13 +19,13 @@ import java.io.Writer;
 public class JsonHandler {
 
 
-    public static JSONObject readFile(Context context) {
+    public static JSONObject readFile(Context context, String trip) {
 
         StringBuilder jsonString = new StringBuilder();
 
         JSONObject tripData = new JSONObject();
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(new File(context.getFilesDir() + "/Trip/", AppConstant.TRIPID + ".json")))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(new File(context.getFilesDir() + "/Trip/", trip + ".json")))) {
 
             String line;
 
@@ -36,13 +36,11 @@ public class JsonHandler {
 
             tripData = new JSONObject(jsonString.toString());
 
-        } catch (IOException e) {
+        } catch (Exception e) {
 
             e.printStackTrace();
 
-        } catch (JSONException e) {
-
-            throw new RuntimeException(e);
+            //ToastLogger.exception(context, e);
         }
 
         return tripData;
@@ -87,7 +85,7 @@ public class JsonHandler {
                 json.put("comment", delivery.getComment());
 
                 Writer writer = new BufferedWriter(new FileWriter(file));
-                writer.write(json.toString());
+                writer.write(json.toString(4));
                 writer.close();
             }
 
@@ -99,6 +97,23 @@ public class JsonHandler {
         }
 
         return null;
+    }
+
+
+    public static int returnDeliveryCount(Context context, String trip) {
+        try {
+
+            JSONObject jsonData = readFile(context, trip);
+            JSONArray jsonArray = jsonData.getJSONArray("stops");
+
+            return jsonArray.length();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            return 0;
+        }
     }
 
 

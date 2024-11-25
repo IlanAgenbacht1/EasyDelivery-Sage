@@ -11,6 +11,7 @@
     <color name="red">#F44336</color>
     <color name="black">#000000</color>
     <color name = "gold" >#FFD700</color>
+    <color name="white">#FFFFFF</color>
 
     <color name="redOpaque">#50F44336</color>
 

@@ -17,6 +17,7 @@ import com.clone.EasyDelivery.R;
 import com.clone.EasyDelivery.Utility.AppConstant;
 import com.clone.EasyDelivery.Utility.ScheduleHelper;
 import com.clone.EasyDelivery.Utility.SyncConstant;
+import com.clone.EasyDelivery.Utility.ToastLogger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,14 +43,23 @@ public class DashHeader extends AppCompatActivity {
         database = new DeliveryDb(this);
         database.open();
 
-        for (String document : AppConstant.documentList) {
+        try {
 
-            if (ScheduleHelper.documentValid(database, document, true)) {
+            for (String document : AppConstant.documentList) {
 
-                Delivery delivery = database.getDeliveryData(document);
+                if (ScheduleHelper.documentValid(database, document, true)) {
 
-                deliveryList.add(delivery);
+                    Delivery delivery = database.getDeliveryData(document);
+
+                    deliveryList.add(delivery);
+                }
             }
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            ToastLogger.exception(getApplicationContext(), e);
         }
 
         if (deliveryList == null || deliveryList.isEmpty()) {
