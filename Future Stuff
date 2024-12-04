@@ -1,3 +1,5 @@
+- Capture generic return from trip dash. Customer, reference, item code, qty, comment.
+
 - Record all activity, especially errors.
 
 - Discrepancy activity that can be used to track and manage any discrepancies. Driver can select an issue from a list of common discrepancies with minimal or no input needed. 
