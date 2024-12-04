@@ -6,10 +6,6 @@ FUNCTIONALITY
 
 - When syncing data after app comes online for first time (deliveries are completed offline), trip status isnt updated correctly (trip is never moved to InProgress) and trip isnt correctly completed.
 
-- Upgrade database version to force dropping and creating new db when pushing out new build.
-
-- Change the way trip files are read to match how they are written in ED Manager
-
 
 ! BUGS !
 - Trip jsons not downloading correctly when created through ED manager. File is generated and uploaded correctly. Very unlikely to be an issue with ED manager.
