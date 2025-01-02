@@ -69,8 +69,8 @@ public class TripDash extends AppCompatActivity {
 
         fromBottomFabAnim = AnimationUtils.loadAnimation(this, R.anim.from_bottom_fab);
         toBottomFabAnim = AnimationUtils.loadAnimation(this, R.anim.to_bottom_fab);
-        rotateClockWiseFabAnim = AnimationUtils.loadAnimation(this, R.anim.rotate_clock_wise);
-        rotateAntiClockWiseFabAnim = AnimationUtils.loadAnimation(this, R.anim.rotate_anti_clock_wise);
+        //rotateClockWiseFabAnim = AnimationUtils.loadAnimation(this, R.anim.rotate_clock_wise);
+        //rotateAntiClockWiseFabAnim = AnimationUtils.loadAnimation(this, R.anim.rotate_anti_clock_wise);
         fromBottomBgAnim = AnimationUtils.loadAnimation(this, R.anim.from_bottom_anim);
         toBottomBgAnim = AnimationUtils.loadAnimation(this, R.anim.to_bottom_anim);
 
@@ -82,20 +82,6 @@ public class TripDash extends AppCompatActivity {
                 } else {
                     expandFab();
                 }
-            }
-        });
-
-        binding.galleryFabBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                onGalleryClicked();
-            }
-        });
-
-        binding.galleryTv.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                onGalleryClicked();
             }
         });
 
@@ -151,13 +137,15 @@ public class TripDash extends AppCompatActivity {
                     fadeIn.setDuration(1000);
                     fadeIn.setStartOffset(250);
 
-                    logo.startAnimation(fadeIn);
+                    binding.mainFabBtn.startAnimation(fadeIn);
+                    //logo.startAnimation(fadeIn);
                     recyclerView.startAnimation(fadeIn);
                     title.startAnimation(fadeIn);
 
                     title.setText("SELECT TRIP");
 
-                    logo.setVisibility(View.VISIBLE);
+                    binding.mainFabBtn.setVisibility(View.VISIBLE);
+                    //logo.setVisibility(View.VISIBLE);
                     title.setVisibility(View.VISIBLE);
                     recyclerView.setVisibility(View.VISIBLE);
 
@@ -205,66 +193,63 @@ public class TripDash extends AppCompatActivity {
         //super.onBackPressed();
 
         if (isExpanded) {
+
             shrinkFab();
+
         } else {
-            super.onBackPressed();
+
+            AlertDialog alertDialog = new AlertDialog.Builder(TripDash.this, R.style.AlertDialogStyle).create();
+
+            alertDialog.setTitle("Login");
+
+            alertDialog.setMessage("Return to login screen?");
+
+            alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "No",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+
+                            dialog.dismiss();
+                        }
+                    });
+
+            alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Yes",
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+
+                            startActivity(new Intent(TripDash.this, SplashLogin.class));
+                            finish();
+                        }
+                    });
+
+            alertDialog.show();
         }
-
-        AlertDialog alertDialog = new AlertDialog.Builder(TripDash.this, R.style.AlertDialogStyle).create();
-
-        alertDialog.setTitle("Login");
-
-        alertDialog.setMessage("Return to login screen?");
-
-        alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "No",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-
-                        dialog.dismiss();
-                    }
-                });
-
-        alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Yes",
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-
-                        startActivity(new Intent(TripDash.this, SplashLogin.class));
-                        finish();
-                    }
-                });
-
-        alertDialog.show();
     }
 
 
-
-    private void onGalleryClicked() {
-        Toast.makeText(this, "Gallery Clicked", Toast.LENGTH_SHORT).show();
-    }
 
     private void shrinkFab() {
         binding.transparentBg.startAnimation(toBottomBgAnim);
-        binding.mainFabBtn.startAnimation(rotateAntiClockWiseFabAnim);
-        binding.galleryFabBtn.startAnimation(toBottomFabAnim);
-        binding.shareFabBtn.startAnimation(toBottomFabAnim);
-        binding.sendFabBtn.startAnimation(toBottomFabAnim);
-        binding.galleryTv.startAnimation(toBottomFabAnim);
-        binding.shareTv.startAnimation(toBottomFabAnim);
-        binding.sendTv.startAnimation(toBottomFabAnim);
+        //binding.mainFabBtn.startAnimation(rotateAntiClockWiseFabAnim);
+        //binding.galleryFabBtn.startAnimation(toBottomFabAnim);
+        //binding.shareFabBtn.startAnimation(toBottomFabAnim);
+        //binding.sendFabBtn.startAnimation(toBottomFabAnim);
+        //binding.galleryTv.startAnimation(toBottomFabAnim);
+        binding.itemReturn.startAnimation(toBottomFabAnim);
+        //binding.sendTv.startAnimation(toBottomFabAnim);
 
         isExpanded = false;
     }
 
     private void expandFab() {
         binding.transparentBg.startAnimation(fromBottomBgAnim);
-        binding.mainFabBtn.startAnimation(rotateClockWiseFabAnim);
-        binding.galleryFabBtn.startAnimation(fromBottomFabAnim);
-        binding.shareFabBtn.startAnimation(fromBottomFabAnim);
-        binding.sendFabBtn.startAnimation(fromBottomFabAnim);
-        binding.galleryTv.startAnimation(fromBottomFabAnim);
-        binding.shareTv.startAnimation(fromBottomFabAnim);
-        binding.sendTv.startAnimation(fromBottomFabAnim);
+        //binding.mainFabBtn.startAnimation(rotateClockWiseFabAnim);
+       // binding.galleryFabBtn.startAnimation(fromBottomFabAnim);
+        //binding.shareFabBtn.startAnimation(fromBottomFabAnim);
+        //binding.sendFabBtn.startAnimation(fromBottomFabAnim);
+        //binding.galleryTv.startAnimation(fromBottomFabAnim);
+        binding.itemReturn.startAnimation(fromBottomFabAnim);
+        //binding.sendTv.startAnimation(fromBottomFabAnim);
 
         isExpanded = true;
     }
