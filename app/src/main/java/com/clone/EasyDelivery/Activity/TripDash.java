@@ -4,16 +4,21 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -24,6 +29,8 @@ import com.clone.EasyDelivery.R;
 import com.clone.EasyDelivery.Utility.AppConstant;
 import com.clone.EasyDelivery.Utility.ScheduleHelper;
 import com.clone.EasyDelivery.Utility.SyncConstant;
+import com.clone.EasyDelivery.databinding.ActivityMainBinding;
+import com.clone.EasyDelivery.databinding.ActivityTripDashBinding;
 
 import java.util.ArrayList;
 
@@ -40,10 +47,57 @@ public class TripDash extends AppCompatActivity {
     boolean layoutAnimated;
     int tripCount = 0;
 
+    private @NonNull ActivityTripDashBinding binding;
+    private boolean isExpanded = false;
+
+    private Animation fromBottomFabAnim;
+    private Animation toBottomFabAnim;
+    private Animation rotateClockWiseFabAnim;
+    private Animation rotateAntiClockWiseFabAnim;
+    private Animation fromBottomBgAnim;
+    private Animation toBottomBgAnim;
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_trip_dash);
+
+        binding = ActivityTripDashBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
+
+        fromBottomFabAnim = AnimationUtils.loadAnimation(this, R.anim.from_bottom_fab);
+        toBottomFabAnim = AnimationUtils.loadAnimation(this, R.anim.to_bottom_fab);
+        rotateClockWiseFabAnim = AnimationUtils.loadAnimation(this, R.anim.rotate_clock_wise);
+        rotateAntiClockWiseFabAnim = AnimationUtils.loadAnimation(this, R.anim.rotate_anti_clock_wise);
+        fromBottomBgAnim = AnimationUtils.loadAnimation(this, R.anim.from_bottom_anim);
+        toBottomBgAnim = AnimationUtils.loadAnimation(this, R.anim.to_bottom_anim);
+
+        binding.mainFabBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isExpanded) {
+                    shrinkFab();
+                } else {
+                    expandFab();
+                }
+            }
+        });
+
+        binding.galleryFabBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onGalleryClicked();
+            }
+        });
+
+        binding.galleryTv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onGalleryClicked();
+            }
+        });
 
         recyclerView = findViewById(R.id.rv_trip);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -150,6 +204,12 @@ public class TripDash extends AppCompatActivity {
     public void onBackPressed() {
         //super.onBackPressed();
 
+        if (isExpanded) {
+            shrinkFab();
+        } else {
+            super.onBackPressed();
+        }
+
         AlertDialog alertDialog = new AlertDialog.Builder(TripDash.this, R.style.AlertDialogStyle).create();
 
         alertDialog.setTitle("Login");
@@ -175,5 +235,51 @@ public class TripDash extends AppCompatActivity {
                 });
 
         alertDialog.show();
+    }
+
+
+
+    private void onGalleryClicked() {
+        Toast.makeText(this, "Gallery Clicked", Toast.LENGTH_SHORT).show();
+    }
+
+    private void shrinkFab() {
+        binding.transparentBg.startAnimation(toBottomBgAnim);
+        binding.mainFabBtn.startAnimation(rotateAntiClockWiseFabAnim);
+        binding.galleryFabBtn.startAnimation(toBottomFabAnim);
+        binding.shareFabBtn.startAnimation(toBottomFabAnim);
+        binding.sendFabBtn.startAnimation(toBottomFabAnim);
+        binding.galleryTv.startAnimation(toBottomFabAnim);
+        binding.shareTv.startAnimation(toBottomFabAnim);
+        binding.sendTv.startAnimation(toBottomFabAnim);
+
+        isExpanded = false;
+    }
+
+    private void expandFab() {
+        binding.transparentBg.startAnimation(fromBottomBgAnim);
+        binding.mainFabBtn.startAnimation(rotateClockWiseFabAnim);
+        binding.galleryFabBtn.startAnimation(fromBottomFabAnim);
+        binding.shareFabBtn.startAnimation(fromBottomFabAnim);
+        binding.sendFabBtn.startAnimation(fromBottomFabAnim);
+        binding.galleryTv.startAnimation(fromBottomFabAnim);
+        binding.shareTv.startAnimation(fromBottomFabAnim);
+        binding.sendTv.startAnimation(fromBottomFabAnim);
+
+        isExpanded = true;
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (ev != null && ev.getAction() == MotionEvent.ACTION_DOWN) {
+            if (isExpanded) {
+                Rect outRect = new Rect();
+                binding.fabConstraint.getGlobalVisibleRect(outRect);
+                if (!outRect.contains((int) ev.getRawX(), (int) ev.getRawY())) {
+                    shrinkFab();
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev);
     }
 }
