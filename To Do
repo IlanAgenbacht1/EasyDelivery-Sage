@@ -1,11 +1,12 @@
 UI
-- Strange behaviour when going into discrepancy mode whilst in barcode scanning mode.
+- Expanding FAB with a returns option.
 
 FUNCTIONALITY
-- Change the way InProgress trips are checked. At the moment a started trip is only validated against a devices local data.
-
-- When syncing data after app comes online for first time (deliveries are completed offline), trip status isnt updated correctly (trip is never moved to InProgress) and trip isnt correctly completed.
+- Change the way InProgress trips are checked. At the moment a started trip is only validated against a devices local data. The device that moves a trip to inprogress should be the only one capable of removing it from that folder. 
+- When syncing data after app comes online for first time (deliveries are completed offline), trip status isnt updated correctly (trip is never moved to InProgress) and trip isnt correctly completed. Completion of a trip is dependant on the inprogress folder.
+- Create a return record as a json file with customer, reference, item code/parcel, qty, comment.
 
 
 ! BUGS !
 - Trip jsons not downloading correctly when created through ED manager. File is generated and uploaded correctly. Very unlikely to be an issue with ED manager.
+- Strange behaviour when going into discrepancy mode whilst in barcode scanning mode.
