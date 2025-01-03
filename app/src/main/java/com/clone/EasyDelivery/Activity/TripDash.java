@@ -85,6 +85,16 @@ public class TripDash extends AppCompatActivity {
             }
         });
 
+        binding.fabReturn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                startActivity(new Intent(TripDash.this, ReturnDash.class));
+
+                finish();
+            }
+        });
+
         recyclerView = findViewById(R.id.rv_trip);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setVisibility(View.INVISIBLE);

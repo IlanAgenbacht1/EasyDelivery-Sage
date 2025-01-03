@@ -30,6 +30,9 @@
             android:name=".Activity.TripDash"
             android:theme="@style/MaterialActionBar" />
         <activity
+            android:name=".Activity.ReturnDash"
+            android:theme="@style/MaterialActionBar" />
+        <activity
             android:name=".Activity.DashHeader"
             android:theme="@style/MaterialActionBar" />
         <activity

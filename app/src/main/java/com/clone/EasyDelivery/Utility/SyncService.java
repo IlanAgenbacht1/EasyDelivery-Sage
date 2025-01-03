@@ -215,7 +215,7 @@ public class SyncService extends IntentService {
                             }
                         });
 
-                        thread.start();
+                        //thread.start();
 
                         Log.i("SyncService", "Trip Started");
 
@@ -231,7 +231,7 @@ public class SyncService extends IntentService {
                             }
                         });
 
-                        threadTripSync.start();
+                        //threadTripSync.start();
 
                         Log.i("SyncService", "Trip Completed");
                     break;
@@ -246,7 +246,7 @@ public class SyncService extends IntentService {
                             }
                         });
 
-                        threadIncompleteMove.start();
+                        //threadIncompleteMove.start();
 
                     break;
 
@@ -265,7 +265,7 @@ public class SyncService extends IntentService {
                             }
                         });
 
-                        threadDocumentSync.start();
+                        //threadDocumentSync.start();
 
                         Log.i("SyncService", "Delivery Completed");
 
@@ -404,6 +404,19 @@ public class SyncService extends IntentService {
                     Log.i("SyncService", queuedEmail.getDocument() + " email sent.");
                 }
             }
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+    }
+
+
+    private void syncReturn() {
+
+        try {
+
+
 
         } catch (Exception e) {
 
