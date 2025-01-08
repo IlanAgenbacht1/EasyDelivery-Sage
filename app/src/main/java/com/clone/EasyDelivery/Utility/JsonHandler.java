@@ -3,6 +3,7 @@ package com.clone.EasyDelivery.Utility;
 import android.content.Context;
 
 import com.clone.EasyDelivery.Model.Delivery;
+import com.clone.EasyDelivery.Model.Return;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,6 +27,34 @@ public class JsonHandler {
         JSONObject tripData = new JSONObject();
 
         try (BufferedReader reader = new BufferedReader(new FileReader(new File(context.getFilesDir() + "/Trip/", trip + ".json")))) {
+
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+
+                jsonString.append(line);
+            }
+
+            tripData = new JSONObject(jsonString.toString());
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            //ToastLogger.exception(context, e);
+        }
+
+        return tripData;
+    }
+
+
+    public static JSONObject readReturnFile(Context context) {
+
+        StringBuilder jsonString = new StringBuilder();
+
+        JSONObject tripData = new JSONObject();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(new File(context.getFilesDir() + "/Return/", "returns" + ".json")))) {
 
             String line;
 
@@ -113,6 +142,57 @@ public class JsonHandler {
             e.printStackTrace();
 
             return 0;
+        }
+    }
+
+
+    public static void writeReturnFile(Context context, boolean fileExists, Return data) {
+        try {
+
+            JSONObject jsonFinal = new JSONObject();
+            JSONArray jsonArray = new JSONArray();
+
+            if (fileExists) {
+
+                JSONObject jsonInitial = readReturnFile(context);
+                jsonArray = jsonInitial.getJSONArray("returns");
+            }
+
+            JSONObject jsonData = parseReturnData(data);
+
+            jsonArray.put(jsonData);
+            jsonFinal.put("returns", jsonArray);
+
+            Writer writer = new BufferedWriter(new FileWriter(new File(context.getFilesDir() + "/Return/", "returns.json")));
+            writer.write(jsonFinal.toString(4));
+            writer.close();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+    }
+
+
+    public static JSONObject parseReturnData(Return data) {
+        try {
+
+            JSONObject json = new JSONObject();
+
+            json.put("itemNumber", data.getItem());
+            json.put("quantity", data.getQuantity());
+            json.put("customer", data.getCustomer());
+            json.put("comment", data.getComment());
+            json.put("reference", data.getReference());
+            json.put("date", data.getTime());
+
+            return json;
+
+        } catch(Exception e) {
+
+            e.printStackTrace();
+
+            return null;
         }
     }
 

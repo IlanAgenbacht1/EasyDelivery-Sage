@@ -11,8 +11,11 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import com.clone.EasyDelivery.Activity.ReturnDash;
+import com.clone.EasyDelivery.Activity.TripDash;
 import com.clone.EasyDelivery.Database.DeliveryDb;
 import com.clone.EasyDelivery.Model.Delivery;
+import com.clone.EasyDelivery.Model.Return;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -131,11 +134,20 @@ public class SyncService extends IntentService {
                     }
                 });
 
+                Thread threadReturns = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        syncReturn();
+                    }
+                });
+
                 threadDownloadTrips.start();
                 threadTripStatus.start();
                 threadEmail.start();
                 threadCompletedData.start();
                 threadCompletedTrip.start();
+                threadReturns.start();
 
             }
         },0, 20000);
@@ -413,11 +425,27 @@ public class SyncService extends IntentService {
 
 
     private void syncReturn() {
-
         try {
 
+            openDatabase();
 
+            boolean returnFileExists = DropboxHelper.downloadReturnFile(getApplicationContext());
 
+            List<Return> returnsList = database.getReturnsList();
+
+            if (!returnsList.isEmpty()) {
+
+                for (Return returnData : returnsList) {
+
+                    JsonHandler.writeReturnFile(getApplicationContext(), returnFileExists, returnData);
+
+                    database.deleteReturns(returnData.getItem());
+
+                    Log.i("SyncService", "Return " + returnData.getItem() + " synced.");
+                }
+
+                DropboxHelper.uploadReturnsFile(getApplicationContext());
+            }
         } catch (Exception e) {
 
             e.printStackTrace();

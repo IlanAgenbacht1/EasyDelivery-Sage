@@ -10,6 +10,7 @@ import android.location.Location;
 import android.util.Log;
 
 import com.clone.EasyDelivery.Model.Delivery;
+import com.clone.EasyDelivery.Model.Return;
 import com.clone.EasyDelivery.Utility.AppConstant;
 
 import java.util.ArrayList;
@@ -23,8 +24,9 @@ public class DeliveryDb {
     private static final String DELIVERY_TABLE = "DeliveryTable";
     private static final String SYNC_TABLE = "SyncTable";
     private static final String EMAIL_TABLE = "EmailTable";
+    private static final String RETURN_TABLE = "ReturnTable";
 
-    private final int DATABASE_VERSION = 16;
+    private final int DATABASE_VERSION = 17;
     private Context ourContext;
     private SQLiteDatabase ourDatabase;
     private DBHelper ourHelper;
@@ -60,6 +62,10 @@ public class DeliveryDb {
     public static final String KEY_DOCUMENT_SYNC_QTY = "_documentSyncQty";
 
     public static final String KEY_SENT = "_sent";
+
+    public static final String KEY_ITEM = "_item";
+    public static final String KEY_QTY = "_qty";
+    public static final String KEY_REFERENCE = "_reference";
 
 
     public static final String KEY_ROWID2 = "_id2";
@@ -131,6 +137,15 @@ public class DeliveryDb {
 
             db.execSQL(sqlCreateEmailTable);
 
+            String sqlCreateReturnTable = "CREATE TABLE " + RETURN_TABLE + " (" +
+                    KEY_ITEM + " TEXT NOT NULL, " +
+                    KEY_QTY + " INTEGER NOT NULL, " +
+                    KEY_CUSTOMER + " TEXT NOT NULL, " +
+                    KEY_COMMENT + " TEXT, " +
+                    KEY_REFERENCE + " TEXT, " +
+                    KEY_TIME + " TEXT NOT NULL);";
+
+            db.execSQL(sqlCreateReturnTable);
         }
 
         @Override
@@ -141,6 +156,7 @@ public class DeliveryDb {
             db.execSQL("DROP TABLE IF EXISTS " + DELIVERY_TABLE);
             db.execSQL("DROP TABLE IF EXISTS " + SYNC_TABLE);
             db.execSQL("DROP TABLE IF EXISTS " + EMAIL_TABLE);
+            db.execSQL("DROP TABLE IF EXISTS " + RETURN_TABLE);
 
             onCreate(db);
         }
@@ -223,6 +239,20 @@ public class DeliveryDb {
         cv.put(KEY_SENT, "0");
 
         return ourDatabase.insert(EMAIL_TABLE, null, cv);
+    }
+
+    public long createReturnEntry(Return returnData) {
+
+        ContentValues cv = new ContentValues();
+
+        cv.put(KEY_ITEM, returnData.getItem());
+        cv.put(KEY_QTY, returnData.getQuantity());
+        cv.put(KEY_CUSTOMER, returnData.getCustomer());
+        cv.put(KEY_COMMENT, returnData.getComment());
+        cv.put(KEY_REFERENCE, returnData.getReference());
+        cv.put(KEY_TIME, returnData.getTime());
+
+        return ourDatabase.insert(RETURN_TABLE, null, cv);
     }
 
 
@@ -585,5 +615,43 @@ public class DeliveryDb {
         return data;
     }
 
+
+    public List<Return> getReturnsList() {
+
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + RETURN_TABLE , null);
+
+        List<Return> returnList = new ArrayList<>();
+
+        int itemIndex = cursor.getColumnIndex(KEY_ITEM);
+        int qtyIndex = cursor.getColumnIndex(KEY_QTY);
+        int customerIndex = cursor.getColumnIndex(KEY_CUSTOMER);
+        int commentIndex = cursor.getColumnIndex(KEY_COMMENT);
+        int referenceIndex = cursor.getColumnIndex(KEY_REFERENCE);
+        int dateIndex = cursor.getColumnIndex(KEY_TIME);
+
+        while (cursor.moveToNext()) {
+
+            Return returnData = new Return();
+
+            returnData.setItem(cursor.getString(itemIndex));
+            returnData.setQuantity(String.valueOf(cursor.getInt(qtyIndex)));
+            returnData.setCustomer(cursor.getString(customerIndex));
+            returnData.setComment(cursor.getString(commentIndex));
+            returnData.setReference(cursor.getString(referenceIndex));
+            returnData.setTime(cursor.getString(dateIndex));
+
+            returnList.add(returnData);
+        }
+
+        return returnList;
+    }
+
+
+    public void deleteReturns(String item) {
+
+        Cursor cursor = ourDatabase.rawQuery("DELETE FROM " + RETURN_TABLE + " WHERE " + KEY_ITEM + " = '" + item + "'", null);
+        cursor.moveToFirst();
+        cursor.close();
+    }
 
 }

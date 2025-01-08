@@ -44,9 +44,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.clone.EasyDelivery.Adapter.ParcelAdapter;
 import com.clone.EasyDelivery.Database.DeliveryDb;
 import com.clone.EasyDelivery.Model.Delivery;
+import com.clone.EasyDelivery.Model.Return;
 import com.clone.EasyDelivery.R;
 import com.clone.EasyDelivery.Utility.AppConstant;
+import com.clone.EasyDelivery.Utility.DropboxHelper;
 import com.clone.EasyDelivery.Utility.ImageHelper;
+import com.clone.EasyDelivery.Utility.JsonHandler;
 import com.clone.EasyDelivery.Utility.LocationHelper;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -57,71 +60,28 @@ import com.kyanogen.signatureview.SignatureView;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class ReturnDash extends AppCompatActivity {
 
-
-    private TextView textViewTrip, textViewDocument, textViewCustomer, textViewParcelTitle;
-
-    private Button btnSign, btnPic, btnSave, btnReset;
-
-    private Switch barcodeSwitch;
-
-    private ImageView barcodeImage;
-
-    private RecyclerView recyclerView;
-
-    private ConstraintLayout rl_1, header;
-
-    private RelativeLayout rlRv;
-
-    private ArrayList<String> adapterList;
-
-    private ParcelAdapter adapter;
-
     private Context context = this;
-
-    private EditText commentEditText;
-
-    private boolean animate = true;
-
-    LinearLayoutManager linearLayoutManager;
     View parentLayout;
-
-    private static final String TAG = "Dash";
-
-    Bitmap bitmap;
-
-    int last_entered=0;
-
-    String path;
-    private static final String IMAGE_DIRECTORY = "/DeliveryApp";
-    private static final String SiGN_DIRECTORY = "/DeliverySignature";
-    private static final String PIC_DIRECTORY = "/DeliveryImages";
-
     private Button btn_next;
-    private int imageType = 0;
-    private Uri ImagefileUri;
-    public int img_isthere = 0;
-    public static final int REQUEST_CAPTURE = 7;
-    File file;
-    String img_URI;
-
-    private boolean isSign=false,isPic=false, deliveryStarted;
-    private RelativeLayout rlTick1,rlTick2;
-    private TextInputLayout ll_number;
-    String signImagePath;
-    private EditText enter_num;
     DeliveryDb database;
     Delivery deliveryData;
-
-    int VALIDATION_DISTANCE = 50;
-
     public static ReturnDash activity;
 
-    private boolean BARCODE, FLAG;
+    private EditText editTextItem;
+    private EditText editTextQty;
+    private EditText editTextCustomer;
+    private EditText editTextComment;
+    private EditText editTextReference;
+
+    private String date;
 
 
     @Override
@@ -130,114 +90,79 @@ public class ReturnDash extends AppCompatActivity {
         setContentView(R.layout.activity_return_dash);
 
         btn_next = findViewById(R.id.btn_next);
-        //ll_number= findViewById(R.id.ll_number);
         parentLayout = findViewById(android.R.id.content);
-        header = findViewById(R.id.layout_header);
-
-        adapterList = new ArrayList<>();
 
         database = new DeliveryDb(context).open();
 
-        AppConstant.validatedParcels.clear();
-        AppConstant.uiValidatedParcels.clear();
-        AppConstant.flaggedParcels.clear();
-
+        editTextItem = findViewById(R.id.et_item);
+        editTextQty = findViewById(R.id.et_qty);
+        editTextCustomer = findViewById(R.id.et_customer);
+        editTextComment = findViewById(R.id.et_comment);
+        editTextReference = findViewById(R.id.et_reference);
 
         btn_next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                //validation();
+                if (validation()) {
+
+                    Return returnData = new Return();
+
+                    returnData.setItem(editTextItem.getText().toString().trim());
+                    returnData.setQuantity(editTextQty.getText().toString());
+                    returnData.setCustomer(editTextCustomer.getText().toString().trim());
+                    returnData.setComment(editTextComment.getText().toString().trim());
+                    returnData.setReference(editTextReference.getText().toString().trim());
+
+                    date = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US).format(new Date());
+                    returnData.setTime(date);
+
+                    database.createReturnEntry(returnData);
+
+                    startActivity(new Intent(ReturnDash.this, TripDash.class));
+                    finish();
+                }
             }
         });
-
     }
 
 
     public boolean validation() {
 
-        boolean bool = false;
+        boolean bool = true;
 
         try {
-
-            if (textViewDocument.getText().length() == 0){
+            if (editTextItem.getText().length() == 0){
                 bool = false;
-                String text="Enter Document Number";
+                String text="Enter Item/Parcel";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
                 Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
-
-              //  Toast.makeText(context, "Enter Document Number", Toast.LENGTH_LONG).show();
-            }
-            else if (!(adapterList.size()>0)){
-
-                String text="Enter All Parcel Details";
+            } else if (editTextQty.getText().length() == 0){
+                bool = false;
+                String text="Enter Quantity";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
                 Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
-
-               // Toast.makeText(context, "Enter All Parcel Details", Toast.LENGTH_LONG).show();
-            }
-            else if (!isPic) {
-                //user input empty then set bool false
+            } else if (editTextCustomer.getText().length() == 0){
                 bool = false;
-                String text="Capture Document Image";
+                String text="Enter Customer";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
                 Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
-
-               // Toast.makeText(context, "Capture Document Image", Toast.LENGTH_LONG).show();
-            }
-            else if (!isSign) {
+            } else if (editTextComment.getText().length() == 0){
                 bool = false;
-                //Toast.makeText(context, "Capture Signature", Toast.LENGTH_LONG).show();
-
-                String text="Capture Signature";
+                String text="Enter Comment/Reason";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
                 Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
-
-            }
-//            else if (!isDataValid()) {
-//                bool = false;
-//                Snackbar.make(parentLayout, "enter all parcel details", Snackbar.LENGTH_LONG).show();
-//            }
-            else {
-
-                String text="To be moved to details screen WIP";
+            } else if (editTextReference.getText().length() == 0){
+                bool = false;
+                String text="Enter Reference";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
-//                Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
-
-
-               // Toast.makeText(context, "To be moved to details screen WIP", Toast.LENGTH_SHORT).show();
-                //user input not empty so set bool true
-                bool = true;
+                Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
             }
-
-
-            List<String> inputParcels = new ArrayList<>();
-
-            for (String parcel : deliveryData.getParcelNumbers()) {
-
-                for (int i = 0; i < adapterList.size(); i++) {
-
-                    String inputParcel = adapterList.get(i);
-
-                    if (parcel.equals(inputParcel)) {
-
-                        inputParcels.add(adapterList.get(i));
-                    }
-                }
-            }
-
-            if (inputParcels.size() != adapterList.size()) {
-
-                Toast.makeText(this, "Invalid parcel number!", Toast.LENGTH_LONG).show();
-
-                bool = false;
-            }
-
         } catch (Exception e) {
             e.printStackTrace();
             bool = false;
@@ -262,64 +187,7 @@ public class ReturnDash extends AppCompatActivity {
             } else {
 
                 String input = result.getContents();
-
-                rl_1.setVisibility(View.VISIBLE);
-
-                enter_num.setText(input);
-
-                if (AppConstant.validatedParcels.contains(input)) {
-
-                    Toast.makeText(ReturnDash.this, "Item already scanned", Toast.LENGTH_LONG).show();
-
-                } else {
-
-                    for (int i = 0; i < adapterList.size(); i++) {
-
-                        if (input.equalsIgnoreCase(adapterList.get(i))) {
-
-                            AppConstant.PARCEL_VALIDATION = true;
-
-                            adapter.notifyItemChanged(i);
-
-                            AppConstant.validatedParcels.add(adapterList.get(i));
-                            AppConstant.uiValidatedParcels.add(adapterList.get(i));
-
-                            if (AppConstant.validatedParcels.size() == deliveryData.getNumberOfParcels()) {
-
-                                barcodeSwitch.setChecked(false);
-                                barcodeSwitch.setClickable(false);
-
-                                btn_next.setTextColor(getResources().getColor(R.color.black, null));
-                                btn_next.setText("Complete Delivery");
-
-                                enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                                enter_num.setHint("PARCELS VALID");
-                                enter_num.setFocusable(false);
-                                enter_num.setCursorVisible(false);
-                            }
-                        }
-                    }
-                }
-
-                enter_num.setText("");
             }
-        }
-
-        if (resultCode == RESULT_OK && requestCode == REQUEST_CAPTURE) {
-
-            rlTick2.setVisibility(View.VISIBLE);
-            isPic = true;
-
-            img_isthere = 1;
-            imageType = 2;
-
-            String CompressPath = ImageHelper.compressImage(ReturnDash.this, img_URI, IMAGE_DIRECTORY, SiGN_DIRECTORY);
-
-            signImagePath = CompressPath;
-
-            ImagefileUri = Uri.parse(CompressPath);
-
-            file.delete();
         }
     }
 

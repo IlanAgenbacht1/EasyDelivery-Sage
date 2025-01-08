@@ -9,11 +9,14 @@ import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.v2.DbxClientV2;
+import com.dropbox.core.v2.files.DownloadErrorException;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.files.RelocationErrorException;
+import com.dropbox.core.v2.files.WriteMode;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -93,6 +96,57 @@ public class DropboxHelper {
 
         } catch (DbxException | IOException e) {
             e.printStackTrace();
+        }
+    }
+
+
+    public static boolean downloadReturnFile(Context context) {
+
+            File file = new File(context.getFilesDir() + "/Return/", "returns.json");
+
+            if (!file.exists()) {
+
+                file.getParentFile().mkdirs();
+            }
+
+            try (OutputStream outputStream = new FileOutputStream(new File(file.getPath()))) {
+
+                Log.i("Dropbox", "Download starting...");
+
+                getClient().files().downloadBuilder(CUSTOMER_PATH + "Returns/" + "returns.json").download(outputStream);
+
+                Log.i("Dropbox", "Download completed.");
+
+                return true;
+
+            } catch (DownloadErrorException e) {
+
+                e.printStackTrace();
+                return false;
+
+            } catch (IOException | DbxException e) {
+                e.printStackTrace();
+            }
+
+            return false;
+    }
+
+
+    public static void uploadReturnsFile(Context context) {
+        try {
+
+            try (InputStream inputStream = new FileInputStream(new File(context.getFilesDir() + "/Return/", "returns.json"))) {
+
+                getClient().files().uploadBuilder(CUSTOMER_PATH + "Returns/" + "returns.json").withMode(WriteMode.OVERWRITE).uploadAndFinish(inputStream);
+
+                ToastLogger.message(context, "Uploaded return");
+            }
+
+        } catch(Exception e) {
+
+            e.printStackTrace();
+
+            ToastLogger.exception(context, e);
         }
     }
 

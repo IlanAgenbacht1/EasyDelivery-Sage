@@ -127,7 +127,7 @@
             android:layout_width="0dp"
             android:layout_height="65dp"
             android:backgroundTint="@color/gold"
-            android:text="Complete Returnal"
+            android:text="Complete Return"
             android:textColor="@color/theme"
             android:textSize="14sp"
             android:visibility="visible"
