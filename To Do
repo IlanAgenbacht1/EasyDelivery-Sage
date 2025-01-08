@@ -1,5 +1,4 @@
 UI
-- Expanding FAB with a returns option.
 
 FUNCTIONALITY
 - Change the way InProgress trips are checked. At the moment a started trip is only validated against a devices local data. The device that moves a trip to inprogress should be the only one capable of removing it from that folder. 
