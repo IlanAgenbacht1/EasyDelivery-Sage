@@ -49,27 +49,22 @@ import java.util.Locale;
 import java.util.Objects;
 
 public class Preview extends AppCompatActivity {
+
     private TextView tvCompany,tvDriver,tvVehicle,tvDate,tvTime,tvDocu,tvParcels,tvComment;
     private Button btnBack,btnConfirm;
     private RecyclerView recyclerView;
     private String date_final,time_final,currentDate;
-
     private PreviewAdapter adapter;
-     private RelativeLayout rl_sign_view,rl_view_parcel;
+    private RelativeLayout rl_sign_view,rl_view_parcel;
     private ItemParcel itemParcel;
-
     String result,result1;
-
     private Context context;
-
     ArrayList<String> parcelId;
-
     ArrayList<String> filePaths;
-    String  strList;
-
+    String strList;
     private TextView tvPic,tvSign;
-
     private static final String TAG = "Preview";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

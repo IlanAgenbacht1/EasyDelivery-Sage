@@ -150,7 +150,7 @@ public class SyncService extends IntentService {
                 threadReturns.start();
 
             }
-        },0, 20000);
+        },0, 30000);
 
 
 
@@ -429,22 +429,33 @@ public class SyncService extends IntentService {
 
             openDatabase();
 
-            boolean returnFileExists = DropboxHelper.downloadReturnFile(getApplicationContext());
+            DropboxHelper.downloadReturnFile(getApplicationContext());
 
             List<Return> returnsList = database.getReturnsList();
+
+            Log.i("SyncService", "returns size: "+returnsList.size());
 
             if (!returnsList.isEmpty()) {
 
                 for (Return returnData : returnsList) {
 
-                    JsonHandler.writeReturnFile(getApplicationContext(), returnFileExists, returnData);
+                    File file = JsonHandler.writeReturnFile(getApplicationContext(), returnData);
 
-                    database.deleteReturns(returnData.getItem());
+                    if (DropboxHelper.uploadReturnsFile(getApplicationContext())) {
 
-                    Log.i("SyncService", "Return " + returnData.getItem() + " synced.");
+                        database.deleteReturns(returnData.getItem());
+
+                        Log.i("SyncService", "Return " + returnData.getItem() + " synced.");
+
+                    } else {
+
+                        file.delete();
+
+                        Log.i("SyncService", "Return " + returnData.getItem() + " failed to sync. Return file reset.");
+                    }
                 }
 
-                DropboxHelper.uploadReturnsFile(getApplicationContext());
+
             }
         } catch (Exception e) {
 

@@ -70,7 +70,7 @@ public class ReturnDash extends AppCompatActivity {
 
     private Context context = this;
     View parentLayout;
-    private Button btn_next;
+    private Button btn_next, btn_barcode;
     DeliveryDb database;
     Delivery deliveryData;
     public static ReturnDash activity;
@@ -90,6 +90,7 @@ public class ReturnDash extends AppCompatActivity {
         setContentView(R.layout.activity_return_dash);
 
         btn_next = findViewById(R.id.btn_next);
+        btn_barcode = findViewById(R.id.buttonBarcode);
         parentLayout = findViewById(android.R.id.content);
 
         database = new DeliveryDb(context).open();
@@ -99,6 +100,19 @@ public class ReturnDash extends AppCompatActivity {
         editTextCustomer = findViewById(R.id.et_customer);
         editTextComment = findViewById(R.id.et_comment);
         editTextReference = findViewById(R.id.et_reference);
+
+        btn_barcode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                IntentIntegrator integrator = new IntentIntegrator(ReturnDash.this);
+
+                integrator.setPrompt("Scan Barcode");
+                integrator.setBeepEnabled(true);
+
+                integrator.initiateScan();
+            }
+        });
 
         btn_next.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -187,6 +201,8 @@ public class ReturnDash extends AppCompatActivity {
             } else {
 
                 String input = result.getContents();
+
+                editTextItem.setText(input);
             }
         }
     }

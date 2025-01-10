@@ -1,6 +1,7 @@
 package com.clone.EasyDelivery.Utility;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.clone.EasyDelivery.Model.Delivery;
 import com.clone.EasyDelivery.Model.Return;
@@ -146,16 +147,20 @@ public class JsonHandler {
     }
 
 
-    public static void writeReturnFile(Context context, boolean fileExists, Return data) {
+    public static File writeReturnFile(Context context, Return data) {
         try {
 
             JSONObject jsonFinal = new JSONObject();
             JSONArray jsonArray = new JSONArray();
 
-            if (fileExists) {
+            File file = new File(context.getFilesDir() + "/Return/", "returns.json");
+
+            if (file.exists()) {
 
                 JSONObject jsonInitial = readReturnFile(context);
                 jsonArray = jsonInitial.getJSONArray("returns");
+
+                Log.i("SyncService", "returns.json size: " + jsonArray.length());
             }
 
             JSONObject jsonData = parseReturnData(data);
@@ -163,14 +168,18 @@ public class JsonHandler {
             jsonArray.put(jsonData);
             jsonFinal.put("returns", jsonArray);
 
-            Writer writer = new BufferedWriter(new FileWriter(new File(context.getFilesDir() + "/Return/", "returns.json")));
+            Writer writer = new BufferedWriter(new FileWriter(file));
             writer.write(jsonFinal.toString(4));
             writer.close();
+
+            return file;
 
         } catch (Exception e) {
 
             e.printStackTrace();
         }
+
+        return null;
     }
 
 

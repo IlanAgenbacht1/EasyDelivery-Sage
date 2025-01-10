@@ -100,39 +100,34 @@ public class DropboxHelper {
     }
 
 
-    public static boolean downloadReturnFile(Context context) {
+    public static void downloadReturnFile(Context context) {
 
-            File file = new File(context.getFilesDir() + "/Return/", "returns.json");
+        File file = new File(context.getFilesDir() + "/Return/");
 
-            if (!file.exists()) {
+        if (!file.exists()) {
 
-                file.getParentFile().mkdirs();
-            }
+            file.mkdirs();
+        }
 
-            try (OutputStream outputStream = new FileOutputStream(new File(file.getPath()))) {
+        try (OutputStream outputStream = new FileOutputStream(new File(file.getPath()))) {
 
-                Log.i("Dropbox", "Download starting...");
+            Log.i("Dropbox", "Download starting...");
 
-                getClient().files().downloadBuilder(CUSTOMER_PATH + "Returns/" + "returns.json").download(outputStream);
+            getClient().files().downloadBuilder(CUSTOMER_PATH + "Returns/" + "returns.json").download(outputStream);
 
-                Log.i("Dropbox", "Download completed.");
+            Log.i("Dropbox", "Download completed.");
 
-                return true;
+        } catch (DownloadErrorException e) {
 
-            } catch (DownloadErrorException e) {
+            e.printStackTrace();
 
-                e.printStackTrace();
-                return false;
-
-            } catch (IOException | DbxException e) {
-                e.printStackTrace();
-            }
-
-            return false;
+        } catch (IOException | DbxException e) {
+            e.printStackTrace();
+        }
     }
 
 
-    public static void uploadReturnsFile(Context context) {
+    public static boolean uploadReturnsFile(Context context) {
         try {
 
             try (InputStream inputStream = new FileInputStream(new File(context.getFilesDir() + "/Return/", "returns.json"))) {
@@ -142,11 +137,15 @@ public class DropboxHelper {
                 ToastLogger.message(context, "Uploaded return");
             }
 
+            return true;
+
         } catch(Exception e) {
 
             e.printStackTrace();
 
             ToastLogger.exception(context, e);
+
+            return false;
         }
     }
 
