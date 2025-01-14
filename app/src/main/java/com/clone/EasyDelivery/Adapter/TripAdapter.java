@@ -1,6 +1,7 @@
 package com.clone.EasyDelivery.Adapter;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -66,6 +67,8 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
         }
 
         public void bind(final String tripName, final TripAdapter.OnItemClickListener listener) {
+
+            Log.i("DeliveryCount", "Binder context: " + itemView.getContext() + " Trip: " + tripName);
 
             int deliveryCount = JsonHandler.returnDeliveryCount(itemView.getContext(), tripName);
 

@@ -99,6 +99,7 @@ public class SyncService extends IntentService {
                     public void run() {
 
                         DropboxHelper.downloadAllTrips(getApplicationContext());
+                        ScheduleHelper.getLocalTrips(getApplicationContext());
                     }
                 });
 
@@ -150,7 +151,7 @@ public class SyncService extends IntentService {
                 threadReturns.start();
 
             }
-        },0, 30000);
+        },0, 20000);
 
 
 
@@ -195,10 +196,10 @@ public class SyncService extends IntentService {
                                     @Override
                                     public void run() {
 
-                                        DropboxHelper.downloadAllTrips(getApplicationContext());
+                                        //DropboxHelper.downloadAllTrips(getApplicationContext());
+
 
                                         //ScheduleHelper.getLocalTrips(getApplicationContext());
-                                        ScheduleHelper.getLocalTrips(getApplicationContext());
                                     }
                                 });
 

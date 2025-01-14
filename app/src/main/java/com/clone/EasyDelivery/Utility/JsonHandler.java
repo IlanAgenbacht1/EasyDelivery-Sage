@@ -133,6 +133,8 @@ public class JsonHandler {
     public static int returnDeliveryCount(Context context, String trip) {
         try {
 
+            Log.i("DeliveryCount", "Fetching delivery count for " + trip);
+
             JSONObject jsonData = readFile(context, trip);
             JSONArray jsonArray = jsonData.getJSONArray("stops");
 

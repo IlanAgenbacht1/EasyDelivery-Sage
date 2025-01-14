@@ -21,6 +21,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 
 public class DropboxHelper {
 
@@ -54,6 +55,8 @@ public class DropboxHelper {
 
         try {
 
+            ArrayList<String> dropboxTrips = new ArrayList<>();
+
             ListFolderResult folders = getClient().files().listFolder(CUSTOMER_PATH);
 
             for (int i = 0; i < folders.getEntries().size(); i++) {
@@ -62,11 +65,36 @@ public class DropboxHelper {
 
                 Log.i("Dropbox", "Returned file " + resultString);
 
-                if (resultString.contains(".json") && !AppConstant.tripList.contains(resultString.substring(0, resultString.length() - 5))) {
+                if (resultString.contains(".json")) {
 
-                    downloadFile(context, resultString);
+                    dropboxTrips.add(resultString.substring(0, resultString.length() - 5));
+
+                    if (!AppConstant.tripList.contains(resultString.substring(0, resultString.length() - 5))) {
+
+                        downloadFile(context, resultString);
+                    }
                 }
             }
+
+            for (String trip : dropboxTrips) {
+
+                if (!AppConstant.downloadedTrips.contains(trip)) {
+
+                    AppConstant.downloadedTrips.add(trip);
+                }
+            }
+
+            ArrayList<String> toRemove = new ArrayList<>();
+
+            for (String trip : AppConstant.downloadedTrips) {
+
+                if (!dropboxTrips.contains(trip)) {
+
+                    toRemove.add(trip);
+                }
+            }
+
+            AppConstant.downloadedTrips.removeAll(toRemove);
 
         } catch (DbxException e) {
             e.printStackTrace();

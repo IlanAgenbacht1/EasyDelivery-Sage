@@ -2,8 +2,11 @@ package com.clone.EasyDelivery.Utility;
 
 import android.content.Context;
 import android.location.Location;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
+import com.clone.EasyDelivery.Activity.TripDash;
 import com.clone.EasyDelivery.Database.DeliveryDb;
 import com.clone.EasyDelivery.Model.Delivery;
 
@@ -12,6 +15,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class ScheduleHelper {
@@ -176,6 +180,12 @@ public class ScheduleHelper {
 
                     AppConstant.tripList.add(trimmedItem);
 
+                    Handler handler = new Handler(Looper.getMainLooper());
+                    handler.post(() -> {
+                        // Update your UI here
+                        TripDash.adapter.notifyItemInserted(AppConstant.tripList.indexOf(trimmedItem));
+                    });
+
                     Log.i("Trip List", "Added: " + trimmedItem);
                 }
             }
@@ -191,6 +201,25 @@ public class ScheduleHelper {
             }
 
             AppConstant.tripList.removeAll(toRemove);
+
+            Iterator<String> iterator = AppConstant.tripList.iterator();
+            while (iterator.hasNext()) {
+                String trip = iterator.next();
+                if (!AppConstant.downloadedTrips.contains(trip)) {
+                    Log.i("SyncService", "Trip file sync: removed " + trip);
+                    ScheduleHelper.deleteTripFile(context, trip);
+
+                    int pos = AppConstant.tripList.indexOf(trip);
+
+                    iterator.remove();  // Use iterator's remove() method
+
+                    // Update UI
+                    Handler handler = new Handler(Looper.getMainLooper());
+                    handler.post(() -> {
+                        TripDash.adapter.notifyItemRemoved(pos);
+                    });
+                }
+            }
 
         } catch (NullPointerException e) {
 

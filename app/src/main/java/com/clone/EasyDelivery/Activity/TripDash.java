@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AlphaAnimation;
@@ -33,19 +34,19 @@ import com.clone.EasyDelivery.databinding.ActivityMainBinding;
 import com.clone.EasyDelivery.databinding.ActivityTripDashBinding;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class TripDash extends AppCompatActivity {
 
     TextView title;
     RecyclerView recyclerView;
-    TripAdapter adapter;
+    public static TripAdapter adapter;
     ArrayList<String> tripList;
     ProgressBar loadingIcon;
     ImageView logo;
 
     ConstraintLayout layout;
     boolean layoutAnimated;
-    int tripCount = 0;
 
     private @NonNull ActivityTripDashBinding binding;
     private boolean isExpanded = false;
@@ -58,9 +59,8 @@ public class TripDash extends AppCompatActivity {
     private Animation toBottomBgAnim;
 
 
-
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_trip_dash);
 
@@ -97,7 +97,7 @@ public class TripDash extends AppCompatActivity {
 
         recyclerView = findViewById(R.id.rv_trip);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setVisibility(View.INVISIBLE);
+        //recyclerView.setVisibility(View.INVISIBLE);
 
         layout = findViewById(R.id.trip_dash_main);
 
@@ -137,6 +137,8 @@ public class TripDash extends AppCompatActivity {
             @Override
             public void run() {
 
+                //ScheduleHelper.getLocalTrips(TripDash.this);
+
                 if (!AppConstant.tripList.isEmpty() && !layoutAnimated) {
 
                     loadingIcon.setVisibility(View.INVISIBLE);
@@ -147,32 +149,22 @@ public class TripDash extends AppCompatActivity {
                     fadeIn.setDuration(1000);
                     fadeIn.setStartOffset(250);
 
-                    binding.mainFabBtn.startAnimation(fadeIn);
+                    //binding.mainFabBtn.startAnimation(fadeIn);
                     //logo.startAnimation(fadeIn);
-                    recyclerView.startAnimation(fadeIn);
+                    //recyclerView.startAnimation(fadeIn);
                     title.startAnimation(fadeIn);
 
                     title.setText("SELECT TRIP");
 
-                    binding.mainFabBtn.setVisibility(View.VISIBLE);
+                    //binding.mainFabBtn.setVisibility(View.VISIBLE);
                     //logo.setVisibility(View.VISIBLE);
                     title.setVisibility(View.VISIBLE);
-                    recyclerView.setVisibility(View.VISIBLE);
+                    //recyclerView.setVisibility(View.VISIBLE);
 
                     layoutAnimated = true;
-
-                    textHandler.postDelayed(this, 250);
-
-                } else {
-
-                    ScheduleHelper.getLocalTrips(TripDash.this);
-
-                    adapter.notifyDataSetChanged();
-
-                    tripCount++;
-
-                    textHandler.postDelayed(this, 250);
                 }
+
+                textHandler.postDelayed(this, 250);
             }
         });
     }
