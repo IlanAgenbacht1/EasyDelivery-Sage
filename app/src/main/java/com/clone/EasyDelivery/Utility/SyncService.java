@@ -358,8 +358,8 @@ public class SyncService extends IntentService {
 
             openDatabase();
 
-            DropboxHelper.moveIncompleteTrip(getApplicationContext(), database);
             DropboxHelper.moveTripInProgress();
+            DropboxHelper.moveIncompleteTrip(getApplicationContext(), database);
 
         } catch (Exception e) {
 
