@@ -1,6 +1,6 @@
 UI
 
-FUNCTIONALITY
+BACKEND
 - Change the way InProgress trips are checked. At the moment a started trip is only validated against a devices local data. The device that moves a trip to inprogress should be the only one capable of removing it from that folder. 
 - From the trip dash, create an independant return record as a json file with customer, reference, item code/parcel, qty, comment.
 
@@ -10,3 +10,7 @@ FUNCTIONALITY
 - Strange behaviour when going into discrepancy mode whilst in barcode scanning mode.
 
 - Rate limit exception - likely not an issue. Can be solved by combining some sync threads to reduce simultaneous api calls.
+
+
+TESTING
+- Log/track database behaviour. Avoid unneccessary data.
