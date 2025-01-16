@@ -2,8 +2,7 @@ UI
 
 BACKEND
 - Change the way InProgress trips are checked. At the moment a started trip is only validated against a devices local data. The device that moves a trip to inprogress should be the only one capable of removing it from that folder. 
-- From the trip dash, create an independant return record as a json file with customer, reference, item code/parcel, qty, comment.
-
+  Can add the ability to display in progress trips, however they can only be accessed by the device that transacted against it.
 
 ! BUGS !
 - Trip jsons not downloading correctly when created through ED manager. File is generated and uploaded correctly. Very unlikely to be an issue with ED manager.
