@@ -12,6 +12,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 
 import com.clone.EasyDelivery.Activity.ReturnDash;
+import com.clone.EasyDelivery.Activity.SplashLogin;
 import com.clone.EasyDelivery.Activity.TripDash;
 import com.clone.EasyDelivery.Database.DeliveryDb;
 import com.clone.EasyDelivery.Model.Delivery;
@@ -99,7 +100,6 @@ public class SyncService extends IntentService {
                     public void run() {
 
                         DropboxHelper.downloadAllTrips(getApplicationContext());
-                        ScheduleHelper.getLocalTrips(getApplicationContext());
                     }
                 });
 
@@ -161,6 +161,7 @@ public class SyncService extends IntentService {
         filter.addAction("DeliveryCompleted");
         filter.addAction("DeliveryStarted");
         filter.addAction("TripStarted");
+        filter.addAction("TripNotStarted");
         filter.addAction("TripCompleted");
         filter.addAction("TripIncomplete");
 
@@ -231,6 +232,24 @@ public class SyncService extends IntentService {
                         //thread.start();
 
                         Log.i("SyncService", "Trip Started");
+
+                    break;
+
+                    case "TripNotStarted":
+
+                        Thread thread2 = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+
+                                openDatabase();
+
+                                DropboxHelper.moveIncompleteTrip(getApplicationContext(), database);
+                            }
+                        });
+
+                        thread2.start();
+
+                        Log.i("SyncService", "Trip not started");
 
                     break;
 
@@ -359,7 +378,7 @@ public class SyncService extends IntentService {
 
             openDatabase();
 
-            DropboxHelper.moveTripInProgress();
+            DropboxHelper.moveTripInProgress(null);
             DropboxHelper.moveIncompleteTrip(getApplicationContext(), database);
 
         } catch (Exception e) {
@@ -370,26 +389,34 @@ public class SyncService extends IntentService {
 
 
     private void syncCompletedTrip() {
+        try {
 
-        openDatabase();
+            openDatabase();
 
-        if (!AppConstant.completedTrips.isEmpty()) {
+            if (!AppConstant.completedTrips.isEmpty()) {
 
-            for (String completedTrip : AppConstant.completedTrips) {
+                for (String completedTrip : AppConstant.completedTrips) {
 
-                DropboxHelper.moveCompletedTrip(completedTrip);
+                    DropboxHelper.moveTripInProgress(completedTrip);
 
-                AppConstant.completedTrips.remove(completedTrip);
+                    DropboxHelper.moveCompletedTrip(completedTrip);
 
-                database.deleteUploadedData(completedTrip);
+                    AppConstant.completedTrips.remove(completedTrip);
 
-                if (SyncConstant.STARTED_TRIP.equals(completedTrip)) {
+                    database.deleteUploadedData(completedTrip);
 
-                    SyncConstant.STARTED_TRIP = "";
+                    if (SyncConstant.STARTED_TRIP.equals(completedTrip)) {
+
+                        SyncConstant.STARTED_TRIP = "";
+                    }
+
+                    Log.i("SyncService", completedTrip + " uploaded");
                 }
-
-                Log.i("SyncService", completedTrip + " uploaded");
             }
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
         }
     }
 

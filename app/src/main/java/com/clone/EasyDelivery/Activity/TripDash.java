@@ -50,6 +50,7 @@ public class TripDash extends AppCompatActivity {
 
     private @NonNull ActivityTripDashBinding binding;
     private boolean isExpanded = false;
+    private Handler textHandler;
 
     private Animation fromBottomFabAnim;
     private Animation toBottomFabAnim;
@@ -132,12 +133,12 @@ public class TripDash extends AppCompatActivity {
 
     public void loop() {
 
-        Handler textHandler = new Handler();
+        textHandler = new Handler();
         textHandler.post(new Runnable() {
             @Override
             public void run() {
 
-                //ScheduleHelper.getLocalTrips(TripDash.this);
+                ScheduleHelper.getLocalTrips(TripDash.this);
 
                 if (!AppConstant.tripList.isEmpty() && !layoutAnimated) {
 
@@ -162,11 +163,17 @@ public class TripDash extends AppCompatActivity {
                     //recyclerView.setVisibility(View.VISIBLE);
 
                     layoutAnimated = true;
-                }
 
-                textHandler.postDelayed(this, 250);
+                    textHandler.postDelayed(this, 250);
+
+                } else {
+
+                    textHandler.postDelayed(this, 5000);
+                }
             }
         });
+
+
     }
 
 
@@ -179,6 +186,8 @@ public class TripDash extends AppCompatActivity {
             public void run() {
 
                 ScheduleHelper.getSchedule(TripDash.this, trip);
+
+                textHandler.removeCallbacksAndMessages(null);
 
                 startActivity(new Intent(TripDash.this, DashHeader.class));
                 finish();
@@ -229,7 +238,6 @@ public class TripDash extends AppCompatActivity {
     }
 
 
-
     private void shrinkFab() {
         binding.transparentBg.startAnimation(toBottomBgAnim);
         //binding.mainFabBtn.startAnimation(rotateAntiClockWiseFabAnim);
@@ -268,5 +276,12 @@ public class TripDash extends AppCompatActivity {
             }
         }
         return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        textHandler.removeCallbacksAndMessages(null);
     }
 }

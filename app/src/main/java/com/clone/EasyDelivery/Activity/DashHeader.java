@@ -65,6 +65,7 @@ public class DashHeader extends AppCompatActivity {
         if (deliveryList == null || deliveryList.isEmpty()) {
 
             ScheduleHelper.deleteTripFile(getApplicationContext(), AppConstant.TRIPID);
+            AppConstant.completedTrips.add(AppConstant.TRIPID);
 
             AlertDialog alertDialog = new AlertDialog.Builder(DashHeader.this, R.style.AlertDialogStyle).create();
             alertDialog.setTitle("Deliveries Completed!");
@@ -121,8 +122,19 @@ public class DashHeader extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
-                        SyncConstant.STARTED_TRIP = "";
-                        AppConstant.TRIPID = "";
+                        if (!database.tripStarted(AppConstant.TRIPID)) {
+
+                            SyncConstant.STARTED_TRIP = "";
+                            AppConstant.TRIPID = "";
+
+                            Intent intent = new Intent("TripNotStarted");
+                            sendBroadcast(intent);
+
+                        } else {
+
+                            SyncConstant.STARTED_TRIP = "";
+                            AppConstant.TRIPID = "";
+                        }
 
                         startActivity(new Intent(DashHeader.this, TripDash.class));
                         finish();

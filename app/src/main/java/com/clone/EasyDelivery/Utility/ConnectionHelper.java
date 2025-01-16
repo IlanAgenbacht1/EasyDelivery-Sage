@@ -10,20 +10,20 @@ public class ConnectionHelper {
 
     public static boolean isInternetConnected() {
 
-            try {
+        try {
 
-                HttpURLConnection urlConnection = (HttpURLConnection) (new URL("http://clients3.google.com/generate_204").openConnection());
-                urlConnection.setRequestProperty("User-Agent", "Android");
-                urlConnection.setRequestProperty("Connection", "close");
-                urlConnection.setConnectTimeout(3000);
-                urlConnection.connect();
+            HttpURLConnection urlConnection = (HttpURLConnection) (new URL("http://clients3.google.com/generate_204").openConnection());
+            urlConnection.setRequestProperty("User-Agent", "Android");
+            urlConnection.setRequestProperty("Connection", "close");
+            urlConnection.setConnectTimeout(3000);
+            urlConnection.connect();
 
-                return (urlConnection.getResponseCode() == 204 && urlConnection.getContentLength() == 0);
+            return (urlConnection.getResponseCode() == 204 && urlConnection.getContentLength() == 0);
 
-            } catch (IOException e) {
+        } catch (IOException e) {
 
-                Log.e("Internet", "Error checking internet connection", e);
-            }
+            Log.e("Internet", "Error checking internet connection", e);
+        }
 
         return false;
     }

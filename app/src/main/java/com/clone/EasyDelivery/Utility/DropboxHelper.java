@@ -69,7 +69,7 @@ public class DropboxHelper {
 
                     dropboxTrips.add(resultString.substring(0, resultString.length() - 5));
 
-                    if (!AppConstant.tripList.contains(resultString.substring(0, resultString.length() - 5))) {
+                    if (!AppConstant.tripList.contains(resultString.substring(0, resultString.length() - 5)) && !AppConstant.completedTrips.contains(resultString.substring(0, resultString.length() - 5))) {
 
                         downloadFile(context, resultString);
                     }
@@ -95,6 +95,25 @@ public class DropboxHelper {
             }
 
             AppConstant.downloadedTrips.removeAll(toRemove);
+
+            /*folders = getClient().files().listFolder(CUSTOMER_PATH + "InProgress/");
+
+            for (int i = 0; i < folders.getEntries().size(); i++) {
+
+                String resultString = folders.getEntries().get(i).getName();
+
+                Log.i("Dropbox", "Returned file " + resultString);
+
+                if (resultString.contains(".json")) {
+
+                    dropboxTrips.add(resultString.substring(0, resultString.length() - 5));
+
+                    if (!AppConstant.tripList.contains(resultString.substring(0, resultString.length() - 5)) && !AppConstant.completedTrips.contains(resultString.substring(0, resultString.length() - 5))) {
+
+                        downloadFile(context, resultString);
+                    }
+                }
+            }*/
 
         } catch (DbxException e) {
             e.printStackTrace();
@@ -178,25 +197,33 @@ public class DropboxHelper {
     }
 
 
-    public static void moveTripInProgress() {
+    public static void moveTripInProgress(String trip) {
         try {
 
             if (!SyncConstant.STARTED_TRIP.isEmpty()) {
 
                 String fromFile = CUSTOMER_PATH + SyncConstant.STARTED_TRIP + ".json";
 
-                String toFolder = CUSTOMER_PATH + "InProgress/" + SyncConstant.STARTED_TRIP+ ".json";
+                String toFolder = CUSTOMER_PATH + "InProgress/" + SyncConstant.STARTED_TRIP + ".json";
 
                 getClient().files().moveV2(fromFile, toFolder);
+
+                Log.i("SyncService", "Moved " + SyncConstant.STARTED_TRIP + " to InProgress.");
+
+            } else if (trip != null) {
+
+                String fromFile = CUSTOMER_PATH + trip + ".json";
+
+                String toFolder = CUSTOMER_PATH + "InProgress/" + trip + ".json";
+
+                getClient().files().moveV2(fromFile, toFolder);
+
+                Log.i("SyncService", "Moved " + trip + " to InProgress.");
             }
 
-        } catch (RelocationErrorException e) {
+        } catch (Exception e) {
 
-            throw new RuntimeException(e);
-
-        } catch (DbxException e) {
-
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
     }
 

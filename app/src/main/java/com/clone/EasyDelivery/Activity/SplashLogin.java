@@ -137,10 +137,6 @@ public class SplashLogin extends AppCompatActivity {
                         @Override
                         public void run() {
 
-                            //AppConstant.tripList = new ArrayList<>();
-                            AppConstant.tripCount = 0;
-                            //ScheduleHelper.getLocalTrips(SplashLogin.this);
-
                             Intent startSyncIntent = new Intent(SplashLogin.this, SyncService.class);
                             startService(startSyncIntent);
 

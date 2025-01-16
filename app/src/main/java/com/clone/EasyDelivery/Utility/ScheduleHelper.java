@@ -17,10 +17,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 public class ScheduleHelper {
 
     private static int documentQty;
+
+    static boolean internetConnected;
 
     public static void getSchedule(Context context, String trip) {
 
@@ -190,28 +193,15 @@ public class ScheduleHelper {
                 }
             }
 
-            List<String> toRemove = new ArrayList<>();
+            Iterator<String> iterator1 = AppConstant.tripList.iterator();
 
-            for (String listItem : AppConstant.tripList){
-
+            while (iterator1.hasNext()) {
+                String listItem = iterator1.next();
                 if (!localFiles.contains(listItem)) {
 
-                    toRemove.add(listItem);
-                }
-            }
+                    int pos = AppConstant.tripList.indexOf(listItem);
 
-            AppConstant.tripList.removeAll(toRemove);
-
-            Iterator<String> iterator = AppConstant.tripList.iterator();
-            while (iterator.hasNext()) {
-                String trip = iterator.next();
-                if (!AppConstant.downloadedTrips.contains(trip)) {
-                    Log.i("SyncService", "Trip file sync: removed " + trip);
-                    ScheduleHelper.deleteTripFile(context, trip);
-
-                    int pos = AppConstant.tripList.indexOf(trip);
-
-                    iterator.remove();  // Use iterator's remove() method
+                    iterator1.remove();  // Use iterator's remove() method
 
                     // Update UI
                     Handler handler = new Handler(Looper.getMainLooper());
@@ -221,9 +211,50 @@ public class ScheduleHelper {
                 }
             }
 
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+
+                    internetConnected = ConnectionHelper.isInternetConnected();
+
+                }
+            });
+
+            thread.start();
+            thread.join();
+
+            if (internetConnected) {
+
+                DeliveryDb database = new DeliveryDb(context);
+                database.open();
+
+                Iterator<String> iterator2 = AppConstant.tripList.iterator();
+                while (iterator2.hasNext()) {
+                    String trip = iterator2.next();
+                    if (!AppConstant.downloadedTrips.contains(trip) && !database.tripStarted(trip) && !SyncConstant.STARTED_TRIP.equals(trip)) {
+                        Log.i("SyncService", "Trip file sync: removed " + trip);
+                        ScheduleHelper.deleteTripFile(context, trip);
+
+                        int pos = AppConstant.tripList.indexOf(trip);
+
+                        iterator2.remove();  // Use iterator's remove() method
+
+                        // Update UI
+                        Handler handler = new Handler(Looper.getMainLooper());
+                        handler.post(() -> {
+                            TripDash.adapter.notifyItemRemoved(pos);
+                        });
+                    }
+                }
+
+                database.close();
+            }
+
         } catch (NullPointerException e) {
 
             e.printStackTrace();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
