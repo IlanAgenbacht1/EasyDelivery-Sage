@@ -55,6 +55,8 @@ public class DashHeader extends AppCompatActivity {
                 }
             }
 
+            database.close();
+
         } catch (Exception e) {
 
             e.printStackTrace();
@@ -122,6 +124,8 @@ public class DashHeader extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
+                        database.open();
+
                         if (!database.tripStarted(AppConstant.TRIPID)) {
 
                             SyncConstant.STARTED_TRIP = "";
@@ -134,6 +138,11 @@ public class DashHeader extends AppCompatActivity {
 
                             SyncConstant.STARTED_TRIP = "";
                             AppConstant.TRIPID = "";
+                        }
+
+                        if (database != null && database.isOpen()) {
+
+                            database.close();
                         }
 
                         startActivity(new Intent(DashHeader.this, TripDash.class));

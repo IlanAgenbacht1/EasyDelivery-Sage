@@ -280,6 +280,8 @@ public class DeliveryDb {
             documents.add(cursor.getString(documentIndex));
         }
 
+        cursor.close();
+
         return documents;
     }
 
@@ -333,6 +335,8 @@ public class DeliveryDb {
 
         delivery.setParcelNumbers(parcels);
 
+        cursor.close();
+
         return delivery;
     }
 
@@ -376,6 +380,8 @@ public class DeliveryDb {
         }
 
         delivery.setParcelNumbers(parcelList);
+
+        cursor.close();
 
         return delivery;
     }
@@ -421,6 +427,8 @@ public class DeliveryDb {
             delivery.setTime(cursor.getString(timeIndex));
             delivery.setComment(cursor.getString(commentIndex));
         }
+
+        cursor.close();
 
         return  delivery;
     }
@@ -491,13 +499,15 @@ public class DeliveryDb {
             }
         }
 
+        cursor2.close();
+
         cursor.close();
 
         return false;
     }
 
 
-    public List<String> getIncompleteTripSyncList() {
+    public List<String> getIncompleteSyncList() {
 
         Cursor cursor = ourDatabase.rawQuery("SELECT " + KEY_TRIPID + " FROM " + SYNC_TABLE, null);
         //  + " WHERE " + KEY_DOCUMENT_QTY + " != " + KEY_DOCUMENT_SYNC_QTY + " OR " + KEY_DOCUMENT_SYNC_QTY + " = 0"
@@ -554,6 +564,8 @@ public class DeliveryDb {
 
             list.add(delivery);
         }
+
+        cursor.close();
 
         return list;
     }
@@ -612,6 +624,8 @@ public class DeliveryDb {
 
         data.setFlaggedParcelNumbers(parcelList);
 
+        cursor.close();
+
         return data;
     }
 
@@ -642,6 +656,8 @@ public class DeliveryDb {
 
             returnList.add(returnData);
         }
+
+        cursor.close();
 
         return returnList;
     }

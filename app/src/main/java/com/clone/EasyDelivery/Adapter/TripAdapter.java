@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.clone.EasyDelivery.R;
+import com.clone.EasyDelivery.Utility.AppConstant;
 import com.clone.EasyDelivery.Utility.JsonHandler;
 
 import java.util.ArrayList;
@@ -70,7 +71,12 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
 
             Log.i("DeliveryCount", "Binder context: " + itemView.getContext() + " Trip: " + tripName);
 
-            int deliveryCount = JsonHandler.returnDeliveryCount(itemView.getContext(), tripName);
+            int deliveryCount = 0;
+
+            if (!AppConstant.completedTrips.contains(tripName)) {
+
+                deliveryCount = JsonHandler.returnDeliveryCount(itemView.getContext(), tripName);
+            }
 
             tripNumberTextView.setText(tripName);
 

@@ -96,25 +96,6 @@ public class DropboxHelper {
 
             AppConstant.downloadedTrips.removeAll(toRemove);
 
-            /*folders = getClient().files().listFolder(CUSTOMER_PATH + "InProgress/");
-
-            for (int i = 0; i < folders.getEntries().size(); i++) {
-
-                String resultString = folders.getEntries().get(i).getName();
-
-                Log.i("Dropbox", "Returned file " + resultString);
-
-                if (resultString.contains(".json")) {
-
-                    dropboxTrips.add(resultString.substring(0, resultString.length() - 5));
-
-                    if (!AppConstant.tripList.contains(resultString.substring(0, resultString.length() - 5)) && !AppConstant.completedTrips.contains(resultString.substring(0, resultString.length() - 5))) {
-
-                        downloadFile(context, resultString);
-                    }
-                }
-            }*/
-
         } catch (DbxException e) {
             e.printStackTrace();
         }
@@ -164,11 +145,15 @@ public class DropboxHelper {
 
             Log.i("Dropbox", "Download completed.");
 
+        } catch (FileNotFoundException e) {
+
+
         } catch (DownloadErrorException e) {
 
             e.printStackTrace();
 
         } catch (IOException | DbxException e) {
+
             e.printStackTrace();
         }
     }

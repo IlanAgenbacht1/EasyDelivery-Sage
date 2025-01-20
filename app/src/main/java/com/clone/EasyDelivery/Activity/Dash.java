@@ -183,6 +183,7 @@ public class Dash extends AppCompatActivity {
         AppConstant.validatedParcels.clear();
         AppConstant.uiValidatedParcels.clear();
         AppConstant.flaggedParcels.clear();
+        AppConstant.discrepancyParcels.clear();
 
         barcodeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -277,6 +278,8 @@ public class Dash extends AppCompatActivity {
                                         enter_num.setHint("PARCELS VALID");
                                         enter_num.setFocusable(false);
                                         enter_num.setCursorVisible(false);
+
+                                        BARCODE = false;
                                     }
 
                                     FLAG = false;
@@ -300,7 +303,7 @@ public class Dash extends AppCompatActivity {
                     alertDialog.show();
                 }
 
-                if (BARCODE) {
+                if (BARCODE && !FLAG) {
 
                     IntentIntegrator integrator = new IntentIntegrator(Dash.this);
 

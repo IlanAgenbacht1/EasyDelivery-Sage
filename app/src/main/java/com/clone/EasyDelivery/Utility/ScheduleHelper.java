@@ -169,6 +169,9 @@ public class ScheduleHelper {
     public static void getLocalTrips(Context context) {
         try {
 
+            DeliveryDb database = new DeliveryDb(context);
+            database.open();
+
             File file = new File(context.getFilesDir() + "/Trip/");
 
             List<String> localFiles = new ArrayList<>();
@@ -179,7 +182,9 @@ public class ScheduleHelper {
 
                 localFiles.add(trimmedItem);
 
-                if (!AppConstant.tripList.contains(trimmedItem) && !AppConstant.completedTrips.contains(trimmedItem)) {
+                File currentFile = new File(file, item);
+
+                if (!AppConstant.tripList.contains(trimmedItem) && currentFile.length() > 0 && !AppConstant.completedTrips.contains(trimmedItem)) {
 
                     AppConstant.tripList.add(trimmedItem);
 
@@ -225,30 +230,27 @@ public class ScheduleHelper {
 
             if (internetConnected) {
 
-                DeliveryDb database = new DeliveryDb(context);
-                database.open();
-
                 Iterator<String> iterator2 = AppConstant.tripList.iterator();
                 while (iterator2.hasNext()) {
                     String trip = iterator2.next();
-                    if (!AppConstant.downloadedTrips.contains(trip) && !database.tripStarted(trip) && !SyncConstant.STARTED_TRIP.equals(trip)) {
+                    if (!AppConstant.downloadedTrips.isEmpty() && !AppConstant.downloadedTrips.contains(trip) && !database.tripStarted(trip) && !SyncConstant.STARTED_TRIP.equals(trip)) {
                         Log.i("SyncService", "Trip file sync: removed " + trip);
+
                         ScheduleHelper.deleteTripFile(context, trip);
 
                         int pos = AppConstant.tripList.indexOf(trip);
 
-                        iterator2.remove();  // Use iterator's remove() method
+                        iterator2.remove();
 
-                        // Update UI
                         Handler handler = new Handler(Looper.getMainLooper());
                         handler.post(() -> {
                             TripDash.adapter.notifyItemRemoved(pos);
                         });
                     }
                 }
-
-                database.close();
             }
+
+            database.close();
 
         } catch (NullPointerException e) {
 

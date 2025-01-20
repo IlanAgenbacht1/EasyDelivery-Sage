@@ -54,8 +54,6 @@ public class TripDash extends AppCompatActivity {
 
     private Animation fromBottomFabAnim;
     private Animation toBottomFabAnim;
-    private Animation rotateClockWiseFabAnim;
-    private Animation rotateAntiClockWiseFabAnim;
     private Animation fromBottomBgAnim;
     private Animation toBottomBgAnim;
 
@@ -70,8 +68,6 @@ public class TripDash extends AppCompatActivity {
 
         fromBottomFabAnim = AnimationUtils.loadAnimation(this, R.anim.from_bottom_fab);
         toBottomFabAnim = AnimationUtils.loadAnimation(this, R.anim.to_bottom_fab);
-        //rotateClockWiseFabAnim = AnimationUtils.loadAnimation(this, R.anim.rotate_clock_wise);
-        //rotateAntiClockWiseFabAnim = AnimationUtils.loadAnimation(this, R.anim.rotate_anti_clock_wise);
         fromBottomBgAnim = AnimationUtils.loadAnimation(this, R.anim.from_bottom_anim);
         toBottomBgAnim = AnimationUtils.loadAnimation(this, R.anim.to_bottom_anim);
 
@@ -98,7 +94,6 @@ public class TripDash extends AppCompatActivity {
 
         recyclerView = findViewById(R.id.rv_trip);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        //recyclerView.setVisibility(View.INVISIBLE);
 
         layout = findViewById(R.id.trip_dash_main);
 

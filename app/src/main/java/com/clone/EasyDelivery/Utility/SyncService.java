@@ -11,19 +11,13 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import com.clone.EasyDelivery.Activity.ReturnDash;
-import com.clone.EasyDelivery.Activity.SplashLogin;
-import com.clone.EasyDelivery.Activity.TripDash;
 import com.clone.EasyDelivery.Database.DeliveryDb;
 import com.clone.EasyDelivery.Model.Delivery;
 import com.clone.EasyDelivery.Model.Return;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.Timer;
@@ -57,11 +51,21 @@ public class SyncService extends IntentService {
     @Override
     public void onStart(@Nullable Intent intent, int startId) {
         super.onStart(intent, startId);
+
+        if (database != null && database.isOpen()) {
+
+            database.close();
+        }
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
+
+        if (database != null && database.isOpen()) {
+
+            database.close();
+        }
     }
 
     @Override
@@ -94,6 +98,11 @@ public class SyncService extends IntentService {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
+
+                if (database != null && database.isOpen()) {
+
+                    database.close();
+                }
 
                 Thread threadDownloadTrips = new Thread(new Runnable() {
                     @Override
@@ -150,6 +159,17 @@ public class SyncService extends IntentService {
                 threadCompletedTrip.start();
                 threadReturns.start();
 
+                try {
+                    threadDownloadTrips.join();
+                    threadTripStatus.join();
+                    threadEmail.join();
+                    threadCompletedData.join();
+                    threadCompletedTrip.join();
+                    threadReturns.join();
+                    database.close();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
         },0, 20000);
 
@@ -325,7 +345,7 @@ public class SyncService extends IntentService {
 
             openDatabase();
 
-            List<String> trips = database.getIncompleteTripSyncList();
+            List<String> trips = database.getIncompleteSyncList();
 
             for (String trip : trips) {
 
@@ -401,9 +421,12 @@ public class SyncService extends IntentService {
 
                     DropboxHelper.moveCompletedTrip(completedTrip);
 
-                    AppConstant.completedTrips.remove(completedTrip);
+                    if (database.isDataSynced(completedTrip)) {
 
-                    database.deleteUploadedData(completedTrip);
+                        AppConstant.completedTrips.remove(completedTrip);
+
+                        database.deleteUploadedData(completedTrip);
+                    }
 
                     if (SyncConstant.STARTED_TRIP.equals(completedTrip)) {
 
