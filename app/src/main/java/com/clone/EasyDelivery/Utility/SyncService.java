@@ -99,9 +99,12 @@ public class SyncService extends IntentService {
             @Override
             public void run() {
 
-                if (database != null && database.isOpen()) {
+                if (database != null) {
 
-                    database.close();
+                    if (database.isOpen()) {
+
+                        database.close();
+                    }
                 }
 
                 Thread threadDownloadTrips = new Thread(new Runnable() {
@@ -398,6 +401,7 @@ public class SyncService extends IntentService {
 
             openDatabase();
 
+            DropboxHelper.updateListInProgressTrips();
             DropboxHelper.moveTripInProgress(null);
             DropboxHelper.moveIncompleteTrip(getApplicationContext(), database);
 

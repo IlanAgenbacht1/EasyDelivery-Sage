@@ -4,6 +4,7 @@ public class SyncConstant {
 
     public static String COMPLETED_TRIP_ID = "";
     public static String STARTED_TRIP = "";
+    public static String IN_PROGRESS_TRIP = "";
 
     public static String DOCUMENT = "";
     public static String TRIP_NAME = "";

@@ -214,7 +214,6 @@ public class DropboxHelper {
 
 
     public static void moveIncompleteTrip(Context context, DeliveryDb database) {
-
         try {
 
             ListFolderResult result = getClient().files().listFolder(CUSTOMER_PATH + "InProgress/");
@@ -234,6 +233,10 @@ public class DropboxHelper {
                             String toFile = CUSTOMER_PATH + item;
 
                             getClient().files().moveV2(fromFile, toFile);
+
+                            //database.deleteData(item.substring(0, item.length() - 5));
+
+                            Log.i("SyncService", "Trip " + item.substring(0, item.length() - 5) + " removed from In Progress.");
                         }
                     }
                 }
@@ -355,6 +358,51 @@ public class DropboxHelper {
 
         } catch(Exception e) {
 
+            e.printStackTrace();
+        }
+    }
+
+
+    public static void updateListInProgressTrips() {
+        try {
+
+            ArrayList<String> dropboxTrips = new ArrayList<>();
+
+            ListFolderResult folders = getClient().files().listFolder(CUSTOMER_PATH + "InProgress/");
+
+            for (int i = 0; i < folders.getEntries().size(); i++) {
+
+                String resultString = folders.getEntries().get(i).getName();
+
+                Log.i("Dropbox", "Returned InProgress file " + resultString);
+
+                if (resultString.contains(".json")) {
+
+                    dropboxTrips.add(resultString.substring(0, resultString.length() - 5));
+                }
+            }
+
+            for (String trip : dropboxTrips) {
+
+                if (!AppConstant.inProgressTrips.contains(trip)) {
+
+                    AppConstant.inProgressTrips.add(trip);
+                }
+            }
+
+            ArrayList<String> toRemove = new ArrayList<>();
+
+            for (String trip : AppConstant.inProgressTrips) {
+
+                if (!dropboxTrips.contains(trip)) {
+
+                    toRemove.add(trip);
+                }
+            }
+
+            AppConstant.inProgressTrips.removeAll(toRemove);
+
+        } catch (DbxException e) {
             e.printStackTrace();
         }
     }

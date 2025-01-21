@@ -357,7 +357,7 @@ public class DeliveryDb {
 
             documents.add(cursor.getString(documentIndex));
 
-            Log.i("Completed Documents", tripID + " : " + cursor.getString(documentIndex));
+            Log.i("Database", "Delivery " + cursor.getString(documentIndex) + " for " + tripID + " completed.");
         }
 
         cursor.close();
@@ -455,7 +455,7 @@ public class DeliveryDb {
         cursor.moveToFirst();
         cursor.close();
 
-        Log.i("SyncService", "Document " + document + " set to uploaded = 1");
+        Log.i("Database", "Delivery " + document + " set to uploaded = 1");
     }
 
 
@@ -472,6 +472,26 @@ public class DeliveryDb {
         cursor = ourDatabase.rawQuery("DELETE FROM " + SYNC_TABLE + " WHERE " + KEY_TRIPID + " = '" + trip + "';", null);
         cursor.moveToFirst();
         cursor.close();
+
+        Log.i("Database", "Deleted all data for uploaded " + trip + ".");
+    }
+
+
+    public void deleteData(String trip) {
+
+        Cursor cursor = ourDatabase.rawQuery("DELETE FROM " + DELIVERY_TABLE + " WHERE "  + KEY_TRIPID + " = '" + trip + "';", null);
+        cursor.moveToFirst();
+        cursor.close();
+
+        cursor = ourDatabase.rawQuery("DELETE FROM " + PARCEL_TABLE + " WHERE " + KEY_TRIPID + " = '" + trip + "';", null);
+        cursor.moveToFirst();
+        cursor.close();
+
+        cursor = ourDatabase.rawQuery("DELETE FROM " + SYNC_TABLE + " WHERE " + KEY_TRIPID + " = '" + trip + "';", null);
+        cursor.moveToFirst();
+        cursor.close();
+
+        Log.i("Database", "Deleted all data for " + trip + ".");
     }
 
 
@@ -520,7 +540,7 @@ public class DeliveryDb {
 
             list.add(cursor.getString(tripIndex));
 
-            Log.i("SyncService", "SyncTable: " + cursor.getString(tripIndex));
+            //Log.i("Database", "Trip " + cursor.getString(tripIndex) + " not uploaded.");
         }
 
         cursor.close();
@@ -532,6 +552,23 @@ public class DeliveryDb {
     public boolean tripStarted(String trip) {
 
         Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_TRIPID + " = '" + trip + "' AND " + KEY_COMPLETED + " = 1", null);
+
+        if (cursor.moveToNext()) {
+
+            cursor.close();
+
+            return true;
+        }
+
+        cursor.close();
+
+        return false;
+    }
+
+
+    public boolean tripDataExists(String trip) {
+
+        Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_TRIPID + " = '" + trip + "';", null);
 
         if (cursor.moveToNext()) {
 
@@ -578,7 +615,7 @@ public class DeliveryDb {
         cursor.moveToFirst();
         cursor.close();
 
-        Log.i("SyncService", document + " email set _sent = 1");
+        Log.i("Database", document + " email set _sent = 1");
     }
 
 

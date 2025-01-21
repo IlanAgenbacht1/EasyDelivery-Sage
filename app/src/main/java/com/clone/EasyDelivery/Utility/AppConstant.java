@@ -38,6 +38,7 @@ public class AppConstant {
     public static ArrayList<String> tripList = new ArrayList<>();
     public static ArrayList<String> completedTrips = new ArrayList<>();
     public static ArrayList<String> downloadedTrips = new ArrayList<>();
+    public static ArrayList<String> inProgressTrips = new ArrayList<>();
 
     public static ArrayList<Integer> removedTripPosList = new ArrayList<>();
 

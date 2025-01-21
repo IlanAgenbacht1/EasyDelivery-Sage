@@ -169,6 +169,8 @@ public class ScheduleHelper {
     public static void getLocalTrips(Context context) {
         try {
 
+            Log.i("Trip List", "Syncing trip list...");
+
             DeliveryDb database = new DeliveryDb(context);
             database.open();
 
@@ -233,10 +235,12 @@ public class ScheduleHelper {
                 Iterator<String> iterator2 = AppConstant.tripList.iterator();
                 while (iterator2.hasNext()) {
                     String trip = iterator2.next();
-                    if (!AppConstant.downloadedTrips.isEmpty() && !AppConstant.downloadedTrips.contains(trip) && !database.tripStarted(trip) && !SyncConstant.STARTED_TRIP.equals(trip)) {
-                        Log.i("SyncService", "Trip file sync: removed " + trip);
 
-                        ScheduleHelper.deleteTripFile(context, trip);
+                    if (!AppConstant.downloadedTrips.isEmpty() && !AppConstant.downloadedTrips.contains(trip) && !database.tripStarted(trip) && !database.tripDataExists(trip)) {
+
+                        Log.i("Trip List", "Removed " + trip + ".");
+
+                        deleteTripFile(context, trip);
 
                         int pos = AppConstant.tripList.indexOf(trip);
 
@@ -246,6 +250,10 @@ public class ScheduleHelper {
                         handler.post(() -> {
                             TripDash.adapter.notifyItemRemoved(pos);
                         });
+
+                    } else if(!AppConstant.downloadedTrips.isEmpty() && !AppConstant.downloadedTrips.contains(trip) && !AppConstant.inProgressTrips.contains(trip)) {
+
+                        database.deleteData(trip);
                     }
                 }
             }
