@@ -201,7 +201,10 @@ public class Dash extends AppCompatActivity {
 
                     btn_next.setText("NEXT");
 
-                    enter_num.setFocusable(true);
+                    enter_num.setFocusable(true); // Re-enable focusability
+                    enter_num.setFocusableInTouchMode(true); // Ensure touch focus works
+                    enter_num.setClickable(true);
+                    enter_num.requestFocus();
 
                     BARCODE = false;
                 }
