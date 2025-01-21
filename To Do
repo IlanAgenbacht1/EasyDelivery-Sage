@@ -6,9 +6,7 @@ BACKEND
 
 ! BUGS !
 - Strange behaviour when going into discrepancy mode whilst in barcode scanning mode.
-- Adapter attempting to read delivery count of a trip file whilst its still being downloaded.
 - Rate limit exception - likely not an issue. Can be solved by combining some sync threads to reduce simultaneous api calls.
 
 
 TESTING
-- Log/track database behaviour. Avoid unneccessary data.
