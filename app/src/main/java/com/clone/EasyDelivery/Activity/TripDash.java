@@ -44,14 +44,12 @@ public class TripDash extends AppCompatActivity {
     ArrayList<String> tripList;
     ProgressBar loadingIcon;
     ImageView logo;
-
     ConstraintLayout layout;
     boolean layoutAnimated;
 
     private @NonNull ActivityTripDashBinding binding;
     private boolean isExpanded = false;
     private Handler textHandler;
-
     private Animation fromBottomFabAnim;
     private Animation toBottomFabAnim;
     private Animation fromBottomBgAnim;
@@ -242,7 +240,6 @@ public class TripDash extends AppCompatActivity {
         //binding.galleryTv.startAnimation(toBottomFabAnim);
         binding.itemReturn.startAnimation(toBottomFabAnim);
         //binding.sendTv.startAnimation(toBottomFabAnim);
-
         isExpanded = false;
     }
 
@@ -255,7 +252,6 @@ public class TripDash extends AppCompatActivity {
         //binding.galleryTv.startAnimation(fromBottomFabAnim);
         binding.itemReturn.startAnimation(fromBottomFabAnim);
         //binding.sendTv.startAnimation(fromBottomFabAnim);
-
         isExpanded = true;
     }
 

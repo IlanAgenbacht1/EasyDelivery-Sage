@@ -80,7 +80,7 @@ public class SplashLogin extends AppCompatActivity {
         else {
             //for testing only
 
-            etCompany.setText("DEV");
+            etCompany.setText("");
         }
         if (GetDriver()!=null && GetDriver().length()>0){
 
@@ -89,7 +89,7 @@ public class SplashLogin extends AppCompatActivity {
         else {
             //for testing only
 
-            etDriver.setText("DEV");
+            etDriver.setText("");
         }
         if (GetEmail()!=null && GetEmail().length()>0){
 
@@ -97,12 +97,12 @@ public class SplashLogin extends AppCompatActivity {
         }
         if (GetVehicle()!=null && GetVehicle().length()>0){
 
-            etVehicle.setText(GetVehicle());
+            etVehicle.setText("");
         }
         else {
             //for testing only
 
-            etVehicle.setText("DEV");
+            etVehicle.setText("");
         }
 
         proceed.setOnClickListener(new View.OnClickListener() {

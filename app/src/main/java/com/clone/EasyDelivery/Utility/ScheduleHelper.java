@@ -224,47 +224,45 @@ public class ScheduleHelper {
 
                     internetConnected = ConnectionHelper.isInternetConnected();
 
+                    if (internetConnected) {
+
+                        Iterator<String> iterator2 = AppConstant.tripList.iterator();
+                        while (iterator2.hasNext()) {
+                            String trip = iterator2.next();
+
+                            if (!AppConstant.downloadedTrips.isEmpty() && !AppConstant.downloadedTrips.contains(trip) && !database.tripStarted(trip) && !database.tripDataExists(trip)) {
+
+                                Log.i("Trip List", "Removed " + trip + ".");
+
+                                deleteTripFile(context, trip);
+
+                                int pos = AppConstant.tripList.indexOf(trip);
+
+                                iterator2.remove();
+
+                                Handler handler = new Handler(Looper.getMainLooper());
+                                handler.post(() -> {
+                                    TripDash.adapter.notifyItemRemoved(pos);
+                                });
+
+                            } else if(!AppConstant.downloadedTrips.isEmpty() && !AppConstant.downloadedTrips.contains(trip) && !AppConstant.inProgressTrips.contains(trip)) {
+
+                                database.deleteData(trip);
+                            }
+                        }
+                    }
+
+                    database.close();
+
                 }
             });
 
             thread.start();
-            thread.join();
+            //thread.join();
 
-            if (internetConnected) {
-
-                Iterator<String> iterator2 = AppConstant.tripList.iterator();
-                while (iterator2.hasNext()) {
-                    String trip = iterator2.next();
-
-                    if (!AppConstant.downloadedTrips.isEmpty() && !AppConstant.downloadedTrips.contains(trip) && !database.tripStarted(trip) && !database.tripDataExists(trip)) {
-
-                        Log.i("Trip List", "Removed " + trip + ".");
-
-                        deleteTripFile(context, trip);
-
-                        int pos = AppConstant.tripList.indexOf(trip);
-
-                        iterator2.remove();
-
-                        Handler handler = new Handler(Looper.getMainLooper());
-                        handler.post(() -> {
-                            TripDash.adapter.notifyItemRemoved(pos);
-                        });
-
-                    } else if(!AppConstant.downloadedTrips.isEmpty() && !AppConstant.downloadedTrips.contains(trip) && !AppConstant.inProgressTrips.contains(trip)) {
-
-                        database.deleteData(trip);
-                    }
-                }
-            }
-
-            database.close();
-
-        } catch (NullPointerException e) {
+        } catch (Exception e) {
 
             e.printStackTrace();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
     }
 

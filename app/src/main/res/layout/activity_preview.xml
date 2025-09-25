@@ -401,55 +401,55 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="7dp"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:visibility="gone">
 
                         <RelativeLayout
                             android:layout_width="wrap_content"
                             android:layout_height="match_parent">
 
                             <TextView
-                                android:gravity="center"
                                 android:layout_width="wrap_content"
                                 android:layout_height="match_parent"
-                                android:textSize="16sp"
                                 android:fontFamily="@font/roboto_medium"
+                                android:gravity="center"
                                 android:text="Customer Signature: "
-                                android:textColor="@color/theme" />
+                                android:textColor="@color/theme"
+                                android:textSize="16sp" />
                         </RelativeLayout>
 
 
                         <RelativeLayout
                             android:id="@+id/rl_sign_view"
                             android:layout_width="wrap_content"
-                            android:layout_marginLeft="7dp"
-                            android:layout_height="match_parent">
+                            android:layout_height="match_parent"
+                            android:layout_marginLeft="7dp">
 
 
                             <TextView
-                                android:gravity="center"
                                 android:id="@+id/tv_sign"
                                 android:layout_width="wrap_content"
                                 android:layout_height="match_parent"
+                                android:fontFamily="@font/roboto_light"
+                                android:gravity="center"
                                 android:text="View Here"
-                              android:fontFamily="@font/roboto_light"
-                              android:textColor="@color/darkgray"
-                                android:textSize="16sp"/>
+                                android:textColor="@color/darkgray"
+                                android:textSize="16sp" />
 
                             <ImageView
-                              android:layout_marginLeft="10dp"
-                              android:layout_toRightOf="@+id/tv_sign"
-                              android:layout_width="25dp"
-                              android:layout_height="25dp"
-                              android:src="@drawable/visibility"
-                              />
-<!--                            <de.hdodenhof.circleimageview.CircleImageView-->
-<!--                                android:id="@+id/iv_sign"-->
-<!--                                android:layout_width="30dp"-->
-<!--                                android:layout_height="30dp"-->
-<!--                                android:orientation="horizontal"-->
-<!--                                android:scaleType="centerCrop"-->
-<!--                                app:civ_border_color="@color/theme"-->
-<!--                                app:civ_border_width="1dp" />-->
+                                android:layout_width="25dp"
+                                android:layout_height="25dp"
+                                android:layout_marginLeft="10dp"
+                                android:layout_toRightOf="@+id/tv_sign"
+                                android:src="@drawable/visibility" />
+                            <!--                            <de.hdodenhof.circleimageview.CircleImageView-->
+                            <!--                                android:id="@+id/iv_sign"-->
+                            <!--                                android:layout_width="30dp"-->
+                            <!--                                android:layout_height="30dp"-->
+                            <!--                                android:orientation="horizontal"-->
+                            <!--                                android:scaleType="centerCrop"-->
+                            <!--                                app:civ_border_color="@color/theme"-->
+                            <!--                                app:civ_border_width="1dp" />-->
                         </RelativeLayout>
 
                     </LinearLayout>

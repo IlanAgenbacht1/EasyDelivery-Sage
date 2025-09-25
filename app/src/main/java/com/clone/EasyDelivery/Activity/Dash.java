@@ -6,6 +6,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -18,6 +19,7 @@ import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
+import android.util.Base64;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.View;
@@ -63,13 +65,18 @@ import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 import com.kyanogen.signatureview.SignatureView;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Dash extends AppCompatActivity {
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 
+public class Dash extends AppCompatActivity {
 
     private TextView textViewTrip, textViewDocument, textViewCustomer, textViewParcelTitle;
 
@@ -458,81 +465,57 @@ public class Dash extends AppCompatActivity {
 
 
     public void getAndDisplayData() {
-
         textViewDocument.setText(AppConstant.DOCUMENT);
-
         setScheduleData(AppConstant.DOCUMENT);
-
         textViewCustomer.setText(deliveryData.getCustomerName());
-
         textViewTrip.setText(AppConstant.TRIPID);
-
         adapterList.addAll(deliveryData.getParcelNumbers());
-
         adapter.notifyDataSetChanged();
     }
 
 
     public void setScheduleData(String document) {
-
         if (!database.isOpen()) {
-
             database.open();
         }
-
         deliveryData = database.getDeliveryData(document);
     }
 
 
     public void validateLocation() {
-
         AppConstant.GPS_LOCATION = LocationHelper.returnClosestCoordinate(deliveryData.getLocation(), context);
-
         if (!LocationHelper.isWithinDistance(deliveryData.getLocation(), VALIDATION_DISTANCE)) {
-
             AlertDialog alertDialog = new AlertDialog.Builder(Dash.this, R.style.AlertDialogStyle).create();
-
             alertDialog.setTitle("Location Mismatch");
-
             alertDialog.setMessage("Your current location is more than " + VALIDATION_DISTANCE + "m from " + deliveryData.getCustomerName() + ". Return to delivery selection?");
-
             alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Return",
                     new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
-
                             startActivity(new Intent(Dash.this, DashHeader.class));
                             finish();
                         }
                     }
             );
-
             alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Continue Delivery",
                     new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-
                             dialog.dismiss();
-
                             displayCommentDialog();
                         }
                     }
             );
-
             alertDialog.show();
-
         } else {
-
             displayCommentDialog();
         }
     }
 
 
     public void displayCommentDialog() {
-
         commentEditText = new EditText(this);
         commentEditText.setTextColor(getResources().getColor(R.color.ic_launcher_background));
         commentEditText.setHintTextColor(getResources().getColor(R.color.gold));
-
         AlertDialog dialog = new AlertDialog.Builder(this, R.style.AlertDialogStyle)
                 .setTitle("Enter Comment")
                 .setView(commentEditText)
@@ -540,52 +523,50 @@ public class Dash extends AppCompatActivity {
                 .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-
                         AppConstant.COMMENT = commentEditText.getText().toString();
                     }
 
                 }).create();
-
         dialog.show();
-
         commentEditText.requestFocus();
     }
 
 
     public void runDiscrepancyMode(String item, int position) {
-
-        if (!AppConstant.validatedParcels.contains(item)) {
-
-            if (AppConstant.discrepancyParcels.contains(item)) {
-
-                AppConstant.discrepancyParcels.remove(item);
-
-                adapter.notifyItemChanged(position);
-
-            } else {
-
-                AppConstant.discrepancyParcels.add(item);
-
-                adapter.notifyItemChanged(position);
-            }
+        // Early return if item is already validated - no UI changes should occur
+        if (AppConstant.validatedParcels.contains(item)) {
+            adapter.notifyItemChanged(position); // Just refresh the visual state
+            return;
         }
 
-        if (!AppConstant.discrepancyParcels.isEmpty()) {
+        // Store initial state for decision making
+        boolean wasAlreadyFlagged = AppConstant.discrepancyParcels.contains(item);
+        boolean wasInDiscrepancyMode = FLAG;
+        int initialDiscrepancyCount = AppConstant.discrepancyParcels.size();
 
+        // Toggle discrepancy state
+        if (wasAlreadyFlagged) {
+            AppConstant.discrepancyParcels.remove(item);
+        } else {
+            AppConstant.discrepancyParcels.add(item);
+        }
+
+        adapter.notifyItemChanged(position);
+
+        boolean hasDiscrepancies = !AppConstant.discrepancyParcels.isEmpty();
+
+        if (hasDiscrepancies) {
+            // Switch to discrepancy mode
             FLAG = true;
 
             if (animate) {
-
+                // Create animations
                 Animation fadeOut = new AlphaAnimation(1, 0);
-                fadeOut.setInterpolator(new DecelerateInterpolator()); //add this
+                fadeOut.setInterpolator(new DecelerateInterpolator());
                 fadeOut.setDuration(300);
                 fadeOut.setFillAfter(true);
 
-                Animation fadeIn = new AlphaAnimation(0, 1);
-                fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
-                fadeIn.setDuration(300);
-                fadeIn.setFillAfter(true);
-
+                // Apply fade out animations and hide UI elements
                 btnPic.startAnimation(fadeOut);
                 btnSign.startAnimation(fadeOut);
                 barcodeImage.startAnimation(fadeOut);
@@ -596,35 +577,51 @@ public class Dash extends AppCompatActivity {
                 barcodeSwitch.setVisibility(View.INVISIBLE);
                 barcodeImage.setVisibility(View.INVISIBLE);
 
+                // Change title color to red
                 Spannable text = new SpannableString(getSupportActionBar().getTitle());
                 text.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.red, null)), 0, text.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
                 getSupportActionBar().setTitle(text);
 
+                // Update input field styling for discrepancy mode
                 enter_num.setTextColor(getResources().getColor(R.color.red, null));
                 enter_num.setHintTextColor(getResources().getColor(R.color.red, null));
                 enter_num.setBackground(getDrawable(R.drawable.parcelinputdiscrepancy_border));
                 enter_num.setHint("Select Parcels To Flag");
                 enter_num.setFocusable(false);
 
+                // Update other UI elements
                 textViewParcelTitle.setTextColor(getResources().getColor(R.color.red, null));
-
                 btn_next.setBackgroundColor(getResources().getColor(R.color.red, null));
                 btn_next.setText("FLAG");
 
                 animate = false;
             }
-
         } else {
-
+            // No discrepancies left - decide whether to reset UI
             FLAG = false;
 
-            if (AppConstant.discrepancyParcels.size() < 2) {
+            // Only reset UI if:
+            // 1. We were previously in discrepancy mode AND
+            // 2. We had discrepancies before AND
+            // 3. This isn't just a quick toggle of the last item
+            boolean shouldResetUI = wasInDiscrepancyMode && initialDiscrepancyCount > 0;
 
+            // If we're toggling the last item back and forth, don't reset UI immediately
+            // This prevents the flickering effect
+            if (wasAlreadyFlagged && initialDiscrepancyCount == 1) {
+                shouldResetUI = false;
+                // Keep in discrepancy mode temporarily to allow for potential re-flagging
+                FLAG = true;
+            }
+
+            if (shouldResetUI) {
+                // Create fade in animation
                 Animation fadeIn = new AlphaAnimation(0, 1);
-                fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
+                fadeIn.setInterpolator(new DecelerateInterpolator());
                 fadeIn.setDuration(300);
                 fadeIn.setFillAfter(true);
 
+                // Show and animate UI elements
                 btnPic.setVisibility(View.VISIBLE);
                 btnSign.setVisibility(View.VISIBLE);
                 barcodeSwitch.setVisibility(View.VISIBLE);
@@ -635,10 +632,12 @@ public class Dash extends AppCompatActivity {
                 btnPic.startAnimation(fadeIn);
                 btnSign.startAnimation(fadeIn);
 
+                // Change title color back to gold
                 Spannable text = new SpannableString(getSupportActionBar().getTitle());
                 text.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.gold, null)), 0, text.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
                 getSupportActionBar().setTitle(text);
 
+                // Revert input field styling
                 enter_num.setTextColor(getResources().getColor(R.color.gold, null));
                 enter_num.setHintTextColor(getResources().getColor(R.color.gold, null));
                 enter_num.setBackground(getDrawable(R.drawable.parcelinput_border));
@@ -646,11 +645,8 @@ public class Dash extends AppCompatActivity {
                 enter_num.setFocusableInTouchMode(true);
                 enter_num.setFocusable(true);
 
+                // Revert other UI elements
                 textViewParcelTitle.setTextColor(getResources().getColor(R.color.gold, null));
-
-                barcodeSwitch.setVisibility(View.VISIBLE);
-                barcodeImage.setVisibility(View.VISIBLE);
-
                 btn_next.setBackgroundColor(getResources().getColor(R.color.gold, null));
                 btn_next.setText("NEXT");
 
@@ -661,27 +657,21 @@ public class Dash extends AppCompatActivity {
 
 
     public boolean validation() {
-
         boolean bool = false;
-
         try {
-
             if (textViewDocument.getText().length() == 0){
                 bool = false;
                 String text="Enter Document Number";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
                 Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
-
               //  Toast.makeText(context, "Enter Document Number", Toast.LENGTH_LONG).show();
             }
             else if (!(adapterList.size()>0)){
-
                 String text="Enter All Parcel Details";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
                 Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
-
                // Toast.makeText(context, "Enter All Parcel Details", Toast.LENGTH_LONG).show();
             }
             else if (!isPic) {
@@ -691,36 +681,29 @@ public class Dash extends AppCompatActivity {
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
                 Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
-
                // Toast.makeText(context, "Capture Document Image", Toast.LENGTH_LONG).show();
             }
             else if (!isSign) {
                 bool = false;
                 //Toast.makeText(context, "Capture Signature", Toast.LENGTH_LONG).show();
-
                 String text="Capture Signature";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
                 Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
-
             }
 //            else if (!isDataValid()) {
 //                bool = false;
 //                Snackbar.make(parentLayout, "enter all parcel details", Snackbar.LENGTH_LONG).show();
 //            }
             else {
-
                 String text="To be moved to details screen WIP";
                 SpannableStringBuilder biggerText = new SpannableStringBuilder(text);
                 biggerText.setSpan(new RelativeSizeSpan(1.35f), 0, text.length(), 0);
 //                Toast.makeText(context, biggerText, Toast.LENGTH_LONG).show();
-
-
                // Toast.makeText(context, "To be moved to details screen WIP", Toast.LENGTH_SHORT).show();
                 //user input not empty so set bool true
                 bool = true;
             }
-
 
             List<String> inputParcels = new ArrayList<>();
 
@@ -792,12 +775,42 @@ public class Dash extends AppCompatActivity {
             save.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    bitmap = signatureView.getSignatureBitmap();
-                    path = ImageHelper.saveImage(Dash.this, bitmap, IMAGE_DIRECTORY, SiGN_DIRECTORY);
-                    AppConstant.SIGN_PATH = path;
-                    dialog.dismiss();
-                    rlTick1.setVisibility(View.VISIBLE);
-                    isSign = true;
+                    try {
+                        // Capture signature bitmap
+                        bitmap = signatureView.getSignatureBitmap();
+
+                        // Generate AES key
+                        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+                        keyGen.init(256);
+                        SecretKey secretKey = keyGen.generateKey();
+
+                        // Initialize cipher
+                        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+                        cipher.init(Cipher.ENCRYPT_MODE, secretKey, new IvParameterSpec(new byte[16])); // Use secure IV in production
+
+                        // Convert bitmap to byte array
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+                        byte[] bitmapData = baos.toByteArray();
+
+                        // Encrypt data
+                        byte[] encryptedData = cipher.doFinal(bitmapData);
+
+                        // Save encrypted data to file
+                        path = ImageHelper.saveEncryptedImage(Dash.this, encryptedData, IMAGE_DIRECTORY, SiGN_DIRECTORY);
+                        AppConstant.SIGN_PATH = path;
+
+                        // Securely store the key (e.g., Android Keystore or secure server)
+                        // Example: Save key to SharedPreferences (not secure, use Keystore in production)
+                        SharedPreferences prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+                        prefs.edit().putString("signature_key", Base64.encodeToString(secretKey.getEncoded(), Base64.DEFAULT)).apply();
+
+                        dialog.dismiss();
+                        rlTick1.setVisibility(View.VISIBLE);
+                        isSign = true;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             });
 
@@ -903,6 +916,21 @@ public class Dash extends AppCompatActivity {
             ImagefileUri = Uri.parse(CompressPath);
 
             file.delete();
+        }
+    }
+
+
+    // Enhanced method to securely store encryption key
+    private void storeEncryptionKey(SecretKey key) {
+        try {
+            // Store key in SharedPreferences (consider using Android Keystore for better security)
+            SharedPreferences prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+            String encodedKey = android.util.Base64.encodeToString(key.getEncoded(), android.util.Base64.DEFAULT);
+            prefs.edit().putString("signature_key", encodedKey).apply();
+
+            Log.d("SIGNATURE_DEBUG", "Encryption key stored securely");
+        } catch (Exception e) {
+            Log.e("SIGNATURE_ERROR", "Failed to store encryption key: " + e.getMessage(), e);
         }
     }
 

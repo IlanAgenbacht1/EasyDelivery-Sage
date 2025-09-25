@@ -10,14 +10,20 @@ import android.media.ExifInterface;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Calendar;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class ImageHelper {
 
@@ -260,6 +266,120 @@ public class ImageHelper {
     }
 
 
+    public static String saveEncryptedImage(Context context, byte[] encryptedData, String directory, String subdirectory) {
+        String fileName = "signature_" + System.currentTimeMillis() + ".enc";
+        File dir = new File(context.getExternalFilesDir(directory), subdirectory);
+        if (!dir.exists()) {
+            boolean created = dir.mkdirs();
+            Log.d("SIGNATURE_DEBUG", "Directory creation result: " + created);
+        }
+
+        File file = new File(dir, fileName);
+
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            // Verify encrypted data is not null and has content
+            if (encryptedData == null || encryptedData.length == 0) {
+                Log.e("SIGNATURE_ERROR", "Encrypted data is null or empty");
+                return null;
+            }
+
+            fos.write(encryptedData);
+            fos.flush();
+
+            // Verify file was written correctly
+            if (file.exists() && file.length() == encryptedData.length) {
+                Log.d("SIGNATURE_DEBUG", "Successfully saved encrypted signature to " + file.getAbsolutePath() +
+                        " (" + encryptedData.length + " bytes)");
+                Log.d("SIGNATURE_DEBUG", "File verification: exists=" + file.exists() + ", size=" + file.length());
+                return file.getAbsolutePath();
+            } else {
+                Log.e("SIGNATURE_ERROR", "File verification failed - file may not have been saved correctly");
+                return null;
+            }
+
+        } catch (IOException e) {
+            Log.e("SIGNATURE_ERROR", "Failed to save encrypted signature: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    // Add method to securely delete signature files
+    public static boolean deleteEncryptedSignature(String filePath) {
+        if (filePath == null || filePath.isEmpty()) {
+            Log.w("SIGNATURE_DEBUG", "Cannot delete signature - file path is null or empty");
+            return false;
+        }
+
+        File file = new File(filePath);
+        if (!file.exists()) {
+            Log.w("SIGNATURE_DEBUG", "Signature file does not exist: " + filePath);
+            return true; // Consider it successful if file doesn't exist
+        }
+
+        try {
+            // Overwrite file content with random data before deletion for security
+            long fileSize = file.length();
+            byte[] randomData = new byte[(int) fileSize];
+            new java.security.SecureRandom().nextBytes(randomData);
+
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                fos.write(randomData);
+                fos.flush();
+            }
+
+            boolean deleted = file.delete();
+            if (deleted) {
+                Log.d("SIGNATURE_DEBUG", "Successfully deleted encrypted signature file: " + filePath);
+            } else {
+                Log.e("SIGNATURE_ERROR", "Failed to delete encrypted signature file: " + filePath);
+            }
+            return deleted;
+
+        } catch (Exception e) {
+            Log.e("SIGNATURE_ERROR", "Error during signature file deletion: " + e.getMessage(), e);
+            return false;
+        }
+    }
+
+    // Add method to verify signature encryption integrity
+    public static boolean verifyEncryptedSignature(String filePath, byte[] originalEncryptedData) {
+        if (filePath == null || originalEncryptedData == null) {
+            Log.e("SIGNATURE_ERROR", "Cannot verify signature - null parameters");
+            return false;
+        }
+
+        File file = new File(filePath);
+        if (!file.exists()) {
+            Log.e("SIGNATURE_ERROR", "Signature file does not exist for verification: " + filePath);
+            return false;
+        }
+
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] fileData = new byte[(int) file.length()];
+            int bytesRead = fis.read(fileData);
+
+            if (bytesRead != originalEncryptedData.length) {
+                Log.e("SIGNATURE_ERROR", "Signature file size mismatch - expected: " + originalEncryptedData.length +
+                        ", actual: " + bytesRead);
+                return false;
+            }
+
+            boolean matches = java.util.Arrays.equals(fileData, originalEncryptedData);
+            if (matches) {
+                Log.d("SIGNATURE_DEBUG", "Signature file verification successful");
+            } else {
+                Log.e("SIGNATURE_ERROR", "Signature file content does not match original encrypted data");
+            }
+
+            return matches;
+
+        } catch (IOException e) {
+            Log.e("SIGNATURE_ERROR", "Error verifying signature file: " + e.getMessage(), e);
+            return false;
+        }
+    }
+
+
     public static void syncDeleteImageFiles(Context context, String imageName, String signName) {
 
         File imageFile = new File(context.getFilesDir() + "/DeliveryApp/" + "DeliveryImage/", imageName + ".jpg");
@@ -275,6 +395,20 @@ public class ImageHelper {
 
             signFile.delete();
         }
+    }
+
+    public static byte[] decryptImage(String path, String keyString) throws Exception {
+        SecretKeySpec secretKey = new SecretKeySpec(Base64.decode(keyString, Base64.DEFAULT), "AES");
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(new byte[16])); // Use same IV as encryption
+
+        File file = new File(path);
+        byte[] encryptedData = new byte[(int) file.length()];
+        try (FileInputStream fis = new FileInputStream(file)) {
+            fis.read(encryptedData);
+        }
+
+        return cipher.doFinal(encryptedData);
     }
 
 }

@@ -29,8 +29,6 @@ public class ZoomView extends AppCompatActivity {
 
 
 
-
-
         ivZoom = (ImageView) findViewById(R.id.photo_view);
 
         ivClose=findViewById(R.id.llTop);
@@ -68,9 +66,5 @@ public class ZoomView extends AppCompatActivity {
                 finish();
             }
         });
-
-
-
-
     }
 }

@@ -34,6 +34,7 @@ import com.clone.EasyDelivery.Database.DeliveryDb;
 import com.clone.EasyDelivery.Model.ItemParcel;
 import com.clone.EasyDelivery.R;
 import com.clone.EasyDelivery.Utility.AppConstant;
+import com.clone.EasyDelivery.Utility.ImageHelper;
 import com.clone.EasyDelivery.Utility.ToastLogger;
 import com.google.gson.Gson;
 
@@ -122,9 +123,18 @@ public class Preview extends AppCompatActivity {
             }
         });
 
-
         result = AppConstant.SIGN_PATH.substring(AppConstant.SIGN_PATH.lastIndexOf('/') + 1).trim();
         tvSign.setText("View Here");
+
+        byte[] decryptedSignature;
+        try {
+            SharedPreferences prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+            String keyString = prefs.getString("signature_key", "");
+            decryptedSignature = ImageHelper.decryptImage(AppConstant.SIGN_PATH, keyString);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         result1 = AppConstant.PIC_PATH.substring(AppConstant.PIC_PATH.lastIndexOf('/') + 1).trim();
 
         tvPic.setText("View Here");
@@ -170,9 +180,7 @@ public class Preview extends AppCompatActivity {
 
 
     private void updateDatabase() {
-
         try{
-
             DeliveryDb db =new DeliveryDb(Preview.this);
 
             db.open();
@@ -198,7 +206,7 @@ public class Preview extends AppCompatActivity {
 
             String imageFile = result1.substring(0, result1.length() - 4);
 
-            String signatureFile = result.substring(0, result.length() - 4);
+            String signatureFile = AppConstant.SIGN_PATH.substring(AppConstant.SIGN_PATH.lastIndexOf('/') + 1).trim();
 
             currentDate = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US).format(new Date());
 
@@ -294,7 +302,7 @@ public class Preview extends AppCompatActivity {
                 Html.fromHtml(new StringBuilder()
 
                         .append("<p><b>"+"Dear Admin,"+"</b></p>")
-                        .append("<p><b>"+"Please find the Delivery Details for Document Number: "+tvDocu.getText().toString()+" below:"+"</b></p>")
+                        .append("<p><b>"+"Please find the delivery details for document number: "+tvDocu.getText().toString()+" below:"+"</b></p>")
                         .append("<p><b>"+"1. Company: "+tvCompany.getText().toString()+"</b></p>")
                         .append("<p><b>"+"2. Driver Name: "+tvDriver.getText().toString()+"</b></p>")
                         .append("<p><b>"+"3. Delivery Vehicle: "+tvVehicle.getText().toString()+"</b></p>")
