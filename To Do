@@ -5,7 +5,6 @@ BACKEND
   Can add the ability to display in progress trips, however they can only be accessed by the device that transacted against it.
 
 ! BUGS !
-- Strange behaviour when going into discrepancy mode whilst in barcode scanning mode.
 - Rate limit exception - likely not an issue. Can be solved by combining some sync threads to reduce simultaneous api calls.
 
 
