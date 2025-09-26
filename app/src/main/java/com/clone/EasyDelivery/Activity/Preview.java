@@ -210,16 +210,6 @@ public class Preview extends AppCompatActivity {
 
             currentDate = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US).format(new Date());
 
-            if (!AppConstant.flaggedParcels.isEmpty()) {
-
-                db.setDocumentFlagged();
-
-                for (String item : AppConstant.flaggedParcels) {
-
-                    db.setParcelFlagged(item);
-                }
-            }
-
             db.setDocumentCompleted(itemParcel.getDocu(), imageFile, signatureFile, currentDate, this);
             db.updateComment();
             db.createEmailEntry(itemParcel.getDocu(), AppConstant.TRIPID);

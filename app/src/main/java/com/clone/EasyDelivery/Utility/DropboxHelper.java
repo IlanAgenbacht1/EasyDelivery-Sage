@@ -57,7 +57,13 @@ public class DropboxHelper {
 
             ArrayList<String> dropboxTrips = new ArrayList<>();
 
+            Log.i("Dropbox", "Fetching trips from Dropbox...");
             ListFolderResult folders = getClient().files().listFolder(CUSTOMER_PATH);
+
+            if (folders == null || folders.getEntries().isEmpty()) {
+                Log.w("Dropbox", "No folders found on Dropbox or API call failed. Skipping trip update.");
+                return;
+            }
 
             for (int i = 0; i < folders.getEntries().size(); i++) {
 
@@ -71,10 +77,14 @@ public class DropboxHelper {
 
                     if (!AppConstant.tripList.contains(resultString.substring(0, resultString.length() - 5)) && !AppConstant.completedTrips.contains(resultString.substring(0, resultString.length() - 5))) {
 
+                        Log.i("Dropbox", "New trip found on Dropbox, downloading: " + resultString);
                         downloadFile(context, resultString);
                     }
                 }
             }
+
+            Log.i("Dropbox", "Trips found on Dropbox: " + dropboxTrips.toString());
+            Log.i("Dropbox", "Updating AppConstant.downloadedTrips. Previous state: " + AppConstant.downloadedTrips.toString());
 
             for (String trip : dropboxTrips) {
 
@@ -94,7 +104,12 @@ public class DropboxHelper {
                 }
             }
 
-            AppConstant.downloadedTrips.removeAll(toRemove);
+            if (!toRemove.isEmpty()) {
+                Log.i("Dropbox", "Removing trips from AppConstant.downloadedTrips: " + toRemove.toString());
+                AppConstant.downloadedTrips.removeAll(toRemove);
+            }
+
+            Log.i("Dropbox", "AppConstant.downloadedTrips updated. Current state: " + AppConstant.downloadedTrips.toString());
 
         } catch (DbxException e) {
             e.printStackTrace();
@@ -104,26 +119,39 @@ public class DropboxHelper {
 
     public static void downloadFile(Context context, String tripName) {
 
+        File tripDir = new File(context.getFilesDir() + "/Trip/");
+        if (!tripDir.exists()) {
+            tripDir.mkdirs();
+        }
+
+        File finalFile = new File(tripDir, tripName);
+        File tempFile = new File(tripDir, tripName + ".tmp");
+
         try {
-
-            File file = new File(context.getFilesDir() + "/Trip/");
-
-            if (!file.exists()) {
-
-                file.mkdirs();
+            // Download to a temporary file
+            try (OutputStream outputStream = new FileOutputStream(tempFile)) {
+                Log.i("Dropbox", "Download starting for " + tripName + " to temp file.");
+                getClient().files().downloadBuilder(CUSTOMER_PATH + tripName).download(outputStream);
+                Log.i("Dropbox", "Download completed for " + tripName + " to temp file.");
             }
 
-            try (OutputStream outputStream = new FileOutputStream(new File(file.getPath(), tripName))) {
-
-                Log.i("Dropbox", "Download starting...");
-
-                getClient().files().downloadBuilder(CUSTOMER_PATH + tripName).download(outputStream);
-
-                Log.i("Dropbox", "Download completed.");
+            // Atomically rename the temp file to the final file
+            if (tempFile.renameTo(finalFile)) {
+                Log.i("Dropbox", "Successfully renamed temp file to " + tripName);
+            } else {
+                Log.e("Dropbox", "Failed to rename temp file for " + tripName);
+                // Attempt to delete the temp file if rename fails
+                if (tempFile.exists()) {
+                    tempFile.delete();
+                }
             }
 
         } catch (DbxException | IOException e) {
             e.printStackTrace();
+            // Clean up the temp file on error
+            if (tempFile.exists()) {
+                tempFile.delete();
+            }
         }
     }
 

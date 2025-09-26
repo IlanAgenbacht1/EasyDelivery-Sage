@@ -378,7 +378,6 @@ public class SyncService extends IntentService {
                         Delivery delivery = database.getCompletedDocument(document, trip);
 
                         delivery = database.getCompletedParcels(delivery);
-                        delivery = database.getFlaggedParcels(delivery);
 
                         String filePath = JsonHandler.writeDeliveryFile(getApplicationContext(), delivery);
 
@@ -469,7 +468,6 @@ public class SyncService extends IntentService {
             for (Delivery queuedEmail : emailList) {
                 Delivery data = database.getCompletedDocument(queuedEmail.getDocument(), queuedEmail.getTripId());
                 data = database.getCompletedParcels(data);
-                data = database.getFlaggedParcels(data);
                 if (sendEmail(data)) {
                     database.setEmailSent(queuedEmail.getDocument(), queuedEmail.getTripId());
                     Log.i("SyncService", queuedEmail.getDocument() + " email sent.");
@@ -524,7 +522,7 @@ public class SyncService extends IntentService {
     private boolean sendEmail(Delivery delivery) {
         try {
             String recipient = AppConstant.EMAIL;
-            String subject = "ePOD Document Number: " + delivery.getDocument();
+            String subject = "Proof of Delivery for Order: " + delivery.getTripId();
 
             List<String> parcelsList = delivery.getParcelNumbers();
             Collections.sort(parcelsList);
@@ -589,122 +587,92 @@ public class SyncService extends IntentService {
             // Build compact ePOD HTML structure
             StringBuilder bodyBuilder = new StringBuilder();
 
-            // Compact Document Header
-            bodyBuilder.append("<div style='text-align: center; margin-bottom: 15px;'>")
-                    .append("<h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin: 0 0 3px 0; font-size: 18px;'>ELECTRONIC PROOF OF DELIVERY</h2>")
-                    .append("<p style='color: #7f8c8d; margin: 0; font-size: 12px;'>ePOD Certificate</p>")
-                    .append("</div>");
+            bodyBuilder.append("<div style='font-family: Arial, sans-serif; margin: 0 auto; padding: 20px; max-width: 800px; border: 1px solid #ddd;'>")
+                    .append("<div style='text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 20px;'>")
+                    .append("<h1 style='color: #2c3e50; margin: 0; font-size: 24px;'>PROOF OF DELIVERY</h1>")
+                    .append("</div>")
 
-            // Two-column layout for better space utilization
-            bodyBuilder.append("<table style='width: 100%; border-collapse: collapse; margin-bottom: 10px;'>")
+                    .append("<table style='width: 100%; border-collapse: collapse; margin-bottom: 20px;'>")
                     .append("<tr>")
-                    // Left column - Document & Delivery Info
-                    .append("<td style='width: 50%; vertical-align: top; padding-right: 10px;'>")
-                    .append("<div style='border: 1px solid #34495e; padding: 8px; background-color: #f8f9fa;'>")
-                    .append("<h4 style='color: #2c3e50; margin: 0 0 5px 0; font-size: 12px; border-bottom: 1px solid #3498db;'>DOCUMENT INFO</h4>")
-                    .append("<table style='width: 100%; font-size: 10px;'>")
-                    .append("<tr><td style='font-weight: bold; padding: 2px;'>Doc No:</td><td style='padding: 2px;'>" + delivery.getDocument() + "</td></tr>")
-                    .append("<tr><td style='font-weight: bold; padding: 2px;'>Date:</td><td style='padding: 2px;'>" + date + "</td></tr>")
-                    .append("<tr><td style='font-weight: bold; padding: 2px;'>Time:</td><td style='padding: 2px;'>" + time + "</td></tr>")
+                    .append("<td style='width: 50%; vertical-align: top;'>")
+                    .append("<h3 style='color: #34495e; margin: 0 0 10px 0; font-size: 16px;'>Order & Shipment Details</h3>")
+                    .append("<table style='width: 100%; font-size: 12px;'>")
+                    .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Order Number:</td><td>" + delivery.getTripId() + "</td></tr>")
+                    .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Shipment Number:</td><td>" + delivery.getDocument() + "</td></tr>")
+                    .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Delivery Date:</td><td>" + date + "</td></tr>")
+                    .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Delivery Time:</td><td>" + time + "</td></tr>")
                     .append("</table>")
-                    .append("</div>")
-                    .append("<div style='border: 1px solid #34495e; padding: 8px; background-color: #f8f9fa; margin-top: 5px;'>")
-                    .append("<h4 style='color: #2c3e50; margin: 0 0 5px 0; font-size: 12px; border-bottom: 1px solid #3498db;'>DELIVERY DETAILS</h4>")
-                    .append("<table style='width: 100%; font-size: 10px;'>")
-                    .append("<tr><td style='font-weight: bold; padding: 2px;'>Company:</td><td style='padding: 2px;'>" + delivery.getCustomerName() + "</td></tr>")
-                    .append("<tr><td style='font-weight: bold; padding: 2px;'>Driver:</td><td style='padding: 2px;'>" + AppConstant.DRIVER + "</td></tr>")
-                    .append("<tr><td style='font-weight: bold; padding: 2px;'>Vehicle:</td><td style='padding: 2px;'>" + AppConstant.VEHICLE + "</td></tr>")
-                    .append("</table>")
-                    .append("</div>")
                     .append("</td>")
-                    // Right column - Parcel Info
-                    .append("<td style='width: 50%; vertical-align: top; padding-left: 10px;'>")
-                    .append("<div style='border: 1px solid #34495e; padding: 8px; background-color: #f8f9fa;'>")
-                    .append("<h4 style='color: #2c3e50; margin: 0 0 5px 0; font-size: 12px; border-bottom: 1px solid #3498db;'>PARCEL INFO</h4>")
-                    .append("<table style='width: 100%; font-size: 10px;'>")
-                    .append("<tr><td style='font-weight: bold; padding: 2px;'>Count:</td><td style='padding: 2px;'>" + delivery.getNumberOfParcels() + "</td></tr>");
+                    .append("<td style='width: 50%; vertical-align: top;'>")
+                    .append("<h3 style='color: #34495e; margin: 0 0 10px 0; font-size: 16px;'>Delivery Information</h3>")
+                    .append("<table style='width: 100%; font-size: 12px;'>")
+                    .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Delivered To:</td><td>" + delivery.getCustomerName() + "</td></tr>")
+                    .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Driver:</td><td>" + AppConstant.DRIVER + "</td></tr>")
+                    .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Vehicle:</td><td>" + AppConstant.VEHICLE + "</td></tr>")
+                    .append("</table>")
+                    .append("</td>")
+                    .append("</tr>")
+                    .append("</table>")
+
+                    .append("<div style='border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px;'>")
+                    .append("<h3 style='color: #34495e; margin: 0 0 10px 0; font-size: 16px;'>Parcel Information</h3>")
+                    .append("<table style='width: 100%; font-size: 12px;'>")
+                    .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Total Parcels:</td><td>" + delivery.getNumberOfParcels() + "</td></tr>");
 
             if (!TextUtils.isEmpty(delivery.getComment())) {
-                bodyBuilder.append("<tr><td style='font-weight: bold; padding: 2px; vertical-align: top;'>Notes:</td><td style='padding: 2px; font-size: 9px;'>" + delivery.getComment() + "</td></tr>");
+                bodyBuilder.append("<tr><td style='font-weight: bold; padding: 4px 0; vertical-align: top;'>Delivery Notes:</td><td>" + delivery.getComment() + "</td></tr>");
             }
 
-            bodyBuilder.append("<tr><td style='font-weight: bold; padding: 2px; vertical-align: top;'>Items:</td><td style='padding: 2px; font-size: 8px; word-break: break-all;'>" + parcels + "</td></tr>")
+            bodyBuilder.append("<tr><td style='font-weight: bold; padding: 4px 0; vertical-align: top;'>Parcel Items:</td><td style='font-size: 10px; word-break: break-all;'>" + parcels + "</td></tr>")
                     .append("</table>")
-                    .append("</div>");
+                    .append("</div>")
 
-            // Flagged Items Section (if applicable) - compact version
-            if (!delivery.getFlaggedParcelNumbers().isEmpty()) {
-                List<String> flaggedParcelsList = delivery.getFlaggedParcelNumbers();
-                Collections.sort(flaggedParcelsList);
-                String flaggedParcels = TextUtils.join(", ", flaggedParcelsList).replaceAll("\\s", " ");
+                    .append("<div style='border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px;'>")
+                    .append("<h3 style='color: #34495e; margin: 0 0 15px 0; font-size: 16px; text-align: center;'>Evidence of Delivery</h3>")
+                    .append("<table style='width: 100%; border-collapse: collapse;'>")
+                    .append("<tr>")
+                    .append("<td style='width: 50%; text-align: center; padding: 10px; border-right: 1px solid #eee;'>")
+                    .append("<p style='font-weight: bold; margin: 0 0 10px 0; font-size: 12px;'>Customer Signature</p>");
 
-                bodyBuilder.append("<div style='border: 1px solid #e74c3c; padding: 5px; background-color: #fdf2f2; margin-top: 5px;'>")
-                        .append("<h4 style='color: #e74c3c; margin: 0 0 3px 0; font-size: 10px;'>⚠️ FLAGGED ITEMS</h4>")
-                        .append("<p style='font-size: 8px; margin: 0; color: #c0392b; word-break: break-all;'>" + flaggedParcels + "</p>")
+            if (signatureFile != null) {
+                bodyBuilder.append("<div style='border: 1px solid #ddd; padding: 5px; background-color: #f9f9f9; display: inline-block;'>")
+                        .append("<img src='signature.png' style='max-width: 200px; max-height: 80px;' alt='Signature'/>")
+                        .append("</div>");
+            } else {
+                bodyBuilder.append("<div style='border: 1px dashed #ccc; padding: 20px; color: #777; background-color: #f9f9f9; font-size: 12px;'>")
+                        .append("No Signature Captured")
+                        .append("</div>");
+            }
+
+            bodyBuilder.append("</td>")
+                    .append("<td style='width: 50%; text-align: center; padding: 10px;'>")
+                    .append("<p style='font-weight: bold; margin: 0 0 10px 0; font-size: 12px;'>Delivery Photo</p>");
+
+            if (photoFile != null) {
+                bodyBuilder.append("<div style='border: 1px solid #ddd; padding: 5px; background-color: #f9f9f9; display: inline-block;'>")
+                        .append("<img src='photo.jpg' style='max-width: 200px; max-height: 80px;' alt='Delivery Photo'/>")
+                        .append("</div>");
+            } else {
+                bodyBuilder.append("<div style='border: 1px dashed #ccc; padding: 20px; color: #777; background-color: #f9f9f9; font-size: 12px;'>")
+                        .append("No Photo Available")
                         .append("</div>");
             }
 
             bodyBuilder.append("</td>")
                     .append("</tr>")
-                    .append("</table>");
-
-            // Enhanced Evidence Section with better alignment
-            bodyBuilder.append("<div style='border: 1px solid #34495e; padding: 8px; background-color: #f8f9fa;'>")
-                    .append("<h4 style='color: #2c3e50; margin: 0 0 8px 0; font-size: 12px; border-bottom: 1px solid #3498db; text-align: center;'>DELIVERY EVIDENCE</h4>");
-
-            // Create a flex-like table structure for better alignment
-            bodyBuilder.append("<table style='width: 100%; border-collapse: collapse;'>")
-                    .append("<tr>")
-                    // Signature column with better alignment
-                    .append("<td style='width: 50%; vertical-align: middle; text-align: center; padding: 5px; border-right: 1px solid #bdc3c7;'>")
-                    .append("<div style='height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center;'>")
-                    .append("<p style='font-weight: bold; margin: 0 0 5px 0; font-size: 10px; color: #34495e;'>Customer Signature</p>");
-
-            if (signatureFile != null) {
-                bodyBuilder.append("<div style='border: 2px solid #95a5a6; padding: 5px; background-color: white; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: inline-block; min-height: 70px; min-width: 160px; display: flex; align-items: center; justify-content: center;'>")
-                        .append("<img src='signature.png' style='max-width: 150px; max-height: 60px; width: auto; height: auto; object-fit: contain;' alt='Customer Signature'/>")
-                        .append("</div>");
-            } else {
-                bodyBuilder.append("<div style='border: 2px dashed #bdc3c7; padding: 15px; color: #7f8c8d; background-color: #ecf0f1; font-size: 9px; border-radius: 3px; min-height: 40px; min-width: 160px; display: flex; align-items: center; justify-content: center;'>")
-                        .append("No signature captured")
-                        .append("</div>");
-            }
-
-            bodyBuilder.append("</div>")
-                    .append("</td>")
-
-                    // Photo column with better alignment
-                    .append("<td style='width: 50%; vertical-align: middle; text-align: center; padding: 5px;'>")
-                    .append("<div style='height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center;'>")
-                    .append("<p style='font-weight: bold; margin: 0 0 5px 0; font-size: 10px; color: #34495e;'>Delivery Photo</p>");
-
-            if (photoFile != null) {
-                bodyBuilder.append("<div style='border: 2px solid #95a5a6; padding: 5px; background-color: white; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: inline-block; min-height: 70px; min-width: 160px; display: flex; align-items: center; justify-content: center;'>")
-                        .append("<img src='photo.jpg' style='max-width: 150px; max-height: 60px; width: auto; height: auto; object-fit: contain;' alt='Delivery Photo'/>")
-                        .append("</div>");
-            } else {
-                bodyBuilder.append("<div style='border: 2px dashed #bdc3c7; padding: 15px; color: #7f8c8d; background-color: #ecf0f1; font-size: 9px; border-radius: 3px; min-height: 40px; min-width: 160px; display: flex; align-items: center; justify-content: center;'>")
-                        .append("No photo available")
-                        .append("</div>");
-            }
-
-            bodyBuilder.append("</div>")
-                    .append("</td>")
-                    .append("</tr>")
                     .append("</table>")
-                    .append("</div>");
+                    .append("</div>")
 
-            // Compact Certification Footer
-            bodyBuilder.append("<div style='border-top: 2px solid #3498db; padding: 8px 0; margin-top: 10px; text-align: center;'>")
-                    .append("<p style='color: #2c3e50; font-weight: bold; font-size: 11px; margin: 0 0 3px 0;'>This ePOD certifies successful delivery completion</p>")
-                    .append("<p style='color: #7f8c8d; font-size: 9px; margin: 0 0 2px 0;'>Generated by EasyDelivery System • " + date + " " + time + "</p>")
-                    .append("<p style='color: #95a5a6; font-size: 8px; margin: 0;'>Electronically generated - no physical signature required</p>")
+                    .append("<div style='border-top: 2px solid #3498db; padding-top: 15px; margin-top: 30px; text-align: center; font-size: 10px; color: #777;'>")
+                    .append("<p style='margin: 0;'>Generated by EasyDelivery on " + date + " at " + time + "</p>")
+                    .append("<p style='margin: 0;'>This is an electronically generated document and does not require a physical signature.</p>")
+                    .append("</div>")
                     .append("</div>");
 
             String body = bodyBuilder.toString();
 
             // Generate PDF with proper base URI
-            File pdfFile = new File(getCacheDir(), "ePOD_" + delivery.getDocument() + ".pdf");
+            File pdfFile = new File(getCacheDir(), "POD_" + delivery.getDocument() + ".pdf");
             PdfWriter writer = new PdfWriter(pdfFile);
             PdfDocument pdfDoc = new PdfDocument(writer);
             Document document = new Document(pdfDoc);
@@ -747,11 +715,11 @@ public class SyncService extends IntentService {
 
             Multipart multipart = new MimeMultipart();
             MimeBodyPart messageBodyPart = new MimeBodyPart();
-            messageBodyPart.setText("Please find the Electronic Proof of Delivery (ePOD) attached for document " + delivery.getDocument() + ".\n\nThis ePOD certificate contains comprehensive delivery information including recipient details, parcel information, and delivery evidence.");
+            messageBodyPart.setText("Dear Customer,\n\nPlease find the attached Proof of Delivery (POD) for your recent shipment.\n\nThis document confirms the successful delivery of your items. It includes details such as the shipment number, delivery address, and evidence of delivery.\n\nThank you for your business.\n\nBest regards,\nEasyDelivery Team");
             multipart.addBodyPart(messageBodyPart);
 
             // Attach PDF
-            addAttachment(multipart, pdfFile.getAbsolutePath(), "ePOD_" + delivery.getDocument() + ".pdf");
+            addAttachment(multipart, pdfFile.getAbsolutePath(), "POD_" + delivery.getDocument() + ".pdf");
 
             message.setContent(multipart);
             Transport.send(message);

@@ -8,6 +8,7 @@ import com.clone.EasyDelivery.Model.ItemParcel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class AppConstant {
 
@@ -37,8 +38,8 @@ public class AppConstant {
     public static ArrayList<String> flaggedParcels = new ArrayList<>();
     public static ArrayList<String> tripList = new ArrayList<>();
     public static ArrayList<String> completedTrips = new ArrayList<>();
-    public static ArrayList<String> downloadedTrips = new ArrayList<>();
-    public static ArrayList<String> inProgressTrips = new ArrayList<>();
+    public static List<String> downloadedTrips = new CopyOnWriteArrayList<>();
+    public static List<String> inProgressTrips = new CopyOnWriteArrayList<>();
 
     public static ArrayList<Integer> removedTripPosList = new ArrayList<>();
 

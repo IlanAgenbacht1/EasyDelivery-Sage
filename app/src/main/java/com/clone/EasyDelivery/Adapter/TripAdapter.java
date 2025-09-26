@@ -18,7 +18,7 @@ import java.util.List;
 
 public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder> {
 
-    private List<String> tripFiles;
+    private List<String> tripFiles = new ArrayList<>();
     private LayoutInflater inflater;
     private OnItemClickListener listener;
     private Context context;
@@ -29,17 +29,24 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
     }
 
     // Constructor
-    public TripAdapter(Context context, ArrayList<String> tripFiles, OnItemClickListener onItemClickListener) {
-        this.tripFiles = tripFiles;
+    public TripAdapter(Context context, OnItemClickListener onItemClickListener) {
         this.listener = onItemClickListener;
         this.context = context;
+        this.inflater = LayoutInflater.from(context);
+    }
+
+    public void updateTrips(List<String> newTrips) {
+        if (newTrips != null) {
+            tripFiles.clear();
+            tripFiles.addAll(newTrips);
+            notifyDataSetChanged();
+        }
     }
 
     @NonNull
     @Override
     public TripViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_trip, parent, false);
+        View view = inflater.inflate(R.layout.item_trip, parent, false);
         return new TripViewHolder(view);
     }
 

@@ -15,6 +15,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -166,104 +167,72 @@ public class ScheduleHelper {
     }
 
 
-    public static void getLocalTrips(Context context) {
+    public static ArrayList<String> getLocalTrips(Context context) {
+        ArrayList<String> finalTripList = new ArrayList<>();
         try {
+            Log.i("Trip List", "Fetching local trips...");
 
-            Log.i("Trip List", "Syncing trip list...");
+            File tripDir = new File(context.getFilesDir() + "/Trip/");
+            if (!tripDir.exists()) {
+                Log.w("Trip List", "Trip directory does not exist.");
+                return finalTripList; // Return empty list if directory doesn't exist
+            }
 
             DeliveryDb database = new DeliveryDb(context);
             database.open();
 
-            File file = new File(context.getFilesDir() + "/Trip/");
+            // 1. Get all local trip files
+            String[] tripFiles = tripDir.list();
+            if (tripFiles == null) {
+                database.close();
+                Log.w("Trip List", "No files found in trip directory.");
+                return finalTripList; // Return empty list if no files
+            }
 
-            List<String> localFiles = new ArrayList<>();
+            // 2. Filter out invalid, completed, or started trips
+            for (String fileName : tripFiles) {
+                String tripName = fileName.substring(0, fileName.length() - 5);
+                File currentFile = new File(tripDir, fileName);
 
-            for (String item : file.list()) {
-
-                String trimmedItem = item.substring(0, item.length() - 5);
-
-                localFiles.add(trimmedItem);
-
-                File currentFile = new File(file, item);
-
-                if (!AppConstant.tripList.contains(trimmedItem) && currentFile.length() > 0 && !AppConstant.completedTrips.contains(trimmedItem)) {
-
-                    AppConstant.tripList.add(trimmedItem);
-
-                    Handler handler = new Handler(Looper.getMainLooper());
-                    handler.post(() -> {
-                        // Update your UI here
-                        TripDash.adapter.notifyItemInserted(AppConstant.tripList.indexOf(trimmedItem));
-                    });
-
-                    Log.i("Trip List", "Added: " + trimmedItem);
+                if (currentFile.length() > 0 && !AppConstant.completedTrips.contains(tripName)) {
+                    finalTripList.add(tripName);
                 }
             }
 
-            Iterator<String> iterator1 = AppConstant.tripList.iterator();
+            Log.i("Trip List", "Initial local trips before filtering: " + finalTripList.toString());
+            // 3. Perform online-only cleanup and filtering
+            if (ConnectionHelper.isInternetConnected()) {
+                Log.i("Trip List", "Internet connected, performing online cleanup.");
+                Log.i("Trip List", "AppConstant.downloadedTrips: " + AppConstant.downloadedTrips.toString());
+                Log.i("Trip List", "AppConstant.inProgressTrips: " + AppConstant.inProgressTrips.toString());
 
-            while (iterator1.hasNext()) {
-                String listItem = iterator1.next();
-                if (!localFiles.contains(listItem)) {
+                Iterator<String> iterator = finalTripList.iterator();
+                while (iterator.hasNext()) {
+                    String trip = iterator.next();
 
-                    int pos = AppConstant.tripList.indexOf(listItem);
-
-                    iterator1.remove();  // Use iterator's remove() method
-
-                    // Update UI
-                    Handler handler = new Handler(Looper.getMainLooper());
-                    handler.post(() -> {
-                        TripDash.adapter.notifyItemRemoved(pos);
-                    });
-                }
-            }
-
-            Thread thread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-
-                    internetConnected = ConnectionHelper.isInternetConnected();
-
-                    if (internetConnected) {
-
-                        Iterator<String> iterator2 = AppConstant.tripList.iterator();
-                        while (iterator2.hasNext()) {
-                            String trip = iterator2.next();
-
-                            if (!AppConstant.downloadedTrips.isEmpty() && !AppConstant.downloadedTrips.contains(trip) && !database.tripStarted(trip) && !database.tripDataExists(trip)) {
-
-                                Log.i("Trip List", "Removed " + trip + ".");
-
-                                deleteTripFile(context, trip);
-
-                                int pos = AppConstant.tripList.indexOf(trip);
-
-                                iterator2.remove();
-
-                                Handler handler = new Handler(Looper.getMainLooper());
-                                handler.post(() -> {
-                                    TripDash.adapter.notifyItemRemoved(pos);
-                                });
-
-                            } else if(!AppConstant.downloadedTrips.isEmpty() && !AppConstant.downloadedTrips.contains(trip) && !AppConstant.inProgressTrips.contains(trip)) {
-
-                                database.deleteData(trip);
-                            }
+                    // Remove trips that are no longer present in the downloaded list from the server
+                    if (!AppConstant.downloadedTrips.isEmpty() && !AppConstant.downloadedTrips.contains(trip)) {
+                        Log.i("Trip List", "Checking if trip '" + trip + "' should be removed.");
+                        if (!database.tripStarted(trip) && !database.tripDataExists(trip)) {
+                            Log.i("Trip List", "Removing stale trip: " + trip + " (not started, no data exists, not in downloadedTrips)");
+                            deleteTripFile(context, trip);
+                            iterator.remove();
+                        } else if (!AppConstant.inProgressTrips.contains(trip)) {
+                            Log.i("Trip List", "Deleting data for trip: " + trip + " (not in inProgressTrips)");
+                            database.deleteData(trip);
                         }
                     }
-
-                    database.close();
-
                 }
-            });
+            }
 
-            thread.start();
-            //thread.join();
+            database.close();
+            Collections.sort(finalTripList);
+            Log.i("Trip List", "Found " + finalTripList.size() + " valid trips.");
 
         } catch (Exception e) {
-
             e.printStackTrace();
         }
+        return finalTripList;
     }
 
 

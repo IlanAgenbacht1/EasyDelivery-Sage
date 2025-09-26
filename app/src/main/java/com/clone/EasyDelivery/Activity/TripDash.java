@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -41,7 +42,6 @@ public class TripDash extends AppCompatActivity {
     TextView title;
     RecyclerView recyclerView;
     public static TripAdapter adapter;
-    ArrayList<String> tripList;
     ProgressBar loadingIcon;
     ImageView logo;
     ConstraintLayout layout;
@@ -50,6 +50,7 @@ public class TripDash extends AppCompatActivity {
     private @NonNull ActivityTripDashBinding binding;
     private boolean isExpanded = false;
     private Handler textHandler;
+    private Runnable tripUpdateRunnable;
     private Animation fromBottomFabAnim;
     private Animation toBottomFabAnim;
     private Animation fromBottomBgAnim;
@@ -103,7 +104,7 @@ public class TripDash extends AppCompatActivity {
 
         layoutAnimated = false;
 
-        adapter = new TripAdapter(this, AppConstant.tripList, new TripAdapter.OnItemClickListener() {
+        adapter = new TripAdapter(this, new TripAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(String tripName) {
 
@@ -120,53 +121,56 @@ public class TripDash extends AppCompatActivity {
 
         recyclerView.setAdapter(adapter);
 
+        textHandler = new Handler(Looper.getMainLooper());
         loop();
     }
 
 
     public void loop() {
-
-        textHandler = new Handler();
-        textHandler.post(new Runnable() {
+        tripUpdateRunnable = new Runnable() {
             @Override
             public void run() {
+                new Thread(() -> {
+                    // Background thread: Fetch trips
+                    ArrayList<String> newTrips = ScheduleHelper.getLocalTrips(TripDash.this);
 
-                ScheduleHelper.getLocalTrips(TripDash.this);
+                    // UI thread: Update adapter and UI
+                    textHandler.post(() -> {
+                        adapter.updateTrips(newTrips);
 
-                if (!AppConstant.tripList.isEmpty() && !layoutAnimated) {
+                        if (!newTrips.isEmpty() && !layoutAnimated) {
 
-                    loadingIcon.setVisibility(View.INVISIBLE);
-                    title.setVisibility(View.INVISIBLE);
+                            loadingIcon.setVisibility(View.INVISIBLE);
+                            title.setVisibility(View.INVISIBLE);
 
-                    Animation fadeIn = new AlphaAnimation(0, 1);
-                    fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
-                    fadeIn.setDuration(1000);
-                    fadeIn.setStartOffset(250);
+                            Animation fadeIn = new AlphaAnimation(0, 1);
+                            fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
+                            fadeIn.setDuration(1000);
+                            fadeIn.setStartOffset(250);
 
-                    //binding.mainFabBtn.startAnimation(fadeIn);
-                    //logo.startAnimation(fadeIn);
-                    //recyclerView.startAnimation(fadeIn);
-                    title.startAnimation(fadeIn);
+                            //binding.mainFabBtn.startAnimation(fadeIn);
+                            //logo.startAnimation(fadeIn);
+                            //recyclerView.startAnimation(fadeIn);
+                            title.startAnimation(fadeIn);
 
-                    title.setText("SELECT TRIP");
+                            title.setText("SELECT TRIP");
 
-                    //binding.mainFabBtn.setVisibility(View.VISIBLE);
-                    //logo.setVisibility(View.VISIBLE);
-                    title.setVisibility(View.VISIBLE);
-                    //recyclerView.setVisibility(View.VISIBLE);
+                            //binding.mainFabBtn.setVisibility(View.VISIBLE);
+                            //logo.setVisibility(View.VISIBLE);
+                            title.setVisibility(View.VISIBLE);
+                            //recyclerView.setVisibility(View.VISIBLE);
 
-                    layoutAnimated = true;
+                            layoutAnimated = true;
 
-                    textHandler.postDelayed(this, 250);
-
-                } else {
-
-                    textHandler.postDelayed(this, 5000);
-                }
+                        }
+                        // Reschedule the next run
+                        textHandler.postDelayed(this, 5000);
+                    });
+                }).start();
             }
-        });
-
-
+        };
+        // Start the first run
+        textHandler.post(tripUpdateRunnable);
     }
 
 

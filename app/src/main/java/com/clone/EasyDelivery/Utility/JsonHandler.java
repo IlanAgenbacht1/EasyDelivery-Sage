@@ -93,11 +93,6 @@ public class JsonHandler {
                     parcels.put(item);
                 }
                 json.put("items", parcels);
-                JSONArray flaggedParcels = new JSONArray();
-                for (String flaggedItem : delivery.getFlaggedParcelNumbers()) {
-                    flaggedParcels.put(flaggedItem);
-                }
-                json.put("flaggedItems", flaggedParcels);
                 JSONObject location = new JSONObject();
                 location.put("latitude", delivery.getLocation().getLatitude());
                 location.put("longitude", delivery.getLocation().getLongitude());
