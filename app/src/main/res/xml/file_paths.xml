@@ -1,5 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <files-path name="files-path" path="/"/>
+    <!-- Only allow access to specific directories needed by the app -->
 
+    <!-- Cache directory for temporary files like PDFs -->
+    <cache-path
+        name="cache-path"
+        path="/" />
+
+    <!-- Specific internal directories for app data -->
+    <files-path
+        name="delivery-images"
+        path="DeliveryApp/DeliveryImage/" />
+    <files-path
+        name="delivery-signatures"
+        path="DeliveryApp/DeliverySignature/" />
+    <files-path
+        name="trip-data"
+        path="Trip/" />
+    <files-path
+        name="return-data"
+        path="Return/" />
+
+    <!-- External files directory for shared content -->
+    <external-files-path
+        name="external-delivery-images"
+        path="DeliveryApp/DeliveryImage/" />
+    <external-files-path
+        name="external-signatures"
+        path="DeliveryApp/Signature/" />
 </paths>

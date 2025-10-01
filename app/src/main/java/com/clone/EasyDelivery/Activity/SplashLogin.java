@@ -349,7 +349,8 @@ public class SplashLogin extends AppCompatActivity {
 
     private List<String> requiredPermissionsList() {
 
-        int permissionLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+        int permissionFineLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+        int permissionCoarseLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
         int permissionCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
 
         List<String> listPermissionsNeeded = new ArrayList<>();
@@ -374,9 +375,14 @@ public class SplashLogin extends AppCompatActivity {
             listPermissionsNeeded.add(Manifest.permission.CAMERA);
 
         }
-        if (permissionLocation != PackageManager.PERMISSION_GRANTED) {
+        if (permissionFineLocation != PackageManager.PERMISSION_GRANTED) {
 
             listPermissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
+
+        }
+        if (permissionCoarseLocation != PackageManager.PERMISSION_GRANTED) {
+
+            listPermissionsNeeded.add(Manifest.permission.ACCESS_COARSE_LOCATION);
 
         }
 

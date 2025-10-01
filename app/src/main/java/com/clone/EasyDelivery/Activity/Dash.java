@@ -21,6 +21,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
 import android.util.Base64;
 import android.util.Log;
+import android.location.Location;
 import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.view.ViewGroup;
@@ -197,7 +198,7 @@ public class Dash extends AppCompatActivity {
                         btn_next.setTextColor(getResources().getColor(R.color.black, null));
                         btn_next.setText("Complete Delivery");
 
-                        String parcelText = (inputQty == 1) ? inputQty + " item delivered" : inputQty + " items delivered";
+                        String parcelText = (inputQty == 1) ? inputQty + " Item Confirmed" : inputQty + " Items Confirmed";
                         enter_num.setText(parcelText);
                         enter_num.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
                         enter_num.setHint("");
@@ -318,7 +319,24 @@ public class Dash extends AppCompatActivity {
 
 
     public void validateLocation() {
-        AppConstant.GPS_LOCATION = LocationHelper.returnClosestCoordinate(deliveryData.getLocation(), context);
+        // Use the new asynchronous location fetching method
+        LocationHelper.getCurrentLocationAsync(context, new LocationHelper.LocationCallback() {
+            @Override
+            public void onLocationFound(Location location) {
+                AppConstant.GPS_LOCATION = location;
+                checkLocationDistance();
+            }
+
+            @Override
+            public void onLocationNotFound() {
+                Log.w("Dash", "Could not get current location for validation");
+                // Continue with delivery without location validation
+                displayCommentDialog();
+            }
+        });
+    }
+
+    private void checkLocationDistance() {
         if (!LocationHelper.isWithinDistance(deliveryData.getLocation(), VALIDATION_DISTANCE)) {
             AlertDialog alertDialog = new AlertDialog.Builder(Dash.this, R.style.AlertDialogStyle).create();
             alertDialog.setTitle("Location Mismatch");
@@ -465,34 +483,59 @@ public class Dash extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     try {
+                        Log.i("SignatureSecurity", "=== Starting secure signature capture ===");
+                        
                         // Capture signature bitmap
                         bitmap = signatureView.getSignatureBitmap();
-
-                        // Generate AES key
-                        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-                        keyGen.init(256);
-                        SecretKey secretKey = keyGen.generateKey();
-
-                        // Initialize cipher
-                        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-                        cipher.init(Cipher.ENCRYPT_MODE, secretKey, new IvParameterSpec(new byte[16])); // Use secure IV in production
-
+                        
+                        if (bitmap == null) {
+                            Log.e("SignatureSecurity", "Failed to capture signature bitmap");
+                            Toast.makeText(Dash.this, "Failed to capture signature. Please try again.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        
                         // Convert bitmap to byte array
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
                         bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
                         byte[] bitmapData = baos.toByteArray();
-
-                        // Encrypt data
-                        byte[] encryptedData = cipher.doFinal(bitmapData);
-
-                        // Save encrypted data to file
-                        path = ImageHelper.saveEncryptedImage(Dash.this, encryptedData, IMAGE_DIRECTORY, SiGN_DIRECTORY);
+                        
+                        Log.d("SignatureSecurity", "Signature bitmap captured: " + bitmapData.length + " bytes");
+                        
+                        // Initialize SecurityManager for hardware-backed encryption
+                        com.clone.EasyDelivery.Utility.SecurityManager securityManager = 
+                            com.clone.EasyDelivery.Utility.SecurityManager.getInstance(Dash.this);
+                        
+                        // Generate or retrieve signature encryption key
+                        String keyAlias = securityManager.generateSignatureEncryptionKey();
+                        if (keyAlias == null) {
+                            Log.e("SignatureSecurity", "Failed to generate signature encryption key");
+                            Toast.makeText(Dash.this, "Security error. Please contact support.", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        
+                        Log.d("SignatureSecurity", "Using secure encryption key: " + keyAlias);
+                        
+                        // Encrypt signature with integrity protection
+                        com.clone.EasyDelivery.Utility.SecurityManager.SignaturePackage signaturePackage = 
+                            securityManager.encryptSignatureWithIntegrity(bitmapData);
+                        if (signaturePackage == null) {
+                            Log.e("SignatureSecurity", "Failed to encrypt signature with integrity protection");
+                            Toast.makeText(Dash.this, "Security encryption failed. Please try again.", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        
+                        Log.i("SignatureSecurity", "Signature encrypted with integrity protection: " + signaturePackage.toString());
+                        
+                        // Save encrypted signature with integrity metadata to secure internal storage
+                        path = ImageHelper.saveEncryptedSignatureSecurely(Dash.this, signaturePackage);
+                        if (path == null) {
+                            Log.e("SignatureSecurity", "Failed to save encrypted signature");
+                            Toast.makeText(Dash.this, "Failed to save signature. Please try again.", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        
                         AppConstant.SIGN_PATH = path;
-
-                        // Securely store the key (e.g., Android Keystore or secure server)
-                        // Example: Save key to SharedPreferences (not secure, use Keystore in production)
-                        SharedPreferences prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
-                        prefs.edit().putString("signature_key", Base64.encodeToString(secretKey.getEncoded(), Base64.DEFAULT)).apply();
+                        Log.i("SignatureSecurity", "Signature saved securely at: " + path);
 
                         dialog.dismiss();
                         rlTick1.setVisibility(View.VISIBLE);

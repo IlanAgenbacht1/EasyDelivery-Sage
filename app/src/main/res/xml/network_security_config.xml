@@ -1,9 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Disable cleartext traffic for security -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Trust system certificates -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
 
+    <!-- Allow cleartext only for specific development domains if needed -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain> <!-- Android emulator -->
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
 
-  <!--Set application-wide security config using base-config tag.-->
+    <!-- Enhanced security for Dropbox API -->
+    <domain-config>
+        <domain includeSubdomains="true">dropbox.com</domain>
+        <domain includeSubdomains="true">api.dropboxapi.com</domain>
+        <domain includeSubdomains="true">content.dropboxapi.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
 
-  <base-config cleartextTrafficPermitted="true"/>
+    <!-- Enhanced security for Gmail SMTP -->
+    <domain-config>
+        <domain includeSubdomains="true">smtp.gmail.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
 
+    <!-- Enhanced security for Google services -->
+    <domain-config>
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <domain includeSubdomains="true">google.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
 </network-security-config>

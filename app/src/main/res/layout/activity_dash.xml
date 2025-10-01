@@ -31,7 +31,7 @@
             android:layout_marginTop="20dp"
             android:background="@drawable/parcelinput_border"
             android:ems="10"
-            android:hint="Enter Parcel"
+            android:hint="Enter Quantity"
             android:inputType="text"
             android:paddingLeft="15dp"
             android:paddingRight="15dp"

@@ -36,6 +36,9 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+// Security import
+import com.clone.EasyDelivery.Utility.SecurityManager;
+
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.activation.FileDataSource;
@@ -55,10 +58,9 @@ import jakarta.mail.util.ByteArrayDataSource;
 public class SyncService extends IntentService {
 
     private boolean connected;
-
-    BroadcastReceiver receiver;
-
-    DeliveryDb database;
+    private BroadcastReceiver receiver;
+    private DeliveryDb database;
+    private SecurityManager securityManager;
 
     public SyncService() {
         super("SyncService");
@@ -77,6 +79,40 @@ public class SyncService extends IntentService {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        // Initialize SecurityManager with full security suite
+        securityManager = SecurityManager.getInstance(getApplicationContext());
+        
+        // Initialize key lifecycle management
+        securityManager.initializeKeyTimestamp();
+        
+        // Perform key maintenance check
+        securityManager.performKeyMaintenance();
+        
+        // Initialize email password if not set (you should replace with actual password)
+        if (securityManager.getEmailPassword() == null || securityManager.getEmailPassword().trim().isEmpty()) {
+            Log.w("SyncService", "Email password not configured - emails will not be sent");
+            Log.i("SyncService", "To fix: Call securityManager.configureEmailPassword(\"YOUR_APP_PASSWORD\") with the Gmail app password");
+            
+            // Uncomment and replace with actual Gmail app password:
+            securityManager.configureEmailPassword("jvvu juda uudo gbcj");
+        }
+        
+        // Log security status for diagnostics
+        Log.i("SyncService", "Security Status:\n" + securityManager.getSecurityStatus());
+        Log.i("SyncService", securityManager.getIntegritySystemStatus());
+        
+        // Restore completed trips list from database to fix trip lifecycle issues
+        restoreCompletedTripsFromDatabase();
+        
+        // Ensure required Dropbox folder structure exists
+        Thread folderSetupThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                DropboxHelper.ensureDropboxFolderStructure(getApplicationContext());
+            }
+        });
+        folderSetupThread.start();
 
         if (database != null && database.isOpen()) {
 
@@ -110,87 +146,41 @@ public class SyncService extends IntentService {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        Timer timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-
-                if (database != null) {
-
-                    if (database.isOpen()) {
-
-                        database.close();
-                    }
+        Log.i("SyncService", "onStartCommand called - Service starting");
+        
+        // Start location fetching immediately when service starts
+        try {
+            // Use Handler to run on main thread instead of background thread
+            android.os.Handler mainHandler = new android.os.Handler(getMainLooper());
+            mainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    // Check connectivity in background but run location on main thread
+                    Thread connectivityThread = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            boolean isConnected = ConnectionHelper.isInternetConnected();
+                            Log.i("SyncService", "Initial connection check: " + isConnected);
+                            
+                            // Post location fetching back to main thread
+                            mainHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    LocationHelper.getLocation(isConnected, getApplicationContext());
+                                }
+                            });
+                        }
+                    });
+                    connectivityThread.start();
                 }
+            });
+        } catch (Exception e) {
+            Log.e("SyncService", "Error starting initial location fetch", e);
+            e.printStackTrace();
+        }
 
-                Thread threadDownloadTrips = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        DropboxHelper.downloadAllTrips(getApplicationContext());
-                    }
-                });
-
-                Thread threadCompletedTrip = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        syncCompletedTrip();
-                    }
-                });
-
-                Thread threadTripStatus = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        syncTripStatus();
-                    }
-                });
-
-                Thread threadCompletedData = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        syncCompletedData();
-                    }
-                });
-
-                Thread threadEmail = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        syncEmail();
-                    }
-                });
-
-                Thread threadReturns = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        syncReturn();
-                    }
-                });
-
-                threadDownloadTrips.start();
-                threadTripStatus.start();
-                threadEmail.start();
-                threadCompletedData.start();
-                threadCompletedTrip.start();
-                threadReturns.start();
-
-                try {
-                    threadDownloadTrips.join();
-                    threadTripStatus.join();
-                    threadEmail.join();
-                    threadCompletedData.join();
-                    threadCompletedTrip.join();
-                    threadReturns.join();
-                    database.close();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        },0, 20000);
+        // Start adaptive polling system for better responsiveness
+        startAdaptivePolling();
 
         IntentFilter filter = new IntentFilter();
 
@@ -228,7 +218,14 @@ public class SyncService extends IntentService {
 
                                 Log.i("SyncService", "Connected");
 
-                                LocationHelper.getLocation(true, getApplicationContext());
+                                // Use Handler to run location updates on main thread
+                                android.os.Handler mainHandler = new android.os.Handler(getMainLooper());
+                                mainHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        LocationHelper.getLocation(true, getApplicationContext());
+                                    }
+                                });
 
                                 thread = new Thread(new Runnable() {
                                     @Override
@@ -244,7 +241,14 @@ public class SyncService extends IntentService {
 
                             } else {
 
-                                LocationHelper.getLocation(false, getApplicationContext());
+                                // Use Handler to run location updates on main thread
+                                android.os.Handler mainHandler = new android.os.Handler(getMainLooper());
+                                mainHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        LocationHelper.getLocation(false, getApplicationContext());
+                                    }
+                                });
                             }
 
                         } catch (Exception e) {
@@ -357,54 +361,93 @@ public class SyncService extends IntentService {
 
     private void syncCompletedData() {
 
+        Log.i("SyncService", "=== Starting syncCompletedData ===");
+        
         try {
 
             openDatabase();
+            Log.i("SyncService", "Database opened successfully for completed data sync");
 
             List<String> trips = database.getIncompleteSyncList();
+            Log.i("SyncService", "Found " + trips.size() + " incomplete sync trips: " + trips);
+
+            if (trips.isEmpty()) {
+                Log.i("SyncService", "No incomplete sync trips found - nothing to sync");
+                return;
+            }
 
             for (String trip : trips) {
 
+                Log.i("SyncService", "Processing trip: " + trip);
+                
                 //check if there are completed deliveries for this trip locally
-
                 List<String> documents = database.getCompletedDocumentList(trip);
+                Log.i("SyncService", "Trip " + trip + " has " + documents.size() + " completed documents: " + documents);
 
                 if (!documents.isEmpty()) {
 
                     for (String document : documents) {
 
+                        Log.i("SyncService", "Processing document: " + document + " for trip: " + trip);
+                        
                         //create delivery json and upload to dropbox
-
                         Delivery delivery = database.getCompletedDocument(document, trip);
-
+                        if (delivery == null) {
+                            Log.e("SyncService", "Failed to retrieve delivery data for document: " + document);
+                            continue;
+                        }
+                        
+                        Log.d("SyncService", "Retrieved delivery: customer=" + delivery.getCustomerName() + ", parcels=" + delivery.getNumberOfParcels());
+                        
                         delivery = database.getCompletedParcels(delivery);
-
+                        Log.d("SyncService", "Added parcels to delivery, parcel count: " + (delivery.getParcelNumbers() != null ? delivery.getParcelNumbers().size() : 0));
+                        
                         String filePath = JsonHandler.writeDeliveryFile(getApplicationContext(), delivery);
+                        Log.i("SyncService", "Created JSON file: " + filePath);
+                        
+                        boolean uploadSuccess = DropboxHelper.uploadCompletedDelivery(getApplicationContext(), filePath, trip, document, delivery.getImagePath(), delivery.getSignPath());
+                        
+                        if (uploadSuccess) {
 
-                        if (DropboxHelper.uploadCompletedDelivery(getApplicationContext(), filePath, trip, document, delivery.getImagePath(), delivery.getSignPath())) {
-
-                            Log.i("SyncService", "Uploaded " + document);
+                            Log.i("SyncService", "✓ Successfully uploaded " + document + " for trip " + trip);
 
                             File file = new File(filePath);
-                            file.delete();
+                            boolean fileDeleted = file.delete();
+                            Log.d("SyncService", "JSON file deleted: " + fileDeleted);
 
                             ImageHelper.syncDeleteImageFiles(getApplicationContext(), delivery.getImagePath(), delivery.getSignPath());
+                            Log.d("SyncService", "Image files cleanup completed");
 
                             database.setDocumentUploaded(document, trip);
+                            Log.i("SyncService", "Marked document " + document + " as uploaded in database");
+                        } else {
+                            Log.e("SyncService", "✗ Failed to upload " + document + " for trip " + trip);
                         }
                     }
+                } else {
+                    Log.i("SyncService", "No completed documents found for trip: " + trip);
                 }
 
-                if (database.isDataSynced(trip) && !AppConstant.completedTrips.contains(trip)) {
-
+                boolean isDataSynced = database.isDataSynced(trip);
+                boolean isAlreadyCompleted = AppConstant.completedTrips.contains(trip);
+                
+                Log.d("SyncService", "Trip " + trip + " - isDataSynced: " + isDataSynced + ", alreadyInCompletedList: " + isAlreadyCompleted);
+                
+                if (isDataSynced && !isAlreadyCompleted) {
                     AppConstant.completedTrips.add(trip);
+                    Log.i("SyncService", "✓ Added trip " + trip + " to completed trips list");
                 }
             }
+            
+            Log.i("SyncService", "Current completed trips list size: " + AppConstant.completedTrips.size() + " - " + AppConstant.completedTrips);
 
         } catch (Exception e) {
 
+            Log.e("SyncService", "Exception in syncCompletedData", e);
             e.printStackTrace();
         }
+        
+        Log.i("SyncService", "=== Finished syncCompletedData ===");
     }
 
 
@@ -414,8 +457,8 @@ public class SyncService extends IntentService {
 
             openDatabase();
 
-            DropboxHelper.updateListInProgressTrips();
-            DropboxHelper.moveTripInProgress(null);
+            DropboxHelper.updateListInProgressTrips(getApplicationContext());
+            DropboxHelper.moveTripInProgress(getApplicationContext(), null);
             DropboxHelper.moveIncompleteTrip(getApplicationContext(), database);
 
         } catch (Exception e) {
@@ -426,56 +469,139 @@ public class SyncService extends IntentService {
 
 
     private void syncCompletedTrip() {
+        
+        Log.i("SyncService", "=== Starting syncCompletedTrip ===");
+        
         try {
 
             openDatabase();
+            Log.i("SyncService", "Database opened for completed trip sync");
+            
+            Log.i("SyncService", "Completed trips list size: " + AppConstant.completedTrips.size() + " - " + AppConstant.completedTrips);
 
             if (!AppConstant.completedTrips.isEmpty()) {
+                
+                // Create a copy to avoid ConcurrentModificationException
+                java.util.List<String> tripsToProcess = new java.util.ArrayList<>(AppConstant.completedTrips);
+                Log.i("SyncService", "Processing " + tripsToProcess.size() + " completed trips");
 
-                for (String completedTrip : AppConstant.completedTrips) {
+                for (String completedTrip : tripsToProcess) {
 
-                    DropboxHelper.moveTripInProgress(completedTrip);
+                    Log.i("SyncService", "Processing completed trip: " + completedTrip);
+                    
+                    try {
+                        DropboxHelper.moveTripInProgress(getApplicationContext(), completedTrip);
+                        Log.d("SyncService", "Move trip in progress completed for " + completedTrip);
+                    } catch (Exception e) {
+                        Log.e("SyncService", "Error moving trip in progress for " + completedTrip, e);
+                    }
 
-                    DropboxHelper.moveCompletedTrip(completedTrip);
+                    try {
+                        DropboxHelper.moveCompletedTrip(getApplicationContext(), completedTrip);
+                        Log.d("SyncService", "Move completed trip completed for " + completedTrip);
+                    } catch (Exception e) {
+                        Log.e("SyncService", "Error moving completed trip for " + completedTrip, e);
+                    }
 
-                    if (database.isDataSynced(completedTrip)) {
+                    boolean isDataSynced = database.isDataSynced(completedTrip);
+                    Log.d("SyncService", "Data synced check for " + completedTrip + ": " + isDataSynced);
+                    
+                    if (isDataSynced) {
 
                         AppConstant.completedTrips.remove(completedTrip);
+                        Log.i("SyncService", "Removed " + completedTrip + " from completed trips list");
 
                         database.deleteUploadedData(completedTrip);
+                        Log.i("SyncService", "Deleted uploaded data for " + completedTrip);
                     }
 
                     if (SyncConstant.STARTED_TRIP.equals(completedTrip)) {
-
                         SyncConstant.STARTED_TRIP = "";
+                        Log.i("SyncService", "Cleared started trip constant for " + completedTrip);
                     }
 
-                    Log.i("SyncService", completedTrip + " uploaded");
+                    Log.i("SyncService", "✓ " + completedTrip + " processing completed");
                 }
+                
+                Log.i("SyncService", "Final completed trips list size: " + AppConstant.completedTrips.size());
+                
+            } else {
+                Log.i("SyncService", "No completed trips to process");
             }
 
         } catch (Exception e) {
 
+            Log.e("SyncService", "Exception in syncCompletedTrip", e);
             e.printStackTrace();
         }
+        
+        Log.i("SyncService", "=== Finished syncCompletedTrip ===");
     }
 
 
     private void syncEmail() {
+        
+        Log.i("SyncService", "=== Starting syncEmail ===");
+        
         try {
             openDatabase();
+            Log.i("SyncService", "Database opened for email sync");
+            
             List<Delivery> emailList = database.getAllUnsentEmails();
-            for (Delivery queuedEmail : emailList) {
-                Delivery data = database.getCompletedDocument(queuedEmail.getDocument(), queuedEmail.getTripId());
-                data = database.getCompletedParcels(data);
-                if (sendEmail(data)) {
-                    database.setEmailSent(queuedEmail.getDocument(), queuedEmail.getTripId());
-                    Log.i("SyncService", queuedEmail.getDocument() + " email sent.");
+            Log.i("SyncService", "Found " + emailList.size() + " unsent emails");
+            
+            if (emailList.isEmpty()) {
+                Log.i("SyncService", "No unsent emails found - email sync complete");
+                return;
+            }
+            
+            for (int i = 0; i < emailList.size(); i++) {
+                Delivery queuedEmail = emailList.get(i);
+                Log.i("SyncService", "Processing email " + (i + 1) + "/" + emailList.size() + ": " + queuedEmail.getDocument() + " (Trip: " + queuedEmail.getTripId() + ")");
+                
+                try {
+                    Delivery data = database.getCompletedDocument(queuedEmail.getDocument(), queuedEmail.getTripId());
+                    
+                    if (data == null) {
+                        Log.e("SyncService", "Failed to retrieve delivery data for email: " + queuedEmail.getDocument());
+                        continue;
+                    }
+                    
+                    Log.d("SyncService", "Email data retrieved - Customer: " + data.getCustomerName() + ", Parcels: " + data.getNumberOfParcels());
+                    
+                    data = database.getCompletedParcels(data);
+                    Log.d("SyncService", "Parcels added to email data, count: " + (data.getParcelNumbers() != null ? data.getParcelNumbers().size() : 0));
+                    
+                    // Check if we have the required AppConstant email address
+                    if (AppConstant.EMAIL == null || AppConstant.EMAIL.trim().isEmpty()) {
+                        Log.e("SyncService", "AppConstant.EMAIL is null or empty - cannot send email for " + queuedEmail.getDocument());
+                        continue;
+                    }
+                    
+                    Log.i("SyncService", "Attempting to send email to: " + AppConstant.EMAIL + " for document: " + queuedEmail.getDocument());
+                    
+                    boolean emailSent = sendEmail(data);
+                    
+                    if (emailSent) {
+                        database.setEmailSent(queuedEmail.getDocument(), queuedEmail.getTripId());
+                        Log.i("SyncService", "✓ Email sent successfully for " + queuedEmail.getDocument() + " - marked as sent in database");
+                    } else {
+                        Log.e("SyncService", "✗ Failed to send email for " + queuedEmail.getDocument());
+                    }
+                    
+                } catch (Exception emailEx) {
+                    Log.e("SyncService", "Exception processing individual email for " + queuedEmail.getDocument(), emailEx);
                 }
             }
+            
+            Log.i("SyncService", "Email sync completed - processed " + emailList.size() + " emails");
+            
         } catch (Exception e) {
+            Log.e("SyncService", "Exception in syncEmail", e);
             e.printStackTrace();
         }
+        
+        Log.i("SyncService", "=== Finished syncEmail ===");
     }
 
 
@@ -520,9 +646,36 @@ public class SyncService extends IntentService {
 
 
     private boolean sendEmail(Delivery delivery) {
+        
+        Log.i("EmailService", "=== Starting sendEmail for document: " + delivery.getDocument() + " ===");
+        
         try {
             String recipient = AppConstant.EMAIL;
             String subject = "Proof of Delivery for Order: " + delivery.getTripId();
+            
+            Log.i("EmailService", "Email details - Recipient: " + recipient + ", Subject: " + subject);
+            Log.d("EmailService", "Delivery details - Customer: " + delivery.getCustomerName() + ", Document: " + delivery.getDocument() + ", Trip: " + delivery.getTripId());
+            
+            // ❗ CRITICAL DATABASE VALIDATION: Check for missing paths
+            if (delivery.getSignPath() == null || delivery.getSignPath().trim().isEmpty()) {
+                Log.e("EMAIL_CRITICAL", "🚨 ABORTING EMAIL - Delivery missing signature path in database");
+                Log.e("EMAIL_CRITICAL", "Document: " + delivery.getDocument() + ", SignPath: '" + delivery.getSignPath() + "'");
+                
+                // Mark for retry
+                database.markDeliveryForEmailRetry(delivery.getDocument(), delivery.getTripId(), "Missing signature path in database");
+                return false;
+            }
+            
+            if (delivery.getImagePath() == null || delivery.getImagePath().trim().isEmpty()) {
+                Log.e("EMAIL_CRITICAL", "🚨 ABORTING EMAIL - Delivery missing image path in database");
+                Log.e("EMAIL_CRITICAL", "Document: " + delivery.getDocument() + ", ImagePath: '" + delivery.getImagePath() + "'");
+                
+                // Mark for retry
+                database.markDeliveryForEmailRetry(delivery.getDocument(), delivery.getTripId(), "Missing image path in database");
+                return false;
+            }
+            
+            Log.i("EMAIL_VALIDATION", "✓ Database path validation passed - SignPath: " + delivery.getSignPath() + ", ImagePath: " + delivery.getImagePath());
 
             List<String> parcelsList = delivery.getParcelNumbers();
             Collections.sort(parcelsList);
@@ -539,20 +692,47 @@ public class SyncService extends IntentService {
             String foundSignaturePath = findSignatureFile(signFilename);
 
             if (foundSignaturePath != null) {
+                Log.i("SignatureSecurity", "=== Starting secure signature decryption for email ===");
                 try {
-                    SharedPreferences prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
-                    String keyString = prefs.getString("signature_key", "");
-
-                    if (!keyString.isEmpty()) {
-                        decryptedSignature = ImageHelper.decryptImage(foundSignaturePath, keyString);
-                        Log.d("EMAILOUTPUT", "Signature decrypted successfully from: " + foundSignaturePath);
-                    } else {
-                        Log.e("EMAILOUTPUT", "Signature key is empty");
+                    // Read encrypted signature file
+                    File signatureFile = new File(foundSignaturePath);
+                    byte[] encryptedData = new byte[(int) signatureFile.length()];
+                    try (FileInputStream fis = new FileInputStream(signatureFile)) {
+                        int bytesRead = fis.read(encryptedData);
+                        Log.d("SignatureSecurity", "Read encrypted signature file: " + bytesRead + " bytes");
                     }
+                    
+                    // Use SecurityManager for secure decryption
+                    if (securityManager != null) {
+                        decryptedSignature = securityManager.decryptSignature(encryptedData);
+                        if (decryptedSignature != null) {
+                            Log.i("SignatureSecurity", "✓ Signature decrypted successfully using SecurityManager: " + 
+                                  decryptedSignature.length + " bytes");
+                        } else {
+                            Log.e("SignatureSecurity", "SecurityManager failed to decrypt signature");
+                            
+                            // Fallback to legacy decryption for backward compatibility
+                            Log.w("SignatureSecurity", "Attempting legacy decryption fallback");
+                            SharedPreferences prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+                            String keyString = prefs.getString("signature_key", "");
+                            
+                            if (!keyString.isEmpty()) {
+                                decryptedSignature = ImageHelper.decryptImage(foundSignaturePath, keyString);
+                                Log.w("SignatureSecurity", "Legacy decryption successful - consider re-encrypting with SecurityManager");
+                            } else {
+                                Log.e("SignatureSecurity", "No legacy signature key found either");
+                            }
+                        }
+                    } else {
+                        Log.e("SignatureSecurity", "SecurityManager is null - cannot decrypt signature securely");
+                    }
+                    
                 } catch (Exception e) {
-                    Log.e("EMAILOUTPUT", "Failed to decrypt signature: " + e.getMessage());
+                    Log.e("SignatureSecurity", "Failed to decrypt signature: " + e.getMessage(), e);
                     e.printStackTrace();
                 }
+            } else {
+                Log.e("SignatureSecurity", "⚠️ CRITICAL: No signature file found for decryption - delivery: " + delivery.getDocument());
             }
 
             // Create temporary files for images in cache directory
@@ -567,9 +747,41 @@ public class SyncService extends IntentService {
                 }
             }
 
-            // Copy photo file to cache directory so it can be found by PDF converter
-            File originalPhotoFile = new File(getApplicationContext().getFilesDir() + "/DeliveryApp/DeliveryImage/" + delivery.getImagePath() + ".jpg");
-            if (originalPhotoFile.exists()) {
+            // 📷 ROBUST PHOTO FILE HANDLING: Search for photo file with various extensions
+            String imagePath = delivery.getImagePath();
+            File originalPhotoFile = null;
+            
+            // Try different possible photo file locations and extensions
+            String[] possibleExtensions = {".jpg", ".jpeg", ".png", ""};
+            String[] possibleDirs = {
+                getApplicationContext().getFilesDir() + "/DeliveryApp/DeliveryImage/",
+                getApplicationContext().getFilesDir() + "/DeliveryImage/",
+                getApplicationContext().getFilesDir() + "/",
+                getApplicationContext().getCacheDir() + "/"
+            };
+            
+            Log.d("EMAILOUTPUT", "Searching for photo file with path: " + imagePath);
+            
+            // Search for the photo file
+            photoSearchLoop: for (String dir : possibleDirs) {
+                for (String ext : possibleExtensions) {
+                    File testFile = new File(dir + imagePath + ext);
+                    Log.d("EMAILOUTPUT", "Checking: " + testFile.getAbsolutePath());
+                    if (testFile.exists()) {
+                        originalPhotoFile = testFile;
+                        Log.d("EMAILOUTPUT", "Found photo file at: " + originalPhotoFile.getAbsolutePath());
+                        break photoSearchLoop;
+                    }
+                }
+            }
+            
+            // If still not found, try recursive search
+            if (originalPhotoFile == null) {
+                Log.w("EMAILOUTPUT", "Photo not found in standard locations, searching recursively...");
+                originalPhotoFile = searchForPhotoRecursively(getApplicationContext().getFilesDir(), imagePath);
+            }
+            
+            if (originalPhotoFile != null && originalPhotoFile.exists()) {
                 photoFile = new File(getCacheDir(), "photo.jpg");
                 try (FileInputStream fis = new FileInputStream(originalPhotoFile);
                      FileOutputStream fos = new FileOutputStream(photoFile)) {
@@ -581,8 +793,80 @@ public class SyncService extends IntentService {
                     Log.d("EMAILOUTPUT", "Photo file copied to: " + photoFile.getAbsolutePath());
                 }
             } else {
-                Log.w("EMAILOUTPUT", "Original photo file does not exist: " + originalPhotoFile.getAbsolutePath());
+                Log.e("EMAILOUTPUT", "⚠️ CRITICAL: Photo file not found anywhere");
+                Log.e("EMAILOUTPUT", "Searched for image path: " + imagePath);
+                Log.e("EMAILOUTPUT", "Last attempted path: " + (originalPhotoFile != null ? originalPhotoFile.getAbsolutePath() : "N/A"));
+                
+                // List all files in the delivery image directory for debugging
+                File deliveryImageDir = new File(getApplicationContext().getFilesDir() + "/DeliveryApp/DeliveryImage/");
+                if (deliveryImageDir.exists()) {
+                    File[] files = deliveryImageDir.listFiles();
+                    Log.e("EMAILOUTPUT", "Files in DeliveryImage directory: " + (files != null ? files.length : 0));
+                    if (files != null) {
+                        for (File file : files) {
+                            Log.e("EMAILOUTPUT", "  - " + file.getName());
+                        }
+                    }
+                } else {
+                    Log.e("EMAILOUTPUT", "DeliveryImage directory does not exist: " + deliveryImageDir.getAbsolutePath());
+                }
             }
+            
+            // ❗ CRITICAL BUSINESS VALIDATION: Ensure required content exists
+            boolean hasSignature = (decryptedSignature != null && signatureFile != null);
+            boolean hasPhoto = (photoFile != null && photoFile.exists());
+            
+            Log.i("EMAIL_VALIDATION", "Content validation - Signature: " + hasSignature + ", Photo: " + hasPhoto + ", Document: " + delivery.getDocument());
+            
+            // BUSINESS RULE: POD must have both signature and photo
+            if (!hasSignature && !hasPhoto) {
+                Log.e("EMAIL_CRITICAL", "🚨 ABORTING EMAIL - Both signature and photo missing for delivery: " + delivery.getDocument());
+                Log.e("EMAIL_CRITICAL", "Signature path from DB: " + delivery.getSignPath());
+                Log.e("EMAIL_CRITICAL", "Image path from DB: " + delivery.getImagePath());
+                
+                // Mark for retry
+                database.markDeliveryForEmailRetry(delivery.getDocument(), delivery.getTripId(), "Both signature and photo files missing");
+                
+                // Clean up any temporary files
+                if (signatureFile != null && signatureFile.exists()) signatureFile.delete();
+                if (photoFile != null && photoFile.exists()) photoFile.delete();
+                
+                return false; // ABORT EMAIL SENDING
+            }
+            
+            // BUSINESS RULE: POD should have signature (critical for legal compliance)
+            if (!hasSignature) {
+                Log.e("EMAIL_CRITICAL", "🚨 ABORTING EMAIL - Missing signature for delivery: " + delivery.getDocument());
+                Log.e("EMAIL_CRITICAL", "This POD has no legal value without customer signature");
+                Log.e("EMAIL_CRITICAL", "Signature path from DB: " + delivery.getSignPath());
+                
+                // Mark for retry
+                database.markDeliveryForEmailRetry(delivery.getDocument(), delivery.getTripId(), "Signature file missing or decryption failed");
+                
+                // Clean up any temporary files
+                if (signatureFile != null && signatureFile.exists()) signatureFile.delete();
+                if (photoFile != null && photoFile.exists()) photoFile.delete();
+                
+                return false; // ABORT EMAIL SENDING
+            }
+            
+            // BUSINESS RULE: POD should have photo (evidence of delivery)
+            if (!hasPhoto) {
+                Log.e("EMAIL_CRITICAL", "🚨 ABORTING EMAIL - Missing photo for delivery: " + delivery.getDocument());
+                Log.e("EMAIL_CRITICAL", "POD missing visual evidence of delivery");
+                Log.e("EMAIL_CRITICAL", "Image path from DB: " + delivery.getImagePath());
+                
+                // Mark for retry
+                database.markDeliveryForEmailRetry(delivery.getDocument(), delivery.getTripId(), "Photo file missing or inaccessible");
+                
+                // Clean up any temporary files
+                if (signatureFile != null && signatureFile.exists()) signatureFile.delete();
+                if (photoFile != null && photoFile.exists()) photoFile.delete();
+                
+                return false; // ABORT EMAIL SENDING
+            }
+            
+            Log.i("EMAIL_VALIDATION", "✓ Content validation passed - proceeding with PDF generation");
 
             // Build compact ePOD HTML structure
             StringBuilder bodyBuilder = new StringBuilder();
@@ -690,28 +974,62 @@ public class SyncService extends IntentService {
             document.close();
 
             Log.d("EMAILOUTPUT", "PDF generated successfully: " + pdfFile.getAbsolutePath());
+            
+            // ❗ CRITICAL PDF VALIDATION: Verify PDF contains required content
+            if (!verifyPDFContent(pdfFile, hasSignature, hasPhoto)) {
+                Log.e("EMAIL_CRITICAL", "🚨 ABORTING EMAIL - Generated PDF validation failed");
+                
+                // Clean up all temporary files
+                if (signatureFile != null && signatureFile.exists()) signatureFile.delete();
+                if (photoFile != null && photoFile.exists()) photoFile.delete();
+                if (pdfFile.exists()) pdfFile.delete();
+                
+                return false; // ABORT EMAIL SENDING
+            }
+            
+            Log.i("EMAIL_VALIDATION", "✓ PDF content verification passed - proceeding with email");
 
             // Email setup
+            Log.i("EmailService", "Setting up email authentication...");
             final String username = "dev@easydelivery.biz";
-            final String password = "nnmg ywbr fyud epwo";
+            
+            if (securityManager == null) {
+                Log.e("EmailService", "SecurityManager is null - cannot retrieve email password");
+                return false;
+            }
+            
+            String password = securityManager.getEmailPassword();
+            Log.i("EmailService", "Retrieved password from SecurityManager: " + (password != null && !password.isEmpty() ? "[PASSWORD_SET]" : "[PASSWORD_EMPTY]"));
+
+            if (password == null || password.trim().isEmpty()) {
+                Log.e("EmailService", "Email password is null or empty - cannot authenticate");
+                throw new RuntimeException("Email password is null or empty");
+            }
 
             Properties properties = new Properties();
             properties.put("mail.smtp.host", "smtp.gmail.com");
             properties.put("mail.smtp.port", "587");
             properties.put("mail.smtp.auth", "true");
             properties.put("mail.smtp.starttls.enable", "true");
+            
+            Log.i("EmailService", "SMTP properties configured - Host: smtp.gmail.com, Port: 587, Auth: true, TLS: true");
 
             Session session = Session.getInstance(properties, new Authenticator() {
                 @Override
                 protected PasswordAuthentication getPasswordAuthentication() {
+                    Log.d("EmailService", "SMTP authentication requested - providing credentials");
                     return new PasswordAuthentication(username, password);
                 }
             });
+            
+            Log.i("EmailService", "Email session created successfully");
 
             MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress("dev@easydelivery.biz"));
             message.addRecipient(MimeMessage.RecipientType.TO, new InternetAddress(recipient));
             message.setSubject(subject);
+            
+            Log.i("EmailService", "Email message configured - From: dev@easydelivery.biz, To: " + recipient);
 
             Multipart multipart = new MimeMultipart();
             MimeBodyPart messageBodyPart = new MimeBodyPart();
@@ -719,26 +1037,48 @@ public class SyncService extends IntentService {
             multipart.addBodyPart(messageBodyPart);
 
             // Attach PDF
+            Log.i("EmailService", "Attaching PDF file: " + pdfFile.getAbsolutePath());
             addAttachment(multipart, pdfFile.getAbsolutePath(), "POD_" + delivery.getDocument() + ".pdf");
+            Log.i("EmailService", "PDF attachment added successfully");
 
             message.setContent(multipart);
+            Log.i("EmailService", "Email content set - attempting to send email...");
+            
             Transport.send(message);
+            Log.i("EmailService", "Email sent successfully via SMTP!");
 
             // Clean up temporary files
+            Log.d("EmailService", "Cleaning up temporary files...");
             if (signatureFile != null && signatureFile.exists()) {
-                signatureFile.delete();
+                boolean deleted = signatureFile.delete();
+                Log.d("EmailService", "Signature file deleted: " + deleted);
             }
             if (photoFile != null && photoFile.exists()) {
-                photoFile.delete();
+                boolean deleted = photoFile.delete();
+                Log.d("EmailService", "Photo file deleted: " + deleted);
             }
-            pdfFile.delete();
+            boolean pdfDeleted = pdfFile.delete();
+            Log.d("EmailService", "PDF file deleted: " + pdfDeleted);
 
-            Log.d("EMAILOUTPUT", "Email sent successfully for document: " + delivery.getDocument());
+            Log.i("EmailService", "✓ Email sent successfully for document: " + delivery.getDocument());
+            Log.i("EmailService", "=== Finished sendEmail successfully ===");
             return true;
+            
+        } catch (jakarta.mail.MessagingException e) {
+            Log.e("EmailService", "SMTP/Messaging error sending email for " + delivery.getDocument() + ": " + e.getMessage(), e);
+            return false;
+        } catch (java.io.IOException e) {
+            Log.e("EmailService", "IO error (file/PDF generation) for " + delivery.getDocument() + ": " + e.getMessage(), e);
+            return false;
+        } catch (SecurityException e) {
+            Log.e("EmailService", "Security/Authentication error for " + delivery.getDocument() + ": " + e.getMessage(), e);
+            return false;
         } catch (Exception e) {
-            Log.e("EMAILOUTPUT", "Failed to send email: " + e.getMessage());
+            Log.e("EmailService", "Unexpected error sending email for " + delivery.getDocument() + ": " + e.getMessage(), e);
             e.printStackTrace();
             return false;
+        } finally {
+            Log.i("EmailService", "=== Finished sendEmail (with or without success) ===");
         }
     }
 
@@ -856,12 +1196,376 @@ public class SyncService extends IntentService {
         multipart.addBodyPart(attachmentBodyPart);
     }
 
+    /**
+     * Verify PDF content contains required signature and photo evidence
+     */
+    private boolean verifyPDFContent(File pdfFile, boolean expectedSignature, boolean expectedPhoto) {
+        String operationId = generateOperationId();
+        Log.i("PDF_VERIFICATION", "[" + operationId + "] Verifying PDF content - file: " + pdfFile.getName());
+        Log.i("PDF_VERIFICATION", "[" + operationId + "] Expected signature: " + expectedSignature + ", Expected photo: " + expectedPhoto);
+        
+        try {
+            if (!pdfFile.exists() || pdfFile.length() == 0) {
+                Log.e("PDF_VERIFICATION", "[" + operationId + "] PDF file does not exist or is empty");
+                Log.e("PDF_VERIFICATION", "[" + operationId + "] PDF path: " + pdfFile.getAbsolutePath());
+                Log.e("PDF_VERIFICATION", "[" + operationId + "] PDF exists: " + pdfFile.exists());
+                Log.e("PDF_VERIFICATION", "[" + operationId + "] PDF size: " + pdfFile.length());
+                return false;
+            }
+            
+            Log.i("PDF_VERIFICATION", "[" + operationId + "] PDF file exists with size: " + pdfFile.length() + " bytes");
+            
+            // Basic file size validation - PDFs with images should be larger
+            long minExpectedSize = expectedSignature && expectedPhoto ? 10000 : 5000; // 10KB with images, 5KB without
+            Log.i("PDF_VERIFICATION", "[" + operationId + "] Minimum expected size: " + minExpectedSize + " bytes");
+            
+            if (pdfFile.length() < minExpectedSize) {
+                Log.e("PDF_VERIFICATION", "[" + operationId + "] PDF file too small: " + pdfFile.length() + " bytes, expected > " + minExpectedSize);
+                return false;
+            }
+            
+            // Check if signature and photo files exist in cache (they should be there during PDF generation)
+            File signatureCache = new File(getCacheDir(), "signature.png");
+            File photoCache = new File(getCacheDir(), "photo.jpg");
+            
+            Log.i("PDF_VERIFICATION", "[" + operationId + "] Checking cache files:");
+            Log.i("PDF_VERIFICATION", "[" + operationId + "] Signature cache path: " + signatureCache.getAbsolutePath());
+            Log.i("PDF_VERIFICATION", "[" + operationId + "] Photo cache path: " + photoCache.getAbsolutePath());
+            
+            boolean signatureExists = signatureCache.exists() && signatureCache.length() > 0;
+            boolean photoExists = photoCache.exists() && photoCache.length() > 0;
+            
+            Log.i("PDF_VERIFICATION", "[" + operationId + "] Signature file exists: " + signatureCache.exists() + ", size: " + (signatureCache.exists() ? signatureCache.length() : 0));
+            Log.i("PDF_VERIFICATION", "[" + operationId + "] Photo file exists: " + photoCache.exists() + ", size: " + (photoCache.exists() ? photoCache.length() : 0));
+            
+            Log.d("PDF_VERIFICATION", "[" + operationId + "] Cache files - signature exists: " + signatureExists + ", photo exists: " + photoExists);
+            
+            if (expectedSignature && !signatureExists) {
+                Log.e("PDF_VERIFICATION", "[" + operationId + "] Expected signature but cache file missing or empty");
+                Log.e("PDF_VERIFICATION", "[" + operationId + "] Signature file exists: " + signatureCache.exists());
+                Log.e("PDF_VERIFICATION", "[" + operationId + "] Signature file size: " + (signatureCache.exists() ? signatureCache.length() : "N/A"));
+                return false;
+            }
+            
+            if (expectedPhoto && !photoExists) {
+                Log.e("PDF_VERIFICATION", "[" + operationId + "] Expected photo but cache file missing or empty");
+                Log.e("PDF_VERIFICATION", "[" + operationId + "] Photo file exists: " + photoCache.exists());
+                Log.e("PDF_VERIFICATION", "[" + operationId + "] Photo file size: " + (photoCache.exists() ? photoCache.length() : "N/A"));
+                return false;
+            }
+            
+            Log.i("PDF_VERIFICATION", "[" + operationId + "] PDF content verification successful - size: " + pdfFile.length() + " bytes");
+            return true;
+            
+        } catch (Exception e) {
+            Log.e("PDF_VERIFICATION", "[" + operationId + "] Error during PDF verification: " + e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Recursively search for photo file in directory tree
+     */
+    private File searchForPhotoRecursively(File directory, String imagePath) {
+        if (directory == null || !directory.exists() || !directory.isDirectory()) {
+            return null;
+        }
+        
+        Log.d("EMAILOUTPUT", "Searching for photo in: " + directory.getAbsolutePath());
+        
+        File[] files = directory.listFiles();
+        if (files == null) return null;
+        
+        // Try different extensions for the image path
+        String[] extensions = {".jpg", ".jpeg", ".png", ""};
+        
+        for (File file : files) {
+            if (file.isFile()) {
+                String fileName = file.getName();
+                
+                // Check if filename matches imagePath with any extension
+                for (String ext : extensions) {
+                    if (fileName.equals(imagePath + ext) || fileName.equals(imagePath)) {
+                        Log.d("EMAILOUTPUT", "Found photo file: " + file.getAbsolutePath());
+                        return file;
+                    }
+                }
+                
+                // Also check if imagePath is contained in filename (partial match)
+                if (fileName.contains(imagePath)) {
+                    Log.d("EMAILOUTPUT", "Found photo file (partial match): " + file.getAbsolutePath());
+                    return file;
+                }
+            } else if (file.isDirectory()) {
+                // Recursively search subdirectories
+                File found = searchForPhotoRecursively(file, imagePath);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Generate unique operation ID for tracking
+     */
+    private String generateOperationId() {
+        return "PDF" + System.currentTimeMillis() + "_" + Thread.currentThread().getId();
+    }
+
     private void openDatabase() {
         if (database == null) {
             database = new DeliveryDb(getApplicationContext());
             database.open();
         } else {
             database.open();
+        }
+    }
+    
+    /**
+     * Restore completed trips list from database
+     * This fixes the issue where completed trips get re-downloaded after app restart
+     * because the in-memory AppConstant.completedTrips list is lost
+     */
+    private void restoreCompletedTripsFromDatabase() {
+        Log.i("SyncService", "=== Restoring completed trips from database ===");
+        
+        try {
+            DeliveryDb restoreDb = new DeliveryDb(getApplicationContext());
+            restoreDb.open();
+            
+            // Get all fully completed trips from database
+            List<String> fullyCompletedTrips = restoreDb.getAllFullyCompletedTrips();
+            
+            Log.i("SyncService", "Current AppConstant.completedTrips size: " + AppConstant.completedTrips.size() + " - " + AppConstant.completedTrips);
+            Log.i("SyncService", "Fully completed trips from database: " + fullyCompletedTrips.size() + " - " + fullyCompletedTrips);
+            
+            // Add any missing completed trips to the in-memory list
+            int addedCount = 0;
+            for (String tripId : fullyCompletedTrips) {
+                if (!AppConstant.completedTrips.contains(tripId)) {
+                    AppConstant.completedTrips.add(tripId);
+                    addedCount++;
+                    Log.i("SyncService", "Restored completed trip to memory: " + tripId);
+                }
+            }
+            
+            Log.i("SyncService", "Restored " + addedCount + " completed trips from database");
+            Log.i("SyncService", "Final AppConstant.completedTrips size: " + AppConstant.completedTrips.size() + " - " + AppConstant.completedTrips);
+            
+            restoreDb.close();
+            
+        } catch (Exception e) {
+            Log.e("SyncService", "Error restoring completed trips from database", e);
+            e.printStackTrace();
+        }
+        
+        Log.i("SyncService", "=== Finished restoring completed trips from database ===");
+    }
+    
+    /**
+     * Start adaptive polling system that:
+     * - Syncs immediately on startup
+     * - Uses fast polling (3s) when no trips are found locally
+     * - Uses normal polling (15s) when trips exist
+     * - Uses slow polling (30s) for background maintenance
+     */
+    private void startAdaptivePolling() {
+        Log.i("SyncService", "Starting adaptive polling system");
+        
+        // Immediate sync on startup
+        Thread immediateSync = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Log.i("SyncService", "Performing immediate sync on startup...");
+                performSyncOperations();
+                
+                // Start adaptive timer after immediate sync
+                scheduleAdaptiveSync(0, 0); // Start with 0 empty checks and no delay
+            }
+        });
+        immediateSync.start();
+    }
+    
+    private void scheduleAdaptiveSync(int consecutiveEmptyChecks, long lastSyncTime) {
+        Timer adaptiveTimer = new Timer();
+        adaptiveTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    long currentTime = System.currentTimeMillis();
+                    
+                    // Check if we have local trips
+                    boolean hasLocalTrips = hasLocalTrips();
+                    
+                    // Update empty checks counter
+                    int newEmptyChecks = hasLocalTrips ? 0 : consecutiveEmptyChecks + 1;
+                    
+                    // Determine polling interval based on state
+                    long nextInterval;
+                    String reason;
+                    
+                    if (!hasLocalTrips) {
+                        if (newEmptyChecks <= 10) {
+                            // Fast polling for first 30 seconds when no trips
+                            nextInterval = 3000; // 3 seconds
+                            reason = "fast polling (no local trips, attempt " + newEmptyChecks + "/10)";
+                        } else {
+                            // Medium polling if still no trips after 30s
+                            nextInterval = 8000; // 8 seconds 
+                            reason = "medium polling (still no trips after 30s)";
+                        }
+                    } else {
+                        // Normal polling when trips exist
+                        nextInterval = 15000; // 15 seconds
+                        reason = "normal polling (trips exist)";
+                    }
+                    
+                    // Avoid too frequent syncing
+                    if (currentTime - lastSyncTime < 2000) {
+                        Log.d("SyncService", "Skipping sync - too soon since last sync (" + (currentTime - lastSyncTime) + "ms ago)");
+                        // Schedule next run with same parameters
+                        scheduleAdaptiveSync(newEmptyChecks, lastSyncTime);
+                        return;
+                    }
+                    
+                    Log.i("SyncService", "Running sync cycle - " + reason + " (next in " + (nextInterval/1000) + "s)");
+                    
+                    // Perform sync operations
+                    performSyncOperations();
+                    long newLastSyncTime = System.currentTimeMillis();
+                    
+                    // Schedule next run after the interval
+                    Timer nextTimer = new Timer();
+                    nextTimer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            scheduleAdaptiveSync(newEmptyChecks, newLastSyncTime);
+                        }
+                    }, nextInterval);
+                    
+                } catch (Exception e) {
+                    Log.e("SyncService", "Error in adaptive polling", e);
+                    // Fallback to normal interval on error
+                    Timer fallbackTimer = new Timer();
+                    fallbackTimer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            scheduleAdaptiveSync(0, System.currentTimeMillis());
+                        }
+                    }, 15000);
+                }
+            }
+        }, 100); // Start after 100ms
+    }
+    
+    /**
+     * Check if we have local trips available
+     */
+    private boolean hasLocalTrips() {
+        try {
+            File tripDir = new File(getApplicationContext().getFilesDir() + "/Trip/");
+            if (!tripDir.exists()) {
+                return false;
+            }
+            
+            File[] files = tripDir.listFiles();
+            if (files == null) {
+                return false;
+            }
+            
+            // Count valid JSON trip files
+            int validTrips = 0;
+            for (File file : files) {
+                if (file.isFile() && file.getName().endsWith(".json")) {
+                    validTrips++;
+                }
+            }
+            
+            Log.d("SyncService", "Found " + validTrips + " local trip files");
+            return validTrips > 0;
+            
+        } catch (Exception e) {
+            Log.e("SyncService", "Error checking local trips", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Perform all sync operations (same as before but extracted to method)
+     */
+    private void performSyncOperations() {
+        try {
+            if (database != null && database.isOpen()) {
+                database.close();
+            }
+
+            Thread threadDownloadTrips = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    DropboxHelper.downloadAllTrips(getApplicationContext());
+                }
+            });
+
+            Thread threadCompletedTrip = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    syncCompletedTrip();
+                }
+            });
+
+            Thread threadTripStatus = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    syncTripStatus();
+                }
+            });
+
+            Thread threadCompletedData = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    syncCompletedData();
+                }
+            });
+
+            Thread threadEmail = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    syncEmail();
+                }
+            });
+
+            Thread threadReturns = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    syncReturn();
+                }
+            });
+
+            threadDownloadTrips.start();
+            threadTripStatus.start();
+            threadEmail.start();
+            threadCompletedData.start();
+            threadCompletedTrip.start();
+            threadReturns.start();
+
+            try {
+                threadDownloadTrips.join();
+                threadTripStatus.join();
+                threadEmail.join();
+                threadCompletedData.join();
+                threadCompletedTrip.join();
+                threadReturns.join();
+                if (database != null && database.isOpen()) {
+                    database.close();
+                }
+            } catch (InterruptedException e) {
+                Log.e("SyncService", "Sync operations interrupted", e);
+            }
+        } catch (Exception e) {
+            Log.e("SyncService", "Error in sync operations", e);
         }
     }
 

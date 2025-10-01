@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) {
+    localProps.load(new FileInputStream(localPropsFile))
+}
+
 android {
     compileSdkVersion 34
     namespace 'com.clone.EasyDelivery'
@@ -12,6 +18,9 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField "String", "DROPBOX_REFRESH_TOKEN", "${localProps['DROPBOX_REFRESH_TOKEN'] ?: ''}"
+        buildConfigField "String", "DROPBOX_APP_KEY", "${localProps['DROPBOX_APP_KEY'] ?: ''}"
+        buildConfigField "String", "DROPBOX_APP_SECRET", "${localProps['DROPBOX_APP_SECRET'] ?: ''}"
     }
 
     buildTypes {
@@ -22,6 +31,7 @@ android {
     }
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -69,6 +79,10 @@ dependencies {
     implementation 'com.google.android.gms:play-services-maps:19.0.0'
     implementation 'androidx.activity:activity:1.9.1'
     implementation 'com.google.android.datatransport:transport-api:3.2.0'
+
+    implementation 'androidx.security:security-crypto:1.0.0'
+    implementation 'androidx.biometric:biometric:1.1.0'
+
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'

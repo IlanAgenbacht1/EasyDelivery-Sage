@@ -266,6 +266,147 @@ public class ImageHelper {
     }
 
 
+    /**
+     * Securely save encrypted signature with advanced integrity verification
+     */
+    public static String saveEncryptedSignatureSecurely(Context context, SecurityManager.SignaturePackage signaturePackage) {
+        Log.i("SignatureSecurity", "=== Starting secure signature storage with integrity protection ===");
+        
+        if (signaturePackage == null) {
+            Log.e("SignatureSecurity", "Signature package is null");
+            return null;
+        }
+        
+        if (signaturePackage.encryptedData == null || signaturePackage.encryptedData.length == 0) {
+            Log.e("SignatureSecurity", "Encrypted signature data is null or empty");
+            return null;
+        }
+        
+        if (signaturePackage.integrityData == null || signaturePackage.integrityData.isEmpty()) {
+            Log.e("SignatureSecurity", "Integrity data is null or empty");
+            return null;
+        }
+        
+        try {
+            // Use secure internal storage only (not external)
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(signaturePackage.encryptedData);
+            int hashCode = java.util.Arrays.hashCode(hashBytes);
+            String fileName = "signature_" + System.currentTimeMillis() + "_" + hashCode + ".enc";
+            String integrityFileName = "signature_" + System.currentTimeMillis() + "_" + hashCode + ".integrity";
+            
+            // Store in internal app-private directory with signature subdirectory
+            File secureDir = new File(context.getFilesDir(), "secure_signatures");
+            if (!secureDir.exists()) {
+                boolean created = secureDir.mkdirs();
+                if (!created) {
+                    Log.e("SignatureSecurity", "Failed to create secure signature directory");
+                    return null;
+                }
+                Log.d("SignatureSecurity", "Created secure signature directory: " + secureDir.getAbsolutePath());
+            }
+            
+            File signatureFile = new File(secureDir, fileName);
+            File integrityFile = new File(secureDir, integrityFileName);
+            
+            // Save encrypted signature data
+            try (FileOutputStream fos = new FileOutputStream(signatureFile)) {
+                fos.write(signaturePackage.encryptedData);
+                fos.flush();
+                Log.d("SignatureSecurity", "Encrypted signature written to: " + signatureFile.getAbsolutePath());
+            }
+            
+            // Save integrity metadata separately
+            try (FileOutputStream fos = new FileOutputStream(integrityFile)) {
+                fos.write(signaturePackage.integrityData.getBytes("UTF-8"));
+                fos.flush();
+                Log.d("SignatureSecurity", "Integrity data written to: " + integrityFile.getAbsolutePath());
+            }
+            
+            // Verify file integrity immediately
+            if (!verifyEncryptedSignature(signatureFile.getAbsolutePath(), signaturePackage.encryptedData)) {
+                Log.e("SignatureSecurity", "Signature file integrity verification failed");
+                signatureFile.delete();
+                integrityFile.delete();
+                return null;
+            }
+            
+            // Set restrictive permissions on both files
+            signatureFile.setReadable(true, true);
+            signatureFile.setWritable(true, true);
+            signatureFile.setExecutable(false, false);
+            
+            integrityFile.setReadable(true, true);
+            integrityFile.setWritable(true, true);
+            integrityFile.setExecutable(false, false);
+            
+            Log.i("SignatureSecurity", "✓ Signature saved securely with integrity protection: " + signatureFile.getAbsolutePath() + 
+                  " (" + signaturePackage.encryptedData.length + " bytes)");
+            Log.i("SignatureSecurity", "✓ Integrity metadata saved: " + integrityFile.getAbsolutePath());
+            Log.d("SignatureSecurity", "File permissions set: signature readable=" + signatureFile.canRead() + 
+                  ", integrity readable=" + integrityFile.canRead());
+                  
+            return signatureFile.getAbsolutePath();
+            
+        } catch (Exception e) {
+            Log.e("SignatureSecurity", "Failed to save secure signature with integrity: " + e.getMessage(), e);
+            return null;
+        }
+    }
+    
+    /**
+     * Load encrypted signature with integrity verification
+     */
+    public static SecurityManager.SignaturePackage loadEncryptedSignatureWithIntegrity(String signatureFilePath) {
+        Log.i("SignatureSecurity", "Loading encrypted signature with integrity verification from: " + signatureFilePath);
+        
+        if (signatureFilePath == null || signatureFilePath.isEmpty()) {
+            Log.e("SignatureSecurity", "Signature file path is null or empty");
+            return null;
+        }
+        
+        File signatureFile = new File(signatureFilePath);
+        if (!signatureFile.exists()) {
+            Log.e("SignatureSecurity", "Signature file does not exist: " + signatureFilePath);
+            return null;
+        }
+        
+        // Derive integrity file path
+        String integrityFilePath = signatureFilePath.replace(".enc", ".integrity");
+        File integrityFile = new File(integrityFilePath);
+        
+        try {
+            // Read encrypted signature data
+            byte[] encryptedData = new byte[(int) signatureFile.length()];
+            try (FileInputStream fis = new FileInputStream(signatureFile)) {
+                int bytesRead = fis.read(encryptedData);
+                Log.d("SignatureSecurity", "Read encrypted signature: " + bytesRead + " bytes");
+            }
+            
+            // Read integrity data if available
+            String integrityData = null;
+            if (integrityFile.exists()) {
+                byte[] integrityBytes = new byte[(int) integrityFile.length()];
+                try (FileInputStream fis = new FileInputStream(integrityFile)) {
+                    int bytesRead = fis.read(integrityBytes);
+                    integrityData = new String(integrityBytes, "UTF-8");
+                    Log.d("SignatureSecurity", "Read integrity data: " + bytesRead + " bytes");
+                }
+            } else {
+                Log.w("SignatureSecurity", "No integrity file found - signature may be legacy format");
+            }
+            
+            SecurityManager.SignaturePackage signaturePackage = new SecurityManager.SignaturePackage(encryptedData, integrityData);
+            Log.i("SignatureSecurity", "✓ Signature package loaded successfully: " + signaturePackage.toString());
+            
+            return signaturePackage;
+            
+        } catch (Exception e) {
+            Log.e("SignatureSecurity", "Failed to load signature with integrity: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
     public static String saveEncryptedImage(Context context, byte[] encryptedData, String directory, String subdirectory) {
         String fileName = "signature_" + System.currentTimeMillis() + ".enc";
         File dir = new File(context.getExternalFilesDir(directory), subdirectory);

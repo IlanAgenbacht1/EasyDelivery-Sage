@@ -19,6 +19,8 @@ import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -36,6 +38,7 @@ import com.clone.EasyDelivery.R;
 import com.clone.EasyDelivery.Utility.AppConstant;
 import com.clone.EasyDelivery.Utility.ImageHelper;
 import com.clone.EasyDelivery.Utility.ToastLogger;
+import com.clone.EasyDelivery.Utility.SecurityManager;
 import com.google.gson.Gson;
 
 import java.io.File;
@@ -126,13 +129,92 @@ public class Preview extends AppCompatActivity {
         result = AppConstant.SIGN_PATH.substring(AppConstant.SIGN_PATH.lastIndexOf('/') + 1).trim();
         tvSign.setText("View Here");
 
-        byte[] decryptedSignature;
+        // 🔒 SECURE SIGNATURE DECRYPTION: Use SecurityManager instead of legacy method
+        byte[] decryptedSignature = null;
         try {
-            SharedPreferences prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
-            String keyString = prefs.getString("signature_key", "");
-            decryptedSignature = ImageHelper.decryptImage(AppConstant.SIGN_PATH, keyString);
+            Log.i("PreviewSecurity", "Starting secure signature decryption for preview");
+            
+            if (AppConstant.SIGN_PATH == null || AppConstant.SIGN_PATH.trim().isEmpty()) {
+                Log.e("PreviewSecurity", "Signature path is null or empty");
+                tvSign.setText("No Signature Available");
+                rl_sign_view.setEnabled(false);
+                return;
+            }
+            
+            // Use SecurityManager for secure decryption
+            SecurityManager securityManager = SecurityManager.getInstance(this);
+            
+            // First try to load the signature as a SecurityPackage (new format)
+            SecurityManager.SignaturePackage signaturePackage = ImageHelper.loadEncryptedSignatureWithIntegrity(AppConstant.SIGN_PATH);
+            
+            if (signaturePackage != null) {
+                // New secure format with integrity verification
+                Log.i("PreviewSecurity", "Loading signature with integrity verification");
+                decryptedSignature = securityManager.decryptSignatureWithIntegrityCheck(signaturePackage);
+                
+                if (decryptedSignature != null) {
+                    Log.i("PreviewSecurity", "Signature decrypted successfully with integrity verification: " + decryptedSignature.length + " bytes");
+                } else {
+                    Log.e("PreviewSecurity", "Signature integrity verification failed");
+                }
+            } else {
+                // Fallback: Try legacy decryption for backward compatibility
+                Log.w("PreviewSecurity", "Attempting legacy signature decryption");
+                
+                // Read raw encrypted file
+                File signatureFile = new File(AppConstant.SIGN_PATH);
+                if (signatureFile.exists()) {
+                    byte[] encryptedData = new byte[(int) signatureFile.length()];
+                    try (java.io.FileInputStream fis = new java.io.FileInputStream(signatureFile)) {
+                        fis.read(encryptedData);
+                    }
+                    
+                    // Try SecurityManager decryption first
+                    decryptedSignature = securityManager.decryptSignature(encryptedData);
+                    
+                    if (decryptedSignature != null) {
+                        Log.i("PreviewSecurity", "Legacy signature decrypted with SecurityManager: " + decryptedSignature.length + " bytes");
+                    } else {
+                        // Final fallback: Try old ImageHelper method
+                        Log.w("PreviewSecurity", "Trying final fallback with ImageHelper");
+                        SharedPreferences prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+                        String keyString = prefs.getString("signature_key", "");
+                        
+                        if (!keyString.isEmpty()) {
+                            decryptedSignature = ImageHelper.decryptImage(AppConstant.SIGN_PATH, keyString);
+                            if (decryptedSignature != null) {
+                                Log.w("PreviewSecurity", "Legacy decryption successful - consider re-encrypting with SecurityManager");
+                            }
+                        } else {
+                            Log.e("PreviewSecurity", "No encryption key available for legacy decryption");
+                        }
+                    }
+                } else {
+                    Log.e("PreviewSecurity", "Signature file does not exist: " + AppConstant.SIGN_PATH);
+                }
+            }
+            
+            // Update UI based on decryption result
+            if (decryptedSignature != null) {
+                Log.i("PreviewSecurity", "Signature successfully decrypted for preview");
+                tvSign.setText("View Signature");
+                rl_sign_view.setEnabled(true);
+            } else {
+                Log.e("PreviewSecurity", "Failed to decrypt signature - all methods failed");
+                tvSign.setText("Signature Unavailable");
+                rl_sign_view.setEnabled(false);
+                
+                // Show user-friendly error
+                Toast.makeText(this, "Unable to load signature for preview. The signature may be corrupted.", Toast.LENGTH_LONG).show();
+            }
+            
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            Log.e("PreviewSecurity", "Exception during signature decryption: " + e.getMessage(), e);
+            tvSign.setText("Signature Error");
+            rl_sign_view.setEnabled(false);
+            
+            // Show user-friendly error
+            Toast.makeText(this, "Error loading signature: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
 
         result1 = AppConstant.PIC_PATH.substring(AppConstant.PIC_PATH.lastIndexOf('/') + 1).trim();
@@ -204,13 +286,21 @@ public class Preview extends AppCompatActivity {
             itemParcel.setCompany(tvCompany.getText().toString());
             itemParcel.setTime(currentDate);
 
-            String imageFile = result1.substring(0, result1.length() - 4);
+            // 📷 FIX: Keep the full filename with .jpg extension for proper file lookup
+            String imageFile = result1; // Keep full filename including .jpg extension
+            
+            // Remove .jpg extension for database storage (maintain compatibility)
+            String imageFileForDb = result1.substring(0, result1.length() - 4);
 
             String signatureFile = AppConstant.SIGN_PATH.substring(AppConstant.SIGN_PATH.lastIndexOf('/') + 1).trim();
 
             currentDate = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US).format(new Date());
+            
+            Log.i("PreviewDatabase", "Storing image file in database: " + imageFileForDb);
+            Log.i("PreviewDatabase", "Full image filename: " + imageFile);
+            Log.i("PreviewDatabase", "Signature file: " + signatureFile);
 
-            db.setDocumentCompleted(itemParcel.getDocu(), imageFile, signatureFile, currentDate, this);
+            db.setDocumentCompleted(itemParcel.getDocu(), imageFileForDb, signatureFile, currentDate, this);
             db.updateComment();
             db.createEmailEntry(itemParcel.getDocu(), AppConstant.TRIPID);
 

@@ -457,6 +457,37 @@ public class DeliveryDb {
 
         Log.i("Database", "Delivery " + document + " set to uploaded = 1");
     }
+    
+    /**
+     * Mark delivery for email retry when content validation fails
+     */
+    public void markDeliveryForEmailRetry(String document, String tripId, String reason) {
+        try {
+            // Add email_retry_flag column if it doesn't exist (for migration)
+            ourDatabase.execSQL("ALTER TABLE " + DELIVERY_TABLE + " ADD COLUMN email_retry_flag INTEGER DEFAULT 0");
+        } catch (Exception e) {
+            // Column already exists, ignore
+        }
+        
+        try {
+            // Add email_retry_reason column if it doesn't exist
+            ourDatabase.execSQL("ALTER TABLE " + DELIVERY_TABLE + " ADD COLUMN email_retry_reason TEXT DEFAULT ''");
+        } catch (Exception e) {
+            // Column already exists, ignore
+        }
+        
+        // Mark for retry
+        Cursor cursor = ourDatabase.rawQuery(
+            "UPDATE " + DELIVERY_TABLE + " SET email_retry_flag = 1, email_retry_reason = '" + reason + "' " +
+            "WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + tripId + "'", 
+            null
+        );
+        
+        cursor.moveToFirst();
+        cursor.close();
+        
+        Log.e("Database", "Delivery " + document + " marked for email retry - reason: " + reason);
+    }
 
 
     public void deleteUploadedData(String trip) {
@@ -524,6 +555,122 @@ public class DeliveryDb {
         cursor.close();
 
         return false;
+    }
+    
+    /**
+     * Check if a trip is fully completed and synced (should not be re-downloaded)
+     * A trip is considered fully completed when:
+     * 1. All deliveries are completed AND uploaded
+     * 2. All emails are sent
+     * 3. Data has been synced (document count matches sync count)
+     */
+    public boolean isTripFullyCompleted(String tripId) {
+        if (tripId == null || tripId.trim().isEmpty()) {
+            return false;
+        }
+        
+        try {
+            // Check if trip exists in database at all
+            Cursor tripExistsCursor = ourDatabase.rawQuery(
+                "SELECT COUNT(*) FROM " + DELIVERY_TABLE + " WHERE " + KEY_TRIPID + " = ?", 
+                new String[]{tripId}
+            );
+            
+            if (!tripExistsCursor.moveToFirst() || tripExistsCursor.getInt(0) == 0) {
+                tripExistsCursor.close();
+                // Trip doesn't exist in database, so it's not completed locally
+                return false;
+            }
+            tripExistsCursor.close();
+            
+            // Check 1: All deliveries must be completed AND uploaded
+            Cursor incompleteCursor = ourDatabase.rawQuery(
+                "SELECT COUNT(*) FROM " + DELIVERY_TABLE + 
+                " WHERE " + KEY_TRIPID + " = ? AND (" + KEY_COMPLETED + " = 0 OR " + KEY_UPLOADED + " = 0)", 
+                new String[]{tripId}
+            );
+            
+            if (incompleteCursor.moveToFirst() && incompleteCursor.getInt(0) > 0) {
+                incompleteCursor.close();
+                return false; // Has incomplete or non-uploaded deliveries
+            }
+            incompleteCursor.close();
+            
+            // Check 2: All emails must be sent
+            Cursor unsentEmailsCursor = ourDatabase.rawQuery(
+                "SELECT COUNT(*) FROM " + EMAIL_TABLE + " WHERE " + KEY_TRIPID + " = ? AND " + KEY_SENT + " = 0", 
+                new String[]{tripId}
+            );
+            
+            if (unsentEmailsCursor.moveToFirst() && unsentEmailsCursor.getInt(0) > 0) {
+                unsentEmailsCursor.close();
+                return false; // Has unsent emails
+            }
+            unsentEmailsCursor.close();
+            
+            // Check 3: Data sync must be complete (document count == sync count)
+            Cursor syncCursor = ourDatabase.rawQuery(
+                "SELECT " + KEY_DOCUMENT_QTY + ", " + KEY_DOCUMENT_SYNC_QTY + " FROM " + SYNC_TABLE + 
+                " WHERE " + KEY_TRIPID + " = ?", 
+                new String[]{tripId}
+            );
+            
+            if (syncCursor.moveToFirst()) {
+                int documentQty = syncCursor.getInt(0);
+                int syncQty = syncCursor.getInt(1);
+                syncCursor.close();
+                
+                if (documentQty != syncQty || syncQty == 0) {
+                    return false; // Sync not complete
+                }
+            } else {
+                syncCursor.close();
+                return false; // No sync record found
+            }
+            
+            // All checks passed - trip is fully completed
+            Log.d("Database", "Trip " + tripId + " is fully completed and synced");
+            return true;
+            
+        } catch (Exception e) {
+            Log.e("Database", "Error checking if trip is fully completed: " + tripId, e);
+            return false;
+        }
+    }
+    
+    /**
+     * Get all trips that are fully completed (for restoring AppConstant.completedTrips)
+     * This helps restore the in-memory state after app restart
+     */
+    public List<String> getAllFullyCompletedTrips() {
+        List<String> completedTrips = new ArrayList<>();
+        
+        try {
+            // Get all unique trip IDs that have any data
+            Cursor tripsCursor = ourDatabase.rawQuery(
+                "SELECT DISTINCT " + KEY_TRIPID + " FROM " + DELIVERY_TABLE, 
+                null
+            );
+            
+            int tripIdIndex = tripsCursor.getColumnIndex(KEY_TRIPID);
+            
+            while (tripsCursor.moveToNext()) {
+                String tripId = tripsCursor.getString(tripIdIndex);
+                
+                if (isTripFullyCompleted(tripId)) {
+                    completedTrips.add(tripId);
+                }
+            }
+            
+            tripsCursor.close();
+            
+            Log.i("Database", "Found " + completedTrips.size() + " fully completed trips: " + completedTrips);
+            
+        } catch (Exception e) {
+            Log.e("Database", "Error getting all fully completed trips", e);
+        }
+        
+        return completedTrips;
     }
 
 
