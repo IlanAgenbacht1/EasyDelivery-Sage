@@ -26,7 +26,7 @@ public class DeliveryDb {
     private static final String EMAIL_TABLE = "EmailTable";
     private static final String RETURN_TABLE = "ReturnTable";
 
-    private final int DATABASE_VERSION = 17;
+    private final int DATABASE_VERSION = 18;
     private Context ourContext;
     private SQLiteDatabase ourDatabase;
     private DBHelper ourHelper;
@@ -44,6 +44,7 @@ public class DeliveryDb {
     public static final String KEY_COMPANY = "_company";
 
     public static final String KEY_TRIPID = "_tripId";
+    public static final String KEY_ORDERNUMBER = "_orderNumber";
     public static final String KEY_COMPLETED = "_completed";
     public static final String KEY_CUSTOMER = "_customer";
     public static final String KEY_ADDRESS = "_address";
@@ -103,6 +104,7 @@ public class DeliveryDb {
             String sqlCreateDeliveryTable = "CREATE TABLE " + DELIVERY_TABLE + " (" +
                     KEY_ROWID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     KEY_TRIPID + " TEXT , " +
+                    KEY_ORDERNUMBER + " TEXT, " +
                     KEY_DOCUMENT + " TEXT NOT NULL, " +
                     KEY_CUSTOMER + " TEXT NOT NULL, " +
                     KEY_ADDRESS + " TEXT NOT NULL, " +
@@ -151,14 +153,26 @@ public class DeliveryDb {
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
-            db.execSQL("DROP TABLE IF EXISTS " + DOCUMENT_TABLE);
-            db.execSQL("DROP TABLE IF EXISTS " + PARCEL_TABLE);
-            db.execSQL("DROP TABLE IF EXISTS " + DELIVERY_TABLE);
-            db.execSQL("DROP TABLE IF EXISTS " + SYNC_TABLE);
-            db.execSQL("DROP TABLE IF EXISTS " + EMAIL_TABLE);
-            db.execSQL("DROP TABLE IF EXISTS " + RETURN_TABLE);
-
-            onCreate(db);
+            if (oldVersion < 18) {
+                // Add orderNumber column to existing DeliveryTable
+                try {
+                    db.execSQL("ALTER TABLE " + DELIVERY_TABLE + " ADD COLUMN " + KEY_ORDERNUMBER + " TEXT DEFAULT NULL");
+                    Log.i("Database", "Added orderNumber column to DeliveryTable");
+                } catch (Exception e) {
+                    Log.e("Database", "Error adding orderNumber column: " + e.getMessage(), e);
+                }
+            }
+            
+            // For major version changes, still do a complete rebuild
+            if (oldVersion < 17) {
+                db.execSQL("DROP TABLE IF EXISTS " + DOCUMENT_TABLE);
+                db.execSQL("DROP TABLE IF EXISTS " + PARCEL_TABLE);
+                db.execSQL("DROP TABLE IF EXISTS " + DELIVERY_TABLE);
+                db.execSQL("DROP TABLE IF EXISTS " + SYNC_TABLE);
+                db.execSQL("DROP TABLE IF EXISTS " + EMAIL_TABLE);
+                db.execSQL("DROP TABLE IF EXISTS " + RETURN_TABLE);
+                onCreate(db);
+            }
         }
     }
 
@@ -188,6 +202,7 @@ public class DeliveryDb {
         ContentValues cv = new ContentValues();
 
         cv.put(KEY_TRIPID, delivery.getTripId());
+        cv.put(KEY_ORDERNUMBER, delivery.getOrderNumber());
         cv.put(KEY_DOCUMENT, delivery.getDocument());
         cv.put(KEY_CUSTOMER, delivery.getCustomerName());
         cv.put(KEY_CONTACTNAME, delivery.getContactName());
@@ -294,6 +309,7 @@ public class DeliveryDb {
         Cursor cursor = ourDatabase.rawQuery("SELECT * FROM " + DELIVERY_TABLE + " WHERE " + KEY_DOCUMENT + " = '" + document + "' AND " + KEY_TRIPID + " = '" + AppConstant.TRIPID + "' AND " + KEY_COMPLETED + " = 0;", null);
 
         int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
+        int orderNumberIndex = cursor.getColumnIndex(KEY_ORDERNUMBER);
         int customerIndex = cursor.getColumnIndex(KEY_CUSTOMER);
         int addressIndex = cursor.getColumnIndex(KEY_ADDRESS);
         int contactNameIndex = cursor.getColumnIndex(KEY_CONTACTNAME);
@@ -307,6 +323,7 @@ public class DeliveryDb {
         while (cursor.moveToNext()) {
 
             delivery.setDocument(cursor.getString(documentIndex));
+            delivery.setOrderNumber(cursor.getString(orderNumberIndex));
             delivery.setCustomerName(cursor.getString(customerIndex));
             delivery.setAddress(cursor.getString(addressIndex));
             delivery.setContactName(cursor.getString(contactNameIndex));
@@ -395,6 +412,7 @@ public class DeliveryDb {
         //  AND " + KEY_UPLOADED + " = 0
 
         int documentIndex = cursor.getColumnIndex(KEY_DOCUMENT);
+        int orderNumberIndex = cursor.getColumnIndex(KEY_ORDERNUMBER);
         int customerIndex = cursor.getColumnIndex(KEY_CUSTOMER);
         int addressIndex = cursor.getColumnIndex(KEY_ADDRESS);
         int contactNameIndex = cursor.getColumnIndex(KEY_CONTACTNAME);
@@ -411,6 +429,7 @@ public class DeliveryDb {
 
             delivery.setTripId(tripID);
             delivery.setDocument(cursor.getString(documentIndex));
+            delivery.setOrderNumber(cursor.getString(orderNumberIndex));
             delivery.setCustomerName(cursor.getString(customerIndex));
             delivery.setAddress(cursor.getString(addressIndex));
             delivery.setContactName(cursor.getString(contactNameIndex));

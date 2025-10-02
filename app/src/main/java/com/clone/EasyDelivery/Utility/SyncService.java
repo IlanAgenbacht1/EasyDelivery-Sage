@@ -651,7 +651,7 @@ public class SyncService extends IntentService {
         
         try {
             String recipient = AppConstant.EMAIL;
-            String subject = "Proof of Delivery for Order: " + delivery.getTripId();
+            String subject = "Proof of Delivery for Order: " + (delivery.getOrderNumber() != null && !delivery.getOrderNumber().isEmpty() ? delivery.getOrderNumber() : delivery.getTripId());
             
             Log.i("EmailService", "Email details - Recipient: " + recipient + ", Subject: " + subject);
             Log.d("EmailService", "Delivery details - Customer: " + delivery.getCustomerName() + ", Document: " + delivery.getDocument() + ", Trip: " + delivery.getTripId());
@@ -881,7 +881,7 @@ public class SyncService extends IntentService {
                     .append("<td style='width: 50%; vertical-align: top;'>")
                     .append("<h3 style='color: #34495e; margin: 0 0 10px 0; font-size: 16px;'>Order & Shipment Details</h3>")
                     .append("<table style='width: 100%; font-size: 12px;'>")
-                    .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Order Number:</td><td>" + delivery.getTripId() + "</td></tr>")
+                    .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Order Number:</td><td>" + (delivery.getOrderNumber() != null && !delivery.getOrderNumber().isEmpty() ? delivery.getOrderNumber() : delivery.getTripId()) + "</td></tr>")
                     .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Shipment Number:</td><td>" + delivery.getDocument() + "</td></tr>")
                     .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Delivery Date:</td><td>" + date + "</td></tr>")
                     .append("<tr><td style='font-weight: bold; padding: 4px 0;'>Delivery Time:</td><td>" + time + "</td></tr>")

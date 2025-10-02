@@ -53,6 +53,7 @@ public class ScheduleHelper {
 
                     JSONObject stop = stops.getJSONObject(i);
                     String documentNumber = stop.getString("documentNumber");
+                    String orderNumber = stop.optString("orderNumber", ""); // Use optString to handle missing field gracefully
                     AppConstant.documentList.add(documentNumber);
 
                     JSONObject customer = stop.getJSONObject("customer");
@@ -84,6 +85,7 @@ public class ScheduleHelper {
                     }
 
                     delivery.setDocument(documentNumber);
+                    delivery.setOrderNumber(orderNumber);
                     delivery.setTripId(AppConstant.TRIPID);
                     delivery.setCustomerName(customerName);
                     delivery.setAddress(address);

@@ -7,6 +7,7 @@ import java.util.List;
 public class Delivery {
 
     private String tripId;
+    private String orderNumber;
     private String document;
     private String customerName;
     private String address;
@@ -29,6 +30,9 @@ public class Delivery {
 
     public String getTripId() {return tripId; }
     public void setTripId(String tripId) {this.tripId = tripId; }
+
+    public String getOrderNumber() {return orderNumber; }
+    public void setOrderNumber(String orderNumber) {this.orderNumber = orderNumber; }
 
     public String getDocument() {return document; }
     public void setDocument(String document) {this.document = document; }
