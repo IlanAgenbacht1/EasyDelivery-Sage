@@ -31,6 +31,7 @@ import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.clone.EasyDelivery.Activity.TripDash;
 import com.clone.EasyDelivery.Adapter.PreviewAdapter;
 import com.clone.EasyDelivery.Database.DeliveryDb;
 import com.clone.EasyDelivery.Model.ItemParcel;
@@ -49,6 +50,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -305,15 +307,40 @@ public class Preview extends AppCompatActivity {
             db.createEmailEntry(itemParcel.getDocu(), AppConstant.TRIPID);
 
             Log.i("SyncService", "Email queued: " + AppConstant.TRIPID + ":" + itemParcel.getDocu());
+            
+            // 🎯 TRIP COMPLETION: Check if all deliveries for this trip are now completed
+            boolean allDeliveriesCompleted = checkAllDeliveriesCompleted(db, AppConstant.TRIPID);
+            Log.i("TripCompletion", "All deliveries completed for trip " + AppConstant.TRIPID + ": " + allDeliveriesCompleted);
+            
+            if (allDeliveriesCompleted) {
+                Log.i("TripCompletion", "🎉 TRIP COMPLETED! Adding to completed trips list and broadcasting completion");
+                
+                // Add trip to completed list if not already there
+                if (!AppConstant.completedTrips.contains(AppConstant.TRIPID)) {
+                    AppConstant.completedTrips.add(AppConstant.TRIPID);
+                    Log.i("TripCompletion", "Added trip " + AppConstant.TRIPID + " to completed trips list");
+                }
+                
+                // Send broadcast to trigger trip completion handling
+                Intent tripCompletedIntent = new Intent("TripCompleted");
+                tripCompletedIntent.putExtra("tripId", AppConstant.TRIPID);
+                sendBroadcast(tripCompletedIntent);
+                Log.i("TripCompletion", "✅ Broadcasted TripCompleted for trip: " + AppConstant.TRIPID);
+                
+                // Show completion confirmation
+                showTripCompletionDialog();
+            } else {
+                Log.i("TripCompletion", "Trip not yet complete - more deliveries remaining");
+                
+                // Navigate back to DashHeader to continue with remaining deliveries
+                startActivity(new Intent(Preview.this, DashHeader.class));
+                finishAffinity();
+            }
 
             db.close();
-
+            
             AppConstant.DOCUMENT = "";
             AppConstant.COMMENT = "";
-
-            startActivity(new Intent(Preview.this, DashHeader.class));
-
-            finishAffinity();
         }
 
         catch(SQLException e){
@@ -446,5 +473,72 @@ public class Preview extends AppCompatActivity {
         SharedPreferences shp = this.getSharedPreferences("VEHICLE", MODE_PRIVATE);
         System.out.println("getting vehicle" + shp.getString("vehicle", ""));
         return shp.getString("vehicle", "");
+    }
+    
+    /**
+     * 🎯 Check if all deliveries for the given trip are completed
+     * @param db Database instance
+     * @param tripId Trip ID to check
+     * @return true if all deliveries are completed, false otherwise
+     */
+    private boolean checkAllDeliveriesCompleted(DeliveryDb db, String tripId) {
+        try {
+            // Get list of incomplete documents for this trip
+            List<String> incompleteDocuments = db.getDocumentList(true); // true = incomplete only
+            
+            Log.i("TripCompletion", "Checking completion for trip: " + tripId);
+            Log.i("TripCompletion", "Remaining incomplete documents: " + incompleteDocuments.size() + " - " + incompleteDocuments);
+            
+            // If no incomplete documents remain, trip is complete
+            boolean isComplete = incompleteDocuments.isEmpty();
+            
+            if (isComplete) {
+                Log.i("TripCompletion", "✅ ALL DELIVERIES COMPLETED for trip: " + tripId);
+            } else {
+                Log.i("TripCompletion", "⏳ Trip " + tripId + " still has " + incompleteDocuments.size() + " pending deliveries");
+            }
+            
+            return isComplete;
+            
+        } catch (Exception e) {
+            Log.e("TripCompletion", "Error checking trip completion for " + tripId, e);
+            return false; // Fail safe - assume not complete if we can't check
+        }
+    }
+    
+    /**
+     * 🎉 Show trip completion confirmation dialog and navigate to trip dashboard
+     */
+    private void showTripCompletionDialog() {
+        try {
+            final android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this, R.style.AlertDialogStyle);
+            
+            builder.setTitle("🎉 Trip Completed!");
+            builder.setMessage("Congratulations! You have successfully completed all deliveries for trip " + AppConstant.TRIPID + ".\n\nThe trip data is being synchronized with the cloud.");
+            
+            builder.setPositiveButton("Continue", new android.content.DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(android.content.DialogInterface dialog, int which) {
+                    // Navigate to trip dashboard
+                    Log.i("TripCompletion", "User acknowledged trip completion - navigating to TripDash");
+                    startActivity(new Intent(Preview.this, TripDash.class));
+                    finishAffinity();
+                }
+            });
+            
+            // Prevent canceling - user must acknowledge
+            builder.setCancelable(false);
+            
+            android.app.AlertDialog dialog = builder.create();
+            dialog.show();
+            
+            Log.i("TripCompletion", "Displayed trip completion confirmation dialog");
+            
+        } catch (Exception e) {
+            Log.e("TripCompletion", "Error showing completion dialog - falling back to direct navigation", e);
+            // Fallback: Navigate directly if dialog fails
+            startActivity(new Intent(Preview.this, TripDash.class));
+            finishAffinity();
+        }
     }
 }

@@ -25,8 +25,9 @@ public class DeliveryDb {
     private static final String SYNC_TABLE = "SyncTable";
     private static final String EMAIL_TABLE = "EmailTable";
     private static final String RETURN_TABLE = "ReturnTable";
+    private static final String SYNC_METADATA_TABLE = "SyncMetadataTable";
 
-    private final int DATABASE_VERSION = 18;
+    private final int DATABASE_VERSION = 19;
     private Context ourContext;
     private SQLiteDatabase ourDatabase;
     private DBHelper ourHelper;
@@ -67,7 +68,16 @@ public class DeliveryDb {
     public static final String KEY_ITEM = "_item";
     public static final String KEY_QTY = "_qty";
     public static final String KEY_REFERENCE = "_reference";
-
+    
+    // Sync metadata table columns
+    public static final String KEY_SYNC_TRIP_ID = "_syncTripId";
+    public static final String KEY_CLOUD_VERSION = "_cloudVersion";
+    public static final String KEY_LOCAL_VERSION = "_localVersion";
+    public static final String KEY_LAST_CLOUD_SYNC = "_lastCloudSync";
+    public static final String KEY_CONFLICT_RESOLUTION_NEEDED = "_conflictResolutionNeeded";
+    public static final String KEY_METADATA_HASH = "_metadataHash";
+    public static final String KEY_SYNC_STATUS = "_syncStatus";
+    public static final String KEY_LAST_SYNC_ERROR = "_lastSyncError";
 
     public static final String KEY_ROWID2 = "_id2";
 
@@ -148,6 +158,20 @@ public class DeliveryDb {
                     KEY_TIME + " TEXT NOT NULL);";
 
             db.execSQL(sqlCreateReturnTable);
+            
+            // Create sync metadata table for Enhanced synchronization
+            String sqlCreateSyncMetadataTable = "CREATE TABLE " + SYNC_METADATA_TABLE + " (" +
+                    KEY_SYNC_TRIP_ID + " TEXT PRIMARY KEY, " +
+                    KEY_CLOUD_VERSION + " INTEGER DEFAULT 0, " +
+                    KEY_LOCAL_VERSION + " INTEGER DEFAULT 0, " +
+                    KEY_LAST_CLOUD_SYNC + " INTEGER DEFAULT 0, " +
+                    KEY_CONFLICT_RESOLUTION_NEEDED + " BOOLEAN DEFAULT 0, " +
+                    KEY_METADATA_HASH + " TEXT DEFAULT '', " +
+                    KEY_SYNC_STATUS + " TEXT DEFAULT 'pending', " +
+                    KEY_LAST_SYNC_ERROR + " TEXT DEFAULT '', " +
+                    "FOREIGN KEY(" + KEY_SYNC_TRIP_ID + ") REFERENCES " + DELIVERY_TABLE + "(" + KEY_TRIPID + "));";
+            
+            db.execSQL(sqlCreateSyncMetadataTable);
         }
 
         @Override
@@ -163,6 +187,27 @@ public class DeliveryDb {
                 }
             }
             
+            if (oldVersion < 19) {
+                // Add sync metadata table for Enhanced synchronization
+                try {
+                    String sqlCreateSyncMetadataTable = "CREATE TABLE " + SYNC_METADATA_TABLE + " (" +
+                            KEY_SYNC_TRIP_ID + " TEXT PRIMARY KEY, " +
+                            KEY_CLOUD_VERSION + " INTEGER DEFAULT 0, " +
+                            KEY_LOCAL_VERSION + " INTEGER DEFAULT 0, " +
+                            KEY_LAST_CLOUD_SYNC + " INTEGER DEFAULT 0, " +
+                            KEY_CONFLICT_RESOLUTION_NEEDED + " BOOLEAN DEFAULT 0, " +
+                            KEY_METADATA_HASH + " TEXT DEFAULT '', " +
+                            KEY_SYNC_STATUS + " TEXT DEFAULT 'pending', " +
+                            KEY_LAST_SYNC_ERROR + " TEXT DEFAULT '', " +
+                            "FOREIGN KEY(" + KEY_SYNC_TRIP_ID + ") REFERENCES " + DELIVERY_TABLE + "(" + KEY_TRIPID + "));";
+                    
+                    db.execSQL(sqlCreateSyncMetadataTable);
+                    Log.i("Database", "Created SyncMetadataTable for Enhanced synchronization");
+                } catch (Exception e) {
+                    Log.e("Database", "Error creating SyncMetadataTable: " + e.getMessage(), e);
+                }
+            }
+            
             // For major version changes, still do a complete rebuild
             if (oldVersion < 17) {
                 db.execSQL("DROP TABLE IF EXISTS " + DOCUMENT_TABLE);
@@ -171,6 +216,7 @@ public class DeliveryDb {
                 db.execSQL("DROP TABLE IF EXISTS " + SYNC_TABLE);
                 db.execSQL("DROP TABLE IF EXISTS " + EMAIL_TABLE);
                 db.execSQL("DROP TABLE IF EXISTS " + RETURN_TABLE);
+                db.execSQL("DROP TABLE IF EXISTS " + SYNC_METADATA_TABLE);
                 onCreate(db);
             }
         }
@@ -871,6 +917,340 @@ public class DeliveryDb {
         Cursor cursor = ourDatabase.rawQuery("DELETE FROM " + RETURN_TABLE + " WHERE " + KEY_ITEM + " = '" + item + "'", null);
         cursor.moveToFirst();
         cursor.close();
+    }
+    
+    // ================== Enhanced Sync SYNC METADATA METHODS ==================
+    
+    /**
+     * 🔄 Create or update sync metadata for a trip
+     * Used to track cloud synchronization state and version control
+     */
+    public long createOrUpdateSyncMetadata(String tripId, int cloudVersion, int localVersion, 
+                                          String metadataHash, String syncStatus) {
+        ContentValues cv = new ContentValues();
+        
+        cv.put(KEY_SYNC_TRIP_ID, tripId);
+        cv.put(KEY_CLOUD_VERSION, cloudVersion);
+        cv.put(KEY_LOCAL_VERSION, localVersion);
+        cv.put(KEY_LAST_CLOUD_SYNC, System.currentTimeMillis());
+        cv.put(KEY_CONFLICT_RESOLUTION_NEEDED, false);
+        cv.put(KEY_METADATA_HASH, metadataHash != null ? metadataHash : "");
+        cv.put(KEY_SYNC_STATUS, syncStatus != null ? syncStatus : "pending");
+        cv.put(KEY_LAST_SYNC_ERROR, "");
+        
+        // Use INSERT OR REPLACE to handle both create and update
+        return ourDatabase.insertWithOnConflict(SYNC_METADATA_TABLE, null, cv, 
+                android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE);
+    }
+    
+    /**
+     * 📊 Get sync metadata for a specific trip
+     */
+    public SyncMetadata getSyncMetadata(String tripId) {
+        if (tripId == null || tripId.trim().isEmpty()) {
+            return null;
+        }
+        
+        Cursor cursor = ourDatabase.rawQuery(
+            "SELECT * FROM " + SYNC_METADATA_TABLE + " WHERE " + KEY_SYNC_TRIP_ID + " = ?", 
+            new String[]{tripId}
+        );
+        
+        SyncMetadata metadata = null;
+        
+        if (cursor != null && cursor.moveToFirst()) {
+            int tripIdIndex = cursor.getColumnIndex(KEY_SYNC_TRIP_ID);
+            int cloudVersionIndex = cursor.getColumnIndex(KEY_CLOUD_VERSION);
+            int localVersionIndex = cursor.getColumnIndex(KEY_LOCAL_VERSION);
+            int lastSyncIndex = cursor.getColumnIndex(KEY_LAST_CLOUD_SYNC);
+            int conflictIndex = cursor.getColumnIndex(KEY_CONFLICT_RESOLUTION_NEEDED);
+            int hashIndex = cursor.getColumnIndex(KEY_METADATA_HASH);
+            int statusIndex = cursor.getColumnIndex(KEY_SYNC_STATUS);
+            int errorIndex = cursor.getColumnIndex(KEY_LAST_SYNC_ERROR);
+            
+            metadata = new SyncMetadata(
+                cursor.getString(tripIdIndex),
+                cursor.getInt(cloudVersionIndex),
+                cursor.getInt(localVersionIndex),
+                cursor.getLong(lastSyncIndex),
+                cursor.getInt(conflictIndex) == 1,
+                cursor.getString(hashIndex),
+                cursor.getString(statusIndex),
+                cursor.getString(errorIndex)
+            );
+        }
+        
+        if (cursor != null) {
+            cursor.close();
+        }
+        
+        return metadata;
+    }
+    
+    /**
+     * 🔄 Update cloud sync timestamp for a trip
+     */
+    public boolean updateLastCloudSync(String tripId, long timestamp, String syncStatus) {
+        if (tripId == null || tripId.trim().isEmpty()) {
+            return false;
+        }
+        
+        try {
+            ContentValues cv = new ContentValues();
+            cv.put(KEY_LAST_CLOUD_SYNC, timestamp);
+            if (syncStatus != null) {
+                cv.put(KEY_SYNC_STATUS, syncStatus);
+            }
+            cv.put(KEY_LAST_SYNC_ERROR, ""); // Clear previous errors on successful sync
+            
+            int rowsUpdated = ourDatabase.update(SYNC_METADATA_TABLE, cv, 
+                KEY_SYNC_TRIP_ID + " = ?", new String[]{tripId});
+            
+            if (rowsUpdated > 0) {
+                Log.d("Database", "Updated cloud sync timestamp for trip: " + tripId);
+                return true;
+            } else {
+                // Create new sync metadata entry if it doesn't exist
+                return createOrUpdateSyncMetadata(tripId, 0, 1, null, syncStatus) > 0;
+            }
+            
+        } catch (Exception e) {
+            Log.e("Database", "Error updating cloud sync timestamp for " + tripId, e);
+            return false;
+        }
+    }
+    
+    /**
+     * 🚨 Mark trip for conflict resolution
+     */
+    public boolean markTripForConflictResolution(String tripId, String errorMessage) {
+        if (tripId == null || tripId.trim().isEmpty()) {
+            return false;
+        }
+        
+        try {
+            ContentValues cv = new ContentValues();
+            cv.put(KEY_CONFLICT_RESOLUTION_NEEDED, true);
+            cv.put(KEY_LAST_SYNC_ERROR, errorMessage != null ? errorMessage : "Conflict detected");
+            cv.put(KEY_SYNC_STATUS, "conflict");
+            
+            int rowsUpdated = ourDatabase.update(SYNC_METADATA_TABLE, cv, 
+                KEY_SYNC_TRIP_ID + " = ?", new String[]{tripId});
+            
+            Log.w("Database", "Marked trip " + tripId + " for conflict resolution: " + errorMessage);
+            return rowsUpdated > 0;
+            
+        } catch (Exception e) {
+            Log.e("Database", "Error marking trip for conflict resolution: " + tripId, e);
+            return false;
+        }
+    }
+    
+    /**
+     * ✅ Get all trips requiring conflict resolution
+     */
+    public List<SyncMetadata> getTripsRequiringConflictResolution() {
+        List<SyncMetadata> conflictTrips = new ArrayList<>();
+        
+        Cursor cursor = ourDatabase.rawQuery(
+            "SELECT * FROM " + SYNC_METADATA_TABLE + " WHERE " + KEY_CONFLICT_RESOLUTION_NEEDED + " = 1", 
+            null
+        );
+        
+        if (cursor != null) {
+            int tripIdIndex = cursor.getColumnIndex(KEY_SYNC_TRIP_ID);
+            int cloudVersionIndex = cursor.getColumnIndex(KEY_CLOUD_VERSION);
+            int localVersionIndex = cursor.getColumnIndex(KEY_LOCAL_VERSION);
+            int lastSyncIndex = cursor.getColumnIndex(KEY_LAST_CLOUD_SYNC);
+            int conflictIndex = cursor.getColumnIndex(KEY_CONFLICT_RESOLUTION_NEEDED);
+            int hashIndex = cursor.getColumnIndex(KEY_METADATA_HASH);
+            int statusIndex = cursor.getColumnIndex(KEY_SYNC_STATUS);
+            int errorIndex = cursor.getColumnIndex(KEY_LAST_SYNC_ERROR);
+            
+            while (cursor.moveToNext()) {
+                SyncMetadata metadata = new SyncMetadata(
+                    cursor.getString(tripIdIndex),
+                    cursor.getInt(cloudVersionIndex),
+                    cursor.getInt(localVersionIndex),
+                    cursor.getLong(lastSyncIndex),
+                    cursor.getInt(conflictIndex) == 1,
+                    cursor.getString(hashIndex),
+                    cursor.getString(statusIndex),
+                    cursor.getString(errorIndex)
+                );
+                
+                conflictTrips.add(metadata);
+            }
+            
+            cursor.close();
+        }
+        
+        return conflictTrips;
+    }
+    
+    /**
+     * 🧹 Clean up sync metadata for completed trips
+     */
+    public int cleanupSyncMetadata(List<String> completedTripIds) {
+        if (completedTripIds == null || completedTripIds.isEmpty()) {
+            return 0;
+        }
+        
+        try {
+            int deletedCount = 0;
+            
+            for (String tripId : completedTripIds) {
+                int rowsDeleted = ourDatabase.delete(SYNC_METADATA_TABLE, 
+                    KEY_SYNC_TRIP_ID + " = ?", new String[]{tripId});
+                deletedCount += rowsDeleted;
+            }
+            
+            if (deletedCount > 0) {
+                Log.i("Database", "Cleaned up sync metadata for " + deletedCount + " completed trips");
+            }
+            
+            return deletedCount;
+            
+        } catch (Exception e) {
+            Log.e("Database", "Error cleaning up sync metadata", e);
+            return 0;
+        }
+    }
+    
+    /**
+     * 📊 Get sync statistics for monitoring and debugging
+     */
+    public String getSyncStatistics() {
+        StringBuilder stats = new StringBuilder();
+        
+        try {
+            // Count trips by sync status
+            Cursor cursor = ourDatabase.rawQuery(
+                "SELECT " + KEY_SYNC_STATUS + ", COUNT(*) FROM " + SYNC_METADATA_TABLE + 
+                " GROUP BY " + KEY_SYNC_STATUS, null
+            );
+            
+            stats.append("🔄 Sync Statistics:\n");
+            
+            if (cursor != null) {
+                while (cursor.moveToNext()) {
+                    String status = cursor.getString(0);
+                    int count = cursor.getInt(1);
+                    stats.append("  - ").append(status).append(": ").append(count).append("\n");
+                }
+                cursor.close();
+            }
+            
+            // Count conflicts
+            cursor = ourDatabase.rawQuery(
+                "SELECT COUNT(*) FROM " + SYNC_METADATA_TABLE + 
+                " WHERE " + KEY_CONFLICT_RESOLUTION_NEEDED + " = 1", null
+            );
+            
+            if (cursor != null && cursor.moveToFirst()) {
+                int conflicts = cursor.getInt(0);
+                stats.append("  - conflicts: ").append(conflicts).append("\n");
+                cursor.close();
+            }
+            
+            // Recent sync activity
+            long oneHourAgo = System.currentTimeMillis() - (60 * 60 * 1000);
+            cursor = ourDatabase.rawQuery(
+                "SELECT COUNT(*) FROM " + SYNC_METADATA_TABLE + 
+                " WHERE " + KEY_LAST_CLOUD_SYNC + " > ?", 
+                new String[]{String.valueOf(oneHourAgo)}
+            );
+            
+            if (cursor != null && cursor.moveToFirst()) {
+                int recentSyncs = cursor.getInt(0);
+                stats.append("  - synced in last hour: ").append(recentSyncs).append("\n");
+                cursor.close();
+            }
+            
+        } catch (Exception e) {
+            Log.e("Database", "Error getting sync statistics", e);
+            stats.append("Error retrieving sync statistics: ").append(e.getMessage());
+        }
+        
+        return stats.toString();
+    }
+    
+    /**
+     * Get trips claimed by a specific device (for Enhanced Sync integration)
+     * This is a placeholder implementation that returns trips based on local sync metadata
+     */
+    public List<String> getTripsClaimedByDevice(String deviceId) {
+        List<String> claimedTrips = new ArrayList<>();
+        
+        try {
+            // For now, just return trips that have sync metadata with 'claimed' status
+            // In a full implementation, this would check device-specific claim metadata
+            Cursor cursor = ourDatabase.rawQuery(
+                "SELECT DISTINCT " + KEY_SYNC_TRIP_ID + " FROM " + SYNC_METADATA_TABLE + 
+                " WHERE " + KEY_SYNC_STATUS + " LIKE '%claimed%' OR " + KEY_SYNC_STATUS + " LIKE '%progress%'", 
+                null
+            );
+            
+            if (cursor != null) {
+                int tripIdIndex = cursor.getColumnIndex(KEY_SYNC_TRIP_ID);
+                
+                while (cursor.moveToNext()) {
+                    String tripId = cursor.getString(tripIdIndex);
+                    claimedTrips.add(tripId);
+                }
+                
+                cursor.close();
+            }
+            
+            Log.d("Database", "Found " + claimedTrips.size() + " trips claimed by device " + deviceId);
+            
+        } catch (Exception e) {
+            Log.e("Database", "Error getting trips claimed by device: " + deviceId, e);
+        }
+        
+        return claimedTrips;
+    }
+    
+    /**
+     * 🔄 Inner class to represent sync metadata
+     */
+    public static class SyncMetadata {
+        public final String tripId;
+        public final int cloudVersion;
+        public final int localVersion;
+        public final long lastCloudSync;
+        public final boolean conflictResolutionNeeded;
+        public final String metadataHash;
+        public final String syncStatus;
+        public final String lastSyncError;
+        
+        public SyncMetadata(String tripId, int cloudVersion, int localVersion, long lastCloudSync,
+                           boolean conflictResolutionNeeded, String metadataHash, String syncStatus,
+                           String lastSyncError) {
+            this.tripId = tripId;
+            this.cloudVersion = cloudVersion;
+            this.localVersion = localVersion;
+            this.lastCloudSync = lastCloudSync;
+            this.conflictResolutionNeeded = conflictResolutionNeeded;
+            this.metadataHash = metadataHash != null ? metadataHash : "";
+            this.syncStatus = syncStatus != null ? syncStatus : "pending";
+            this.lastSyncError = lastSyncError != null ? lastSyncError : "";
+        }
+        
+        public boolean needsSync() {
+            return localVersion > cloudVersion || conflictResolutionNeeded;
+        }
+        
+        public boolean hasConflict() {
+            return conflictResolutionNeeded;
+        }
+        
+        @Override
+        public String toString() {
+            return "SyncMetadata{tripId=" + tripId + ", cloudVer=" + cloudVersion + 
+                   ", localVer=" + localVersion + ", status=" + syncStatus + 
+                   ", conflict=" + conflictResolutionNeeded + "}";
+        }
     }
 
 }

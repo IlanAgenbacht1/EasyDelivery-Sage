@@ -29,8 +29,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.clone.EasyDelivery.Adapter.TripAdapter;
 import com.clone.EasyDelivery.R;
 import com.clone.EasyDelivery.Utility.AppConstant;
+import com.clone.EasyDelivery.Utility.ConnectionHelper;
+import com.clone.EasyDelivery.Utility.DropboxHelper;
 import com.clone.EasyDelivery.Utility.ScheduleHelper;
 import com.clone.EasyDelivery.Utility.SyncConstant;
+import com.clone.EasyDelivery.Utility.UnifiedTripManager;
 import com.clone.EasyDelivery.databinding.ActivityMainBinding;
 import com.clone.EasyDelivery.databinding.ActivityTripDashBinding;
 
@@ -92,7 +95,17 @@ public class TripDash extends AppCompatActivity {
         });
 
         recyclerView = findViewById(R.id.rv_trip);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+        
+        // 🎨 SMOOTH ANIMATIONS: Enable built-in RecyclerView animations
+        recyclerView.setItemAnimator(new androidx.recyclerview.widget.DefaultItemAnimator());
+        recyclerView.getItemAnimator().setChangeDuration(300);
+        recyclerView.getItemAnimator().setMoveDuration(300);
+        recyclerView.getItemAnimator().setAddDuration(400);
+        recyclerView.getItemAnimator().setRemoveDuration(300);
+        
+        Log.i("TripDash", "🎨 RecyclerView animations enabled");
 
         layout = findViewById(R.id.trip_dash_main);
 
@@ -108,10 +121,16 @@ public class TripDash extends AppCompatActivity {
             @Override
             public void onItemClick(String tripName) {
 
+                // 🚀 INSTANT FEEDBACK: Immediately disable interactions and show loading
                 recyclerView.setFocusable(false);
-
+                recyclerView.setEnabled(false); // Prevent multiple taps
+                
+                // Show loading state immediately
                 logo.setVisibility(View.INVISIBLE);
                 loadingIcon.setVisibility(View.VISIBLE);
+                title.setText("STARTING TRIP " + tripName + "...");
+                
+                Log.i("TripPerformance", "🚀 INSTANT FEEDBACK: UI updated immediately for trip " + tripName);
 
                 AppConstant.TRIPID = tripName;
 
@@ -178,20 +197,50 @@ public class TripDash extends AppCompatActivity {
 
         SyncConstant.STARTED_TRIP = AppConstant.TRIPID;
 
-        Thread thread = new Thread(new Runnable() {
+        // 🚀 INSTANT DATA LOADING: Load trip data SYNCHRONOUSLY from local JSON first
+        Log.i("TripPerformance", "⚡ INSTANT: Loading trip data synchronously from local JSON");
+        long dataLoadStart = System.currentTimeMillis();
+        
+        // Parse schedule data immediately from local JSON file (no Dropbox operations)
+        ScheduleHelper.getSchedule(this, AppConstant.TRIPID);
+        
+        long dataLoadTime = System.currentTimeMillis() - dataLoadStart;
+        Log.i("TripPerformance", "✅ INSTANT: Local trip data loaded in " + dataLoadTime + "ms");
+        Log.i("TripPerformance", "📄 INSTANT: Loaded " + AppConstant.documentList.size() + " documents for trip " + AppConstant.TRIPID);
+
+        // 🚀 INSTANT NAVIGATION: Navigate immediately with data loaded
+        Log.i("TripPerformance", "⚡ INSTANT: Navigating to DashHeader with trip data ready");
+        
+        textHandler.removeCallbacksAndMessages(null);
+        
+        // 🚀 UNIFIED: Use new unified trip manager for instant operations
+        Thread backgroundClaimThread = new Thread(new Runnable() {
             @Override
             public void run() {
-
-                ScheduleHelper.getSchedule(TripDash.this, trip);
-
-                textHandler.removeCallbacksAndMessages(null);
-
-                startActivity(new Intent(TripDash.this, DashHeader.class));
-                finish();
+                try {
+                    Log.i("TripPerformance", "🎯 UNIFIED: Claiming and starting trip with unified manager");
+                    
+                    UnifiedTripManager tripManager = UnifiedTripManager.getInstance(TripDash.this);
+                    
+                    // Single call handles claim + start, works online or offline
+                    boolean success = tripManager.claimAndStartTrip(AppConstant.TRIPID);
+                    
+                    if (success) {
+                        Log.i("TripPerformance", "✅ UNIFIED: Trip claimed and started successfully (sync automatic)");
+                    } else {
+                        Log.w("TripPerformance", "⚠️ UNIFIED: Trip claim/start failed - but data already loaded for user");
+                    }
+                    
+                } catch (Exception e) {
+                    Log.e("TripPerformance", "Error in unified trip operations", e);
+                }
             }
         });
+        backgroundClaimThread.start();
 
-        thread.start();
+        // Navigate immediately (UI already has data loaded synchronously)
+        startActivity(new Intent(TripDash.this, DashHeader.class));
+        finish();
     }
 
 
@@ -279,4 +328,6 @@ public class TripDash extends AppCompatActivity {
 
         textHandler.removeCallbacksAndMessages(null);
     }
+    
+    // Device ID functionality moved to UnifiedTripManager
 }

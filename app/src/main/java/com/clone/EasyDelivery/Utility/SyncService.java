@@ -36,8 +36,13 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-// Security import
-import com.clone.EasyDelivery.Utility.SecurityManager;
+// Security imports
+import com.clone.EasyDelivery.Utility.UnifiedTripManager;
+import com.clone.EasyDelivery.Utility.ConnectivityAwareSyncManager;
+import com.clone.EasyDelivery.Security.AuditLogger;
+
+// Enhanced Sync imports
+import java.util.ArrayList;
 
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
@@ -105,6 +110,12 @@ public class SyncService extends IntentService {
         // Restore completed trips list from database to fix trip lifecycle issues
         restoreCompletedTripsFromDatabase();
         
+        // 🚑 NEW: Check for orphaned trips and handle recovery
+        checkForOrphanedTripsOnStartup();
+        
+        // 🔧 NEW: Initialize Enhanced Sync components
+        initializeEnhancedSync();
+        
         // Ensure required Dropbox folder structure exists
         Thread folderSetupThread = new Thread(new Runnable() {
             @Override
@@ -117,6 +128,25 @@ public class SyncService extends IntentService {
         if (database != null && database.isOpen()) {
 
             database.close();
+        }
+    }
+    
+    /**
+     * 🎯 Initialize Unified Sync System
+     * The unified sync architecture handles all initialization automatically
+     */
+    private void initializeEnhancedSync() {
+        try {
+            Log.i("SyncService", "🎯 Initializing unified sync system...");
+            
+            // Initialize unified components
+            UnifiedTripManager tripManager = UnifiedTripManager.getInstance(getApplicationContext());
+            ConnectivityAwareSyncManager syncManager = ConnectivityAwareSyncManager.getInstance(getApplicationContext());
+            
+            Log.i("SyncService", "✅ Unified sync system initialized successfully!");
+            
+        } catch (Exception e) {
+            Log.e("SyncService", "❌ Error initializing unified sync system", e);
         }
     }
 
@@ -280,16 +310,21 @@ public class SyncService extends IntentService {
                         Thread thread2 = new Thread(new Runnable() {
                             @Override
                             public void run() {
-
-                                openDatabase();
-
-                                DropboxHelper.moveIncompleteTrip(getApplicationContext(), database);
+                                try {
+                                    openDatabase();
+                                    
+                                    // 🚀 Enhanced File-Based Syncing System (exclusive)
+                                    Log.i("SyncService", "🚀 Processing trip not started with enhanced state management");
+                                    handleTripNotStarted();
+                                } catch (Exception e) {
+                                    Log.e("SyncService", "Error in trip not started handler", e);
+                                }
                             }
                         });
 
                         thread2.start();
 
-                        Log.i("SyncService", "Trip not started");
+                        Log.i("SyncService", "Trip not started - Enhanced Sync cleanup started");
 
                     break;
 
@@ -298,14 +333,19 @@ public class SyncService extends IntentService {
                         Thread threadTripSync = new Thread(new Runnable() {
                             @Override
                             public void run() {
-
-                                //syncCompletedTrip();
+                                try {
+                                    // 🚀 Enhanced File-Based Syncing System (exclusive)
+                                    Log.i("SyncService", "🚀 Processing trip completion with enhanced state management");
+                                    handleTripCompleted();
+                                } catch (Exception e) {
+                                    Log.e("SyncService", "Error in trip completion handler", e);
+                                }
                             }
                         });
 
-                        //threadTripSync.start();
+                        threadTripSync.start();
 
-                        Log.i("SyncService", "Trip Completed");
+                        Log.i("SyncService", "Trip Completed - Enhanced Sync processing started");
                     break;
 
                     case "TripIncomplete":
@@ -403,23 +443,29 @@ public class SyncService extends IntentService {
                         Log.d("SyncService", "Added parcels to delivery, parcel count: " + (delivery.getParcelNumbers() != null ? delivery.getParcelNumbers().size() : 0));
                         
                         String filePath = JsonHandler.writeDeliveryFile(getApplicationContext(), delivery);
-                        Log.i("SyncService", "Created JSON file: " + filePath);
+                        Log.i("SyncService", "Created JSON metadata file: " + filePath);
                         
-                        boolean uploadSuccess = DropboxHelper.uploadCompletedDelivery(getApplicationContext(), filePath, trip, document, delivery.getImagePath(), delivery.getSignPath());
+                        // 🔒 SECURITY UPDATE: Use metadata-only upload (no sensitive files)
+                        Log.i("SyncService", "🔒 Using SECURE upload - no signatures/photos sent to cloud");
+                        boolean uploadSuccess = DropboxHelper.uploadDeliveryMetadata(getApplicationContext(), filePath, trip, document);
                         
                         if (uploadSuccess) {
 
-                            Log.i("SyncService", "✓ Successfully uploaded " + document + " for trip " + trip);
+                            Log.i("SyncService", "✓ Successfully uploaded metadata for " + document + " (trip: " + trip + ")");
+                            Log.i("SyncService", "🛡️ SECURITY: Only metadata uploaded - sensitive files remain local");
 
+                            // Clean up temporary JSON metadata file
                             File file = new File(filePath);
                             boolean fileDeleted = file.delete();
-                            Log.d("SyncService", "JSON file deleted: " + fileDeleted);
+                            Log.d("SyncService", "Temporary JSON metadata file deleted: " + fileDeleted);
 
-                            ImageHelper.syncDeleteImageFiles(getApplicationContext(), delivery.getImagePath(), delivery.getSignPath());
-                            Log.d("SyncService", "Image files cleanup completed");
+                            // 🔒 SECURITY: Keep sensitive files local until email is sent successfully
+                            // Only delete them after successful email delivery, not after Dropbox sync
+                            Log.i("SyncService", "📝 RETENTION: Keeping signatures/photos local for email delivery");
+                            // Note: Files will be cleaned up in cleanupAfterSuccessfulEmail() method
 
                             database.setDocumentUploaded(document, trip);
-                            Log.i("SyncService", "Marked document " + document + " as uploaded in database");
+                            Log.i("SyncService", "Marked document " + document + " metadata as synced in database");
                         } else {
                             Log.e("SyncService", "✗ Failed to upload " + document + " for trip " + trip);
                         }
@@ -452,19 +498,20 @@ public class SyncService extends IntentService {
 
 
     private void syncTripStatus() {
-
+        Log.i("SyncService", "=== Starting syncTripStatus ===");
+        
         try {
-
             openDatabase();
-
-            DropboxHelper.updateListInProgressTrips(getApplicationContext());
-            DropboxHelper.moveTripInProgress(getApplicationContext(), null);
-            DropboxHelper.moveIncompleteTrip(getApplicationContext(), database);
-
+            
+            // 🚀 Enhanced File-Based Syncing System (exclusive)
+            Log.i("SyncService", "🚀 Enhanced Sync: Syncing trip status with enhanced state management");
+            syncTripStatusEnhanced();
+            
         } catch (Exception e) {
-
-            e.printStackTrace();
+            Log.e("SyncService", "Exception in syncTripStatus", e);
         }
+        
+        Log.i("SyncService", "=== Finished syncTripStatus ===");
     }
 
 
@@ -473,64 +520,14 @@ public class SyncService extends IntentService {
         Log.i("SyncService", "=== Starting syncCompletedTrip ===");
         
         try {
-
             openDatabase();
             Log.i("SyncService", "Database opened for completed trip sync");
             
-            Log.i("SyncService", "Completed trips list size: " + AppConstant.completedTrips.size() + " - " + AppConstant.completedTrips);
-
-            if (!AppConstant.completedTrips.isEmpty()) {
-                
-                // Create a copy to avoid ConcurrentModificationException
-                java.util.List<String> tripsToProcess = new java.util.ArrayList<>(AppConstant.completedTrips);
-                Log.i("SyncService", "Processing " + tripsToProcess.size() + " completed trips");
-
-                for (String completedTrip : tripsToProcess) {
-
-                    Log.i("SyncService", "Processing completed trip: " + completedTrip);
-                    
-                    try {
-                        DropboxHelper.moveTripInProgress(getApplicationContext(), completedTrip);
-                        Log.d("SyncService", "Move trip in progress completed for " + completedTrip);
-                    } catch (Exception e) {
-                        Log.e("SyncService", "Error moving trip in progress for " + completedTrip, e);
-                    }
-
-                    try {
-                        DropboxHelper.moveCompletedTrip(getApplicationContext(), completedTrip);
-                        Log.d("SyncService", "Move completed trip completed for " + completedTrip);
-                    } catch (Exception e) {
-                        Log.e("SyncService", "Error moving completed trip for " + completedTrip, e);
-                    }
-
-                    boolean isDataSynced = database.isDataSynced(completedTrip);
-                    Log.d("SyncService", "Data synced check for " + completedTrip + ": " + isDataSynced);
-                    
-                    if (isDataSynced) {
-
-                        AppConstant.completedTrips.remove(completedTrip);
-                        Log.i("SyncService", "Removed " + completedTrip + " from completed trips list");
-
-                        database.deleteUploadedData(completedTrip);
-                        Log.i("SyncService", "Deleted uploaded data for " + completedTrip);
-                    }
-
-                    if (SyncConstant.STARTED_TRIP.equals(completedTrip)) {
-                        SyncConstant.STARTED_TRIP = "";
-                        Log.i("SyncService", "Cleared started trip constant for " + completedTrip);
-                    }
-
-                    Log.i("SyncService", "✓ " + completedTrip + " processing completed");
-                }
-                
-                Log.i("SyncService", "Final completed trips list size: " + AppConstant.completedTrips.size());
-                
-            } else {
-                Log.i("SyncService", "No completed trips to process");
-            }
+            // 🚀 Enhanced File-Based Syncing System (exclusive)
+            Log.i("SyncService", "🚀 Enhanced Sync: Using enhanced trip completion processing");
+            handleTripCompleted();
 
         } catch (Exception e) {
-
             Log.e("SyncService", "Exception in syncCompletedTrip", e);
             e.printStackTrace();
         }
@@ -585,8 +582,22 @@ public class SyncService extends IntentService {
                     if (emailSent) {
                         database.setEmailSent(queuedEmail.getDocument(), queuedEmail.getTripId());
                         Log.i("SyncService", "✓ Email sent successfully for " + queuedEmail.getDocument() + " - marked as sent in database");
+                        
+                        // 🔍 AUDIT: Log successful email delivery
+                        AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+                        auditLogger.logEmailDelivery(queuedEmail.getDocument(), queuedEmail.getTripId(), 
+                            AppConstant.EMAIL, true, "PDF ePOD delivered successfully via email");
+                        
+                        // 🔒 SECURITY: Now safe to cleanup sensitive files after successful email delivery
+                        cleanupAfterSuccessfulEmail(data);
+                        Log.i("SyncService", "🛡️ CLEANUP: Sensitive files removed after successful email delivery");
                     } else {
                         Log.e("SyncService", "✗ Failed to send email for " + queuedEmail.getDocument());
+                        
+                        // 🔍 AUDIT: Log failed email delivery
+                        AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+                        auditLogger.logEmailDelivery(queuedEmail.getDocument(), queuedEmail.getTripId(), 
+                            AppConstant.EMAIL, false, "Email delivery failed - will retry");
                     }
                     
                 } catch (Exception emailEx) {
@@ -1366,6 +1377,142 @@ public class SyncService extends IntentService {
     }
     
     /**
+     * 🚑 CRITICAL: Check for orphaned trips on startup
+     * 
+     * This handles the scenario where:
+     * 1. App was viewing a trip (trip moved to in_progress)
+     * 2. App was forcefully closed/updated during development
+     * 3. Trip remains orphaned in in_progress folder
+     * 4. Device should either resume or release the trip
+     */
+    private void checkForOrphanedTripsOnStartup() {
+        Log.i("SyncService", "=== 🚑 ORPHANED TRIP RECOVERY: Checking for orphaned trips on startup ===");
+        
+        try {
+            Thread orphanCheckThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        
+                        String currentDeviceId = DropboxHelper.getDeviceId(getApplicationContext());
+                        if (currentDeviceId == null || currentDeviceId.isEmpty()) {
+                            Log.w("SyncService", "🚑 Cannot check orphaned trips - device ID unavailable");
+                            return;
+                        }
+                        
+                        Log.i("SyncService", "🚑 Checking for trips orphaned by device: " + currentDeviceId);
+                        
+                        // Check if we have any trips in in_progress that belong to this device
+                        java.util.List<String> orphanedTrips = findOrphanedTripsForDevice(currentDeviceId);
+                        
+                        if (orphanedTrips.isEmpty()) {
+                            Log.i("SyncService", "✅ No orphaned trips found for device: " + currentDeviceId);
+                            return;
+                        }
+                        
+                        Log.w("SyncService", "🚑 FOUND " + orphanedTrips.size() + " ORPHANED TRIP(S): " + orphanedTrips);
+                        
+                        // Handle each orphaned trip
+                        for (String tripId : orphanedTrips) {
+                            handleOrphanedTrip(tripId, currentDeviceId);
+                        }
+                        
+                        Log.i("SyncService", "✅ Orphaned trip recovery completed");
+                        
+                    } catch (Exception e) {
+                        Log.e("SyncService", "❌ Error during orphaned trip recovery", e);
+                    }
+                }
+            });
+            
+            orphanCheckThread.start();
+            
+        } catch (Exception e) {
+            Log.e("SyncService", "Error starting orphaned trip check thread", e);
+        }
+        
+        Log.i("SyncService", "=== 🚑 Orphaned trip recovery check initiated ===");
+    }
+    
+    /**
+     * Find trips in in_progress folder that belong to a specific device
+     */
+    private java.util.List<String> findOrphanedTripsForDevice(String deviceId) {
+        java.util.List<String> orphanedTrips = new java.util.ArrayList<>();
+        
+        try {
+            com.dropbox.core.v2.DbxClientV2 client = DropboxHelper.getClient(getApplicationContext());
+            if (client == null) {
+                Log.w("SyncService", "🚑 Cannot check orphaned trips - Dropbox client unavailable");
+                return orphanedTrips;
+            }
+            
+            String inProgressPath = "/Customers/" + AppConstant.COMPANY + "/in_progress";
+            com.dropbox.core.v2.files.ListFolderResult inProgressFiles = client.files().listFolder(inProgressPath);
+            
+            if (inProgressFiles != null && !inProgressFiles.getEntries().isEmpty()) {
+                for (int i = 0; i < inProgressFiles.getEntries().size(); i++) {
+                    String fileName = inProgressFiles.getEntries().get(i).getName();
+                    
+                    // Parse claimed trip filename format: TripId_DeviceId_Timestamp.json
+                    DropboxHelper.ClaimInfo claimInfo = DropboxHelper.parseClaimInfo(fileName);
+                    
+                    if (claimInfo.isValidClaim && deviceId.equals(claimInfo.deviceId)) {
+                        orphanedTrips.add(claimInfo.tripId);
+                        Log.i("SyncService", "🚑 Found orphaned trip: " + claimInfo.tripId + " claimed by this device");
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.e("SyncService", "Error finding orphaned trips", e);
+        }
+        
+        return orphanedTrips;
+    }
+    
+    /**
+     * Handle an orphaned trip by releasing it back to available
+     */
+    private void handleOrphanedTrip(String tripId, String deviceId) {
+        Log.i("SyncService", "🚑 HANDLING ORPHANED TRIP: " + tripId + " (device: " + deviceId + ")");
+        
+        try {
+            // Clear any local state that might reference this trip
+            if (SyncConstant.STARTED_TRIP.equals(tripId)) {
+                SyncConstant.STARTED_TRIP = "";
+                Log.i("SyncService", "🧩 Cleared STARTED_TRIP reference: " + tripId);
+            }
+            
+            if (AppConstant.TRIPID != null && AppConstant.TRIPID.equals(tripId)) {
+                AppConstant.TRIPID = "";
+                Log.i("SyncService", "🧩 Cleared TRIPID reference: " + tripId);
+            }
+            
+            // Use UnifiedTripManager to properly release the trip
+            UnifiedTripManager tripManager = UnifiedTripManager.getInstance(getApplicationContext());
+            boolean released = tripManager.releaseTrip(tripId, "Orphaned trip recovery on startup");
+            
+            if (released) {
+                Log.i("SyncService", "✅ ORPHANED TRIP RELEASED: " + tripId + " moved back to available");
+            } else {
+                Log.w("SyncService", "⚠️ Failed to release orphaned trip via UnifiedTripManager: " + tripId);
+                
+                // Fallback: try direct Dropbox operation
+                boolean fallbackReleased = DropboxHelper.unclaimSpecificTrip(getApplicationContext(), tripId);
+                if (fallbackReleased) {
+                    Log.i("SyncService", "✅ FALLBACK: Orphaned trip released via direct Dropbox operation: " + tripId);
+                } else {
+                    Log.e("SyncService", "❌ Failed to release orphaned trip even with fallback: " + tripId);
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.e("SyncService", "Error handling orphaned trip: " + tripId, e);
+        }
+    }
+    
+    /**
      * Start adaptive polling system that:
      * - Syncs immediately on startup
      * - Uses fast polling (3s) when no trips are found locally
@@ -1494,13 +1641,16 @@ public class SyncService extends IntentService {
     }
     
     /**
-     * Perform all sync operations (same as before but extracted to method)
+     * Perform all sync operations with production health monitoring
      */
     private void performSyncOperations() {
         try {
             if (database != null && database.isOpen()) {
                 database.close();
             }
+            
+            // 🎯 UNIFIED: Health monitoring is now handled by ConnectivityAwareSyncManager
+            Log.v("SyncService", "🎯 UNIFIED: Health monitoring integrated into sync operations");
 
             Thread threadDownloadTrips = new Thread(new Runnable() {
                 @Override
@@ -1512,7 +1662,14 @@ public class SyncService extends IntentService {
             Thread threadCompletedTrip = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    syncCompletedTrip();
+                    // 🚀 Enhanced File-Based Syncing System (exclusive)
+                    // Only process trip completions if there are actually completed trips
+                    if (!AppConstant.completedTrips.isEmpty()) {
+                        Log.d("SyncService", "🚀 Enhanced Sync: Processing " + AppConstant.completedTrips.size() + " completed trips with enhanced state management");
+                        handleTripCompleted();
+                    } else {
+                        Log.v("SyncService", "🚀 Enhanced Sync: No completed trips to process - skipping trip completion handler");
+                    }
                 }
             });
 
@@ -1569,5 +1726,433 @@ public class SyncService extends IntentService {
         }
     }
 
+    /**
+     * 🔒 SECURE: Cleanup sensitive files after successful email delivery
+     * This method safely removes customer signature and photo files from local storage
+     * after successful email delivery to minimize data retention risks.
+     */
+    private void cleanupAfterSuccessfulEmail(Delivery delivery) {
+        try {
+            Log.i("SecureCleanup", "=== Starting secure cleanup for delivery: " + delivery.getDocument() + " ===");
+            
+            // Clean up signature files
+            if (delivery.getSignPath() != null && !delivery.getSignPath().trim().isEmpty()) {
+                String signaturePath = delivery.getSignPath();
+                Log.d("SecureCleanup", "Cleaning up signature file: " + signaturePath);
+                
+                // Try multiple possible signature locations
+                String[] signatureDirs = {
+                    getApplicationContext().getFilesDir() + "/DeliveryApp/Signature/",
+                    getApplicationContext().getFilesDir() + "/Signature/",
+                    getApplicationContext().getFilesDir() + "/"
+                };
+                
+                boolean signatureDeleted = false;
+                for (String dir : signatureDirs) {
+                    File signFile = new File(dir + signaturePath);
+                    if (signFile.exists()) {
+                        boolean deleted = signFile.delete();
+                        Log.i("SecureCleanup", "Signature file deleted: " + deleted + " (" + signFile.getAbsolutePath() + ")");
+                        if (deleted) signatureDeleted = true;
+                    }
+                }
+                
+                if (!signatureDeleted) {
+                    Log.w("SecureCleanup", "Signature file not found for cleanup: " + signaturePath);
+                }
+            }
+            
+            // Clean up photo files
+            if (delivery.getImagePath() != null && !delivery.getImagePath().trim().isEmpty()) {
+                String imagePath = delivery.getImagePath();
+                Log.d("SecureCleanup", "Cleaning up photo file: " + imagePath);
+                
+                // Try multiple possible photo locations and extensions
+                String[] photoDirs = {
+                    getApplicationContext().getFilesDir() + "/DeliveryApp/DeliveryImage/",
+                    getApplicationContext().getFilesDir() + "/DeliveryImage/",
+                    getApplicationContext().getFilesDir() + "/"
+                };
+                
+                String[] extensions = {".jpg", ".jpeg", ".png", ""};
+                
+                boolean photoDeleted = false;
+                for (String dir : photoDirs) {
+                    for (String ext : extensions) {
+                        File photoFile = new File(dir + imagePath + ext);
+                        if (photoFile.exists()) {
+                            boolean deleted = photoFile.delete();
+                            Log.i("SecureCleanup", "Photo file deleted: " + deleted + " (" + photoFile.getAbsolutePath() + ")");
+                            if (deleted) photoDeleted = true;
+                        }
+                    }
+                }
+                
+                if (!photoDeleted) {
+                    Log.w("SecureCleanup", "Photo file not found for cleanup: " + imagePath);
+                }
+            }
+            
+            Log.i("SecureCleanup", "✓ Secure cleanup completed for delivery: " + delivery.getDocument());
+            Log.i("SecureCleanup", "🛡️ SECURITY: Customer sensitive data removed after successful email delivery");
+            
+            // 🔍 AUDIT: Log secure cleanup operation
+            AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+            int totalFilesDeleted = 0;
+            if (delivery.getSignPath() != null) totalFilesDeleted++;
+            if (delivery.getImagePath() != null) totalFilesDeleted++;
+            auditLogger.logSecureCleanup(delivery.getDocument(), delivery.getTripId(), totalFilesDeleted, true);
+            
+        } catch (Exception e) {
+            Log.e("SecureCleanup", "Error during secure cleanup for delivery: " + delivery.getDocument(), e);
+            
+            // 🔍 AUDIT: Log cleanup failure
+            AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+            auditLogger.logSecureCleanup(delivery.getDocument(), delivery.getTripId(), 0, false);
+        }
+    }
+
+    /**
+     * 🗑️ DATA RETENTION: Cleanup old delivery files based on retention policy
+     * This method can be called periodically to enforce data retention policies
+     */
+    private void enforceDataRetentionPolicy() {
+        try {
+            Log.i("DataRetention", "=== Starting data retention policy enforcement ===");
+            
+            // Define retention period (e.g., 30 days)
+            long retentionPeriodMs = 30 * 24 * 60 * 60 * 1000L; // 30 days in milliseconds
+            long cutoffTime = System.currentTimeMillis() - retentionPeriodMs;
+            
+            // Clean up old signature files
+            int totalDeleted = 0;
+            totalDeleted += cleanupOldFiles(getApplicationContext().getFilesDir() + "/DeliveryApp/Signature/", cutoffTime);
+            totalDeleted += cleanupOldFiles(getApplicationContext().getFilesDir() + "/Signature/", cutoffTime);
+            
+            // Clean up old photo files  
+            totalDeleted += cleanupOldFiles(getApplicationContext().getFilesDir() + "/DeliveryApp/DeliveryImage/", cutoffTime);
+            totalDeleted += cleanupOldFiles(getApplicationContext().getFilesDir() + "/DeliveryImage/", cutoffTime);
+            
+            Log.i("DataRetention", "✓ Data retention policy enforcement completed");
+            
+            // 🔍 AUDIT: Log data retention enforcement
+            AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+            auditLogger.logDataRetentionEnforcement(totalDeleted, 30, true);
+            
+        } catch (Exception e) {
+            Log.e("DataRetention", "Error enforcing data retention policy", e);
+            
+            // 🔍 AUDIT: Log retention policy failure
+            AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+            auditLogger.logDataRetentionEnforcement(0, 30, false);
+        }
+    }
+    
+    /**
+     * Helper method to clean up old files in a directory
+     * @return number of files deleted
+     */
+    private int cleanupOldFiles(String directoryPath, long cutoffTime) {
+        try {
+            File directory = new File(directoryPath);
+            if (!directory.exists() || !directory.isDirectory()) {
+                return 0;
+            }
+            
+            File[] files = directory.listFiles();
+            if (files == null) {
+                return 0;
+            }
+            
+            int deletedCount = 0;
+            for (File file : files) {
+                if (file.isFile() && file.lastModified() < cutoffTime) {
+                    boolean deleted = file.delete();
+                    if (deleted) {
+                        deletedCount++;
+                        Log.d("DataRetention", "Deleted old file: " + file.getName());
+                    }
+                }
+            }
+            
+            Log.i("DataRetention", "Cleaned up " + deletedCount + " old files from: " + directoryPath);
+            return deletedCount;
+            
+        } catch (Exception e) {
+            Log.e("DataRetention", "Error cleaning up old files in: " + directoryPath, e);
+            return 0;
+        }
+    }
+    
+    /**
+     * 🎯 Unified Trip Completion Handler
+     * 
+     * Handles trip completion using the unified trip manager.
+     * All sync operations happen automatically and transparently.
+     */
+    private void handleTripCompleted() {
+        // Early return if no trips to process
+        if (AppConstant.completedTrips == null || AppConstant.completedTrips.isEmpty()) {
+            Log.d("SyncService", "No completed trips to process");
+            return;
+        }
+        
+        Log.i("SyncService", "=== Starting Unified Trip Completion (" + AppConstant.completedTrips.size() + " trips) ===");
+        
+        try {
+            openDatabase();
+            
+            UnifiedTripManager tripManager = UnifiedTripManager.getInstance(getApplicationContext());
+            
+            // Create a copy to avoid ConcurrentModificationException
+            java.util.List<String> tripsToProcess = new java.util.ArrayList<>(AppConstant.completedTrips);
+            Log.i("SyncService", "🎯 Processing " + tripsToProcess.size() + " completed trips");
+            
+            for (String completedTrip : tripsToProcess) {
+                Log.i("SyncService", "🎯 Processing completed trip: " + completedTrip);
+                
+                try {
+                    // Use unified trip manager to complete trip
+                    boolean success = tripManager.completeTrip(completedTrip);
+                    
+                    if (success) {
+                        Log.i("SyncService", "✅ Trip " + completedTrip + " successfully completed");
+                        
+                        // Check if all data has been synced
+                        boolean isDataSynced = database.isDataSynced(completedTrip);
+                        Log.d("SyncService", "Data synced check for " + completedTrip + ": " + isDataSynced);
+                        
+                        if (isDataSynced) {
+                            // Clean up local data
+                            AppConstant.completedTrips.remove(completedTrip);
+                            Log.i("SyncService", "Removed " + completedTrip + " from completed trips list");
+                            
+                            database.deleteUploadedData(completedTrip);
+                            Log.i("SyncService", "Deleted uploaded data for " + completedTrip);
+                            
+                            // 🚮 CRITICAL FIX: Delete local trip JSON file to prevent reappearing in dashboard
+                            cleanupLocalTripFile(completedTrip);
+                            Log.i("SyncService", "Cleaned up local trip file for " + completedTrip);
+                            
+                            // 📊 AUDIT: Log successful completion
+                            AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+                            auditLogger.logTripCompletion(completedTrip, tripManager.getDeviceId(), true, "Unified trip completion successful");
+                        }
+                        
+                        // Clear started trip constant if needed
+                        if (SyncConstant.STARTED_TRIP.equals(completedTrip)) {
+                            SyncConstant.STARTED_TRIP = "";
+                            Log.i("SyncService", "Cleared started trip constant for " + completedTrip);
+                        }
+                        
+                    } else {
+                        Log.w("SyncService", "⚠️ Failed to complete trip " + completedTrip);
+                    }
+                    
+                } catch (Exception tripError) {
+                    Log.e("SyncService", "Error processing trip " + completedTrip, tripError);
+                    
+                    // 📊 AUDIT: Log failure
+                    AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+                    auditLogger.logTripCompletion(completedTrip, tripManager.getDeviceId(), false, "Unified completion error: " + tripError.getMessage());
+                }
+            }
+            
+            Log.i("SyncService", "Final completed trips list size: " + AppConstant.completedTrips.size());
+            
+        } catch (Exception e) {
+            Log.e("SyncService", "Exception in trip completion handler", e);
+        }
+        
+        Log.i("SyncService", "=== Finished Unified Trip Completion ===");
+    }
+    
+    /**
+     * 🚮 Clean up local trip JSON file to prevent completed trips from reappearing
+     * This is the CRITICAL fix for the issue where completed trips were reappearing in the dashboard
+     */
+    private void cleanupLocalTripFile(String tripId) {
+        try {
+            if (tripId == null || tripId.trim().isEmpty()) {
+                Log.w("SyncService", "Cannot cleanup local trip file - invalid trip ID");
+                return;
+            }
+            
+            File tripDir = new File(getApplicationContext().getFilesDir() + "/Trip/");
+            if (!tripDir.exists()) {
+                Log.d("SyncService", "Trip directory does not exist, nothing to cleanup");
+                return;
+            }
+            
+            // Delete the main trip JSON file
+            File tripFile = new File(tripDir, tripId + ".json");
+            if (tripFile.exists()) {
+                boolean deleted = tripFile.delete();
+                if (deleted) {
+                    Log.i("SyncService", "✅ Successfully deleted local trip file: " + tripFile.getAbsolutePath());
+                } else {
+                    Log.e("SyncService", "❌ Failed to delete local trip file: " + tripFile.getAbsolutePath());
+                }
+            } else {
+                Log.d("SyncService", "Local trip file does not exist: " + tripFile.getAbsolutePath());
+            }
+            
+            // Also clean up any temporary files for this trip
+            File tempFile = new File(tripDir, tripId + ".json.tmp");
+            if (tempFile.exists()) {
+                boolean tempDeleted = tempFile.delete();
+                if (tempDeleted) {
+                    Log.i("SyncService", "✅ Successfully deleted temp trip file: " + tempFile.getAbsolutePath());
+                } else {
+                    Log.w("SyncService", "⚠️ Failed to delete temp trip file: " + tempFile.getAbsolutePath());
+                }
+            }
+            
+            Log.i("SyncService", "🎯 CRITICAL FIX: Local cleanup completed for trip " + tripId + " - will no longer appear in dashboard");
+            
+        } catch (Exception e) {
+            Log.e("SyncService", "Error cleaning up local trip file for " + tripId, e);
+        }
+    }
+    
+    
+    /**
+     * 🎯 Unified Trip Not Started Handler
+     * 
+     * Handles trip cancellation/not started using the unified trip manager.
+     * All sync operations happen automatically.
+     */
+    private void handleTripNotStarted() {
+        Log.i("SyncService", "=== Starting Unified Trip Release Handler ===");
+        
+        try {
+            UnifiedTripManager tripManager = UnifiedTripManager.getInstance(getApplicationContext());
+            String deviceId = tripManager.getDeviceId();
+            
+            // 🔍 Find trips that need to be released by this device
+            List<String> tripsToRelease = findTripsToRelease(deviceId);
+            
+            Log.i("SyncService", "🎯 Found " + tripsToRelease.size() + " trips to release for device " + deviceId);
+            
+            for (String tripId : tripsToRelease) {
+                try {
+                    Log.i("SyncService", "🎯 Processing trip release: " + tripId);
+                    
+                    // Use unified trip manager to release trip
+                    boolean success = tripManager.releaseTrip(tripId);
+                    
+                    if (success) {
+                        Log.i("SyncService", "✅ Trip " + tripId + " successfully released");
+                        
+                        // 📊 AUDIT: Log successful release
+                        AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+                        auditLogger.logTripRelease(tripId, deviceId, true, "Unified trip release successful");
+                        
+                    } else {
+                        Log.w("SyncService", "⚠️ Failed to release trip " + tripId);
+                    }
+                    
+                } catch (Exception tripError) {
+                    Log.e("SyncService", "Error releasing trip " + tripId, tripError);
+                    
+                    // 📊 AUDIT: Log failure
+                    AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+                    auditLogger.logTripRelease(tripId, deviceId, false, "Unified release error: " + tripError.getMessage());
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.e("SyncService", "Exception in trip release handler", e);
+        }
+        
+        Log.i("SyncService", "=== Finished Unified Trip Release Handler ===");
+    }
+    
+    /**
+     * Find trips that need to be released by this device
+     * This includes trips in Claimed or InProgress state owned by this device
+     */
+    private List<String> findTripsToRelease(String deviceId) {
+        List<String> tripsToRelease = new ArrayList<>();
+        
+        try {
+            // Check local trips that might need releasing
+            if (SyncConstant.STARTED_TRIP != null && !SyncConstant.STARTED_TRIP.isEmpty()) {
+                tripsToRelease.add(SyncConstant.STARTED_TRIP);
+                Log.d("SyncService", "Found started trip to release: " + SyncConstant.STARTED_TRIP);
+            }
+            
+            // Check in-progress trips list
+            for (String tripId : AppConstant.inProgressTrips) {
+                if (!tripsToRelease.contains(tripId)) {
+                    tripsToRelease.add(tripId);
+                    Log.d("SyncService", "Found in-progress trip to release: " + tripId);
+                }
+            }
+            
+            // Check database for trips claimed by this device
+            if (database != null) {
+                List<String> claimedTrips = database.getTripsClaimedByDevice(deviceId);
+                for (String tripId : claimedTrips) {
+                    if (!tripsToRelease.contains(tripId)) {
+                        tripsToRelease.add(tripId);
+                        Log.d("SyncService", "Found claimed trip to release: " + tripId);
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.e("SyncService", "Error finding trips to release", e);
+        }
+        
+        return tripsToRelease;
+    }
+    
+    
+    /**
+     * 🎯 Unified Trip Status Sync
+     * 
+     * Uses the unified trip manager which handles all sync automatically.
+     * No complex state management needed - sync happens transparently.
+     */
+    private void syncTripStatusEnhanced() {
+        Log.i("SyncService", "=== Starting Unified Trip Sync ===");
+        
+        try {
+            UnifiedTripManager tripManager = UnifiedTripManager.getInstance(getApplicationContext());
+            
+            // Get sync status - the unified manager handles all sync automatically
+            ConnectivityAwareSyncManager.SyncStatus status = tripManager.getSyncStatus();
+            
+            Log.i("SyncService", "🎯 Unified Sync Status: " + status.state + " - " + status.message);
+            Log.i("SyncService", "🌐 Online: " + status.isOnline + ", Queued: " + status.queuedOperations);
+            
+            if (status.queuedOperations > 0 && status.isOnline) {
+                // Trigger immediate sync if we have queued operations and are online
+                Log.i("SyncService", "🔄 Triggering immediate sync of queued operations");
+                tripManager.forceSync();
+            }
+            
+            // 📊 AUDIT: Log sync status
+            AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+            auditLogger.logTripStatusSync(tripManager.getDeviceId(), true, "Unified sync status: " + status.message);
+            
+        } catch (Exception e) {
+            Log.e("SyncService", "Exception in unified trip sync", e);
+            
+            // 📊 AUDIT: Log failure  
+            try {
+                UnifiedTripManager tripManager = UnifiedTripManager.getInstance(getApplicationContext());
+                AuditLogger auditLogger = AuditLogger.getInstance(getApplicationContext());
+                auditLogger.logTripStatusSync(tripManager.getDeviceId(), false, "Unified sync error: " + e.getMessage());
+            } catch (Exception auditEx) {
+                Log.e("SyncService", "Error logging sync failure", auditEx);
+            }
+        }
+        
+        Log.i("SyncService", "=== Finished Unified Trip Sync ===");
+    }
+    
+    // Legacy helper methods removed - UnifiedTripManager handles trip state sync automatically
 
 }

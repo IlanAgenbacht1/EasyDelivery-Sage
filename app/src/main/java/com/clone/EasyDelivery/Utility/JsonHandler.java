@@ -86,6 +86,9 @@ public class JsonHandler {
             if (file.createNewFile()) {
                 JSONObject json = new JSONObject();
                 json.put("documentNumber", delivery.getDocument());
+                if (delivery.getOrderNumber() != null && !delivery.getOrderNumber().isEmpty()) {
+                    json.put("orderNumber", delivery.getOrderNumber());
+                }
                 json.put("customer", delivery.getCustomerName());
                 json.put("address", delivery.getAddress());
                 JSONArray parcels = new JSONArray();
