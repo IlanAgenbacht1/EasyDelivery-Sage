@@ -13,6 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+// Import operation classes
+import com.clone.EasyDelivery.Utility.operations.SyncOperation;
+import com.clone.EasyDelivery.Utility.operations.*;
+import com.clone.EasyDelivery.Utility.AppConstant;
+
 /**
  * 📦 OfflineSyncQueue - Intelligent offline operation queue with priority handling
  * 
@@ -83,7 +88,7 @@ public class OfflineSyncQueue {
     /**
      * 📦 Enqueue operation for later sync
      */
-    public boolean enqueueOperation(ConnectivityAwareSyncManager.SyncOperation operation) {
+    public boolean enqueueOperation(SyncOperation operation) {
         if (operation == null) {
             Log.w(TAG, "Cannot enqueue null operation");
             return false;
@@ -123,7 +128,7 @@ public class OfflineSyncQueue {
     /**
      * 🔄 Sync all queued operations to cloud
      */
-    public ConnectivityAwareSyncManager.SyncResult syncAll() {
+    public SyncOperation.SyncResult syncAll() {
         Log.i(TAG, "🔄 Starting sync of all queued operations");
         
         AtomicInteger totalOperations = new AtomicInteger(0);
@@ -136,7 +141,7 @@ public class OfflineSyncQueue {
             
             if (operations.isEmpty()) {
                 Log.i(TAG, "✅ No operations in queue to sync");
-                return ConnectivityAwareSyncManager.SyncResult.success("No operations to sync");
+                return SyncOperation.SyncResult.success("No operations to sync");
             }
             
             Log.i(TAG, "Found " + operations.size() + " operations to sync");
@@ -148,8 +153,7 @@ public class OfflineSyncQueue {
                     updateOperationStatus(queuedOp.id, STATUS_PROCESSING, null);
                     
                     // Reconstruct the sync operation
-                    ConnectivityAwareSyncManager.SyncOperation operation = 
-                        reconstructOperation(queuedOp);
+                    SyncOperation operation = reconstructOperation(queuedOp);
                     
                     if (operation == null) {
                         Log.w(TAG, "Could not reconstruct operation: " + queuedOp.operationType);
@@ -159,8 +163,7 @@ public class OfflineSyncQueue {
                     }
                     
                     // Execute the operation online
-                    ConnectivityAwareSyncManager.SyncResult result = 
-                        operation.executeOnline(context);
+                    SyncOperation.SyncResult result = operation.executeOnline(context);
                     
                     if (result.success) {
                         // Remove from queue on success
@@ -202,16 +205,16 @@ public class OfflineSyncQueue {
             Log.i(TAG, "🔄 " + resultMessage);
             
             if (failureCount.get() == 0) {
-                return ConnectivityAwareSyncManager.SyncResult.success(resultMessage);
+                return SyncOperation.SyncResult.success(resultMessage);
             } else {
-                return ConnectivityAwareSyncManager.SyncResult.success(
+                return SyncOperation.SyncResult.success(
                     resultMessage + " (some operations failed and will retry later)"
                 );
             }
             
         } catch (Exception e) {
             Log.e(TAG, "Error during sync all operations", e);
-            return ConnectivityAwareSyncManager.SyncResult.failure(
+            return SyncOperation.SyncResult.failure(
                 "Sync failed: " + e.getMessage()
             );
         }
@@ -282,13 +285,45 @@ public class OfflineSyncQueue {
     /**
      * 🔨 Reconstruct sync operation from queued data
      */
-    private ConnectivityAwareSyncManager.SyncOperation reconstructOperation(QueuedOperation queuedOp) {
+    private SyncOperation reconstructOperation(QueuedOperation queuedOp) {
         try {
             JSONObject data = new JSONObject(queuedOp.operationData);
             
-            // This would need to be extended to handle different operation types
-            // For now, we'll create a generic operation
-            return new GenericSyncOperation(queuedOp.operationType, queuedOp.tripId, data);
+            // Create specific operation types based on the operation type
+            switch (queuedOp.operationType) {
+                case "CLAIM_TRIP":
+                    return new ClaimTripOperation(queuedOp.tripId, data);
+                    
+                case "START_TRIP":
+                    return new StartTripOperation(queuedOp.tripId, data);
+                    
+                case "COMPLETE_TRIP":
+                    return new CompleteTripOperation(queuedOp.tripId, data);
+                    
+                case "RELEASE_TRIP":
+                    return new ReleaseTripOperation(queuedOp.tripId, data);
+                    
+                case "UPDATE_STATUS":
+                    return new UpdateTripStatusOperation(queuedOp.tripId, data);
+                    
+                case "SYNC_DELIVERY_DATA":
+                    String documentId = data.optString("documentId", "");
+                    return new SyncDeliveryDataOperation(queuedOp.tripId, documentId, data);
+                    
+                case "SEND_EMAIL":
+                    String emailDocId = data.optString("documentId", "");
+                    return new SendEmailOperation(queuedOp.tripId, emailDocId, data);
+                    
+                case "SYNC_RETURNS":
+                    return new SyncReturnsOperation(data);
+                    
+                case "REMOVE_TRIP":
+                    return new RemoveTripOperation(queuedOp.tripId, data);
+                    
+                default:
+                    Log.w(TAG, "Unknown operation type: " + queuedOp.operationType);
+                    return null;
+            }
             
         } catch (Exception e) {
             Log.e(TAG, "Error reconstructing operation: " + queuedOp.operationType, e);
@@ -406,6 +441,39 @@ public class OfflineSyncQueue {
     }
     
     /**
+     * 📊 Get count of pending operations for a specific trip
+     */
+    public int getPendingOperationsCount(String tripId) {
+        if (tripId == null || tripId.trim().isEmpty()) {
+            return 0;
+        }
+        
+        try {
+            SQLiteDatabase db = dbHelper.getReadableDatabase();
+            Cursor cursor = db.rawQuery(
+                "SELECT COUNT(*) FROM " + TABLE_NAME + 
+                " WHERE " + COLUMN_TRIP_ID + " = ? AND " + COLUMN_STATUS + " IN (?, ?)",
+                new String[]{tripId, STATUS_PENDING, STATUS_FAILED}
+            );
+            
+            if (cursor != null && cursor.moveToFirst()) {
+                int count = cursor.getInt(0);
+                cursor.close();
+                return count;
+            }
+            
+            if (cursor != null) {
+                cursor.close();
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting pending operations count for trip: " + tripId, e);
+        }
+        
+        return 0;
+    }
+    
+    /**
      * 📊 Get queue statistics
      */
     public String getQueueStatistics() {
@@ -485,6 +553,95 @@ public class OfflineSyncQueue {
         }
     }
     
+    /**
+     * Save queue state for application shutdown
+     */
+    public void saveQueueState() {
+        try {
+            Log.d(TAG, "Saving queue state...");
+            
+            // Queue state is automatically persisted in SQLite database
+            // This method exists for consistency with Application lifecycle
+            
+            // Optionally save additional metadata
+            SQLiteDatabase db = dbHelper.getWritableDatabase();
+            int pendingCount = getPendingOperationsCount(null);
+            
+            Log.d(TAG, "Queue state saved - " + pendingCount + " pending operations");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error saving queue state", e);
+        }
+    }
+    
+    /**
+     * Restore queue state from previous session
+     */
+    public void restoreQueueState() {
+        try {
+            Log.d(TAG, "Restoring queue state...");
+            
+            // Queue state is automatically restored from SQLite database
+            // Check for any operations that need attention
+            
+            SQLiteDatabase db = dbHelper.getReadableDatabase();
+            int pendingCount = getPendingOperationsCount(null);
+            int failedCount = getFailedOperationsCount();
+            
+            Log.i(TAG, "Queue state restored - " + pendingCount + " pending, " + failedCount + " failed operations");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error restoring queue state", e);
+        }
+    }
+    
+    /**
+     * Get count of failed operations
+     */
+    private int getFailedOperationsCount() {
+        try {
+            SQLiteDatabase db = dbHelper.getReadableDatabase();
+            Cursor cursor = db.rawQuery(
+                "SELECT COUNT(*) FROM " + TABLE_NAME + 
+                " WHERE " + COLUMN_STATUS + " = ?",
+                new String[]{STATUS_FAILED}
+            );
+            
+            if (cursor != null && cursor.moveToFirst()) {
+                int count = cursor.getInt(0);
+                cursor.close();
+                return count;
+            }
+            
+            if (cursor != null) {
+                cursor.close();
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting failed operations count", e);
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Close the queue database connection
+     */
+    public void close() {
+        try {
+            Log.d(TAG, "Closing OfflineSyncQueue database");
+            
+            if (dbHelper != null) {
+                dbHelper.close();
+            }
+            
+            Log.d(TAG, "OfflineSyncQueue closed");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error closing OfflineSyncQueue", e);
+        }
+    }
+    
     // ================== HELPER CLASSES ==================
     
     /**
@@ -502,44 +659,7 @@ public class OfflineSyncQueue {
         String status;
     }
     
-    /**
-     * 🔄 Generic sync operation for queue processing
-     */
-    private static class GenericSyncOperation extends ConnectivityAwareSyncManager.SyncOperation {
-        
-        public GenericSyncOperation(String type, String tripId, JSONObject data) {
-            super(type, tripId, data);
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOnline(Context context) {
-            // This would need to be implemented based on operation type
-            // For now, just return success to avoid errors
-            Log.w(TAG, "Generic operation executeOnline not implemented: " + getType());
-            return ConnectivityAwareSyncManager.SyncResult.success("Generic operation completed");
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOffline(Context context) {
-            // Already executed when originally queued
-            return ConnectivityAwareSyncManager.SyncResult.success("Already executed offline");
-        }
-        
-        @Override
-        public int getPriority() {
-            // Extract priority from operation data if available
-            try {
-                JSONObject data = getData();
-                if (data != null && data.has("priority")) {
-                    return data.getInt("priority");
-                }
-            } catch (JSONException e) {
-                Log.w(TAG, "Error extracting priority from operation data", e);
-            }
-            
-            return PRIORITY_NORMAL;
-        }
-    }
+    // All operation classes have been moved to separate files in the operations package
     
     /**
      * 📁 Database helper for sync queue

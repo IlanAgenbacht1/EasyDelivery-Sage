@@ -5,33 +5,18 @@ import android.util.Log;
 import org.json.JSONObject;
 import java.io.File;
 
+// Import operation classes
+import com.clone.EasyDelivery.Utility.operations.*;
+import com.clone.EasyDelivery.Utility.operations.SyncOperation.SyncResult;
+
 /**
- * 🎯 UnifiedTripManager - Simple, unified API for all trip operations
+ * UnifiedTripManager - Simple, unified API for all trip operations
  * 
- * This replaces both the complex TripStateManager and legacy DropboxHelper patterns
- * with a single, intuitive interface that:
- * 
- * ✅ Works instantly online or offline
- * ✅ Requires no feature flags or configuration  
- * ✅ Handles all sync complexity internally
- * ✅ Provides immediate user feedback
- * ✅ Automatically resolves conflicts
- * 
- * Usage is simple:
- * ```java
- * UnifiedTripManager tripManager = UnifiedTripManager.getInstance(context);
- * 
- * // Claim a trip - instant response, syncs automatically
- * boolean success = tripManager.claimTrip("TRIP123");
- * 
- * // Start the trip - instant response  
- * boolean success = tripManager.startTrip("TRIP123");
- * 
- * // Complete the trip - instant response
- * boolean success = tripManager.completeTrip("TRIP123");
- * ```
- * 
- * That's it. No locks, no state machines, no complexity.
+ * Features:
+ * - Local tracking for dashboard persistence
+ * - Device-aware periodic cleanup via SyncService
+ * - Works online or offline with automatic sync
+ * - Simple, non-competing architecture
  */
 public class UnifiedTripManager {
     
@@ -41,6 +26,9 @@ public class UnifiedTripManager {
     private final ConnectivityAwareSyncManager syncManager;
     private final String deviceId;
     private static UnifiedTripManager instance;
+    
+    // Local tracking of trips claimed by this device
+    private final java.util.Set<String> locallyClaimedTrips = new java.util.HashSet<>();
     
     private UnifiedTripManager(Context context) {
         this.context = context.getApplicationContext();
@@ -56,13 +44,7 @@ public class UnifiedTripManager {
     }
     
     /**
-     * 🎯 Claim a trip - instant response, automatic sync
-     * 
-     * This is the new simple way to claim trips. No locks, no state checks,
-     * just call this method and it works instantly.
-     * 
-     * @param tripId The trip to claim
-     * @return true if operation initiated successfully (always true unless invalid input)
+     * Claim a trip - instant response, automatic sync
      */
     public boolean claimTrip(String tripId) {
         if (tripId == null || tripId.trim().isEmpty()) {
@@ -70,24 +52,21 @@ public class UnifiedTripManager {
             return false;
         }
         
-        Log.i(TAG, "🎯 Claiming trip: " + tripId);
-        
-        // Create and execute the operation
         try {
             JSONObject operationData = new JSONObject();
             operationData.put("tripId", tripId);
             operationData.put("deviceId", deviceId);
             operationData.put("action", "claim");
             
-            ConnectivityAwareSyncManager.SyncOperation operation = new ClaimTripOperation(tripId, operationData);
+            SyncOperation operation = ClaimTripOperation.create(tripId, operationData);
             
-            ConnectivityAwareSyncManager.SyncResult result = syncManager.executeOperation(operation);
+            SyncResult result = syncManager.executeOperation(operation);
             
             if (result.success) {
-                Log.i(TAG, "✅ Trip claim initiated: " + tripId + " - " + result.message);
+                locallyClaimedTrips.add(tripId);
                 return true;
             } else {
-                Log.w(TAG, "⚠️ Trip claim failed: " + tripId + " - " + result.message);
+                Log.w(TAG, "Trip claim failed: " + tripId + " - " + result.message);
                 return false;
             }
             
@@ -98,13 +77,7 @@ public class UnifiedTripManager {
     }
     
     /**
-     * 🚀 Start a trip - instant response, automatic sync
-     * 
-     * Call this after claiming a trip to move it to in-progress state.
-     * Works instantly regardless of network connectivity.
-     * 
-     * @param tripId The trip to start
-     * @return true if operation initiated successfully
+     * Start a trip - instant response, automatic sync
      */
     public boolean startTrip(String tripId) {
         if (tripId == null || tripId.trim().isEmpty()) {
@@ -112,7 +85,6 @@ public class UnifiedTripManager {
             return false;
         }
         
-        Log.i(TAG, "🚀 Starting trip: " + tripId);
         
         try {
             JSONObject operationData = new JSONObject();
@@ -120,15 +92,14 @@ public class UnifiedTripManager {
             operationData.put("deviceId", deviceId);
             operationData.put("action", "start");
             
-            ConnectivityAwareSyncManager.SyncOperation operation = new StartTripOperation(tripId, operationData);
+            SyncOperation operation = StartTripOperation.create(tripId, operationData);
             
-            ConnectivityAwareSyncManager.SyncResult result = syncManager.executeOperation(operation);
+            SyncResult result = syncManager.executeOperation(operation);
             
             if (result.success) {
-                Log.i(TAG, "✅ Trip start initiated: " + tripId + " - " + result.message);
                 return true;
             } else {
-                Log.w(TAG, "⚠️ Trip start failed: " + tripId + " - " + result.message);
+                Log.w(TAG, "Trip start failed: " + tripId + " - " + result.message);
                 return false;
             }
             
@@ -139,13 +110,7 @@ public class UnifiedTripManager {
     }
     
     /**
-     * 🏁 Complete a trip - instant response, automatic sync
-     * 
-     * Call this when all deliveries in a trip are finished.
-     * Works instantly and handles all cloud operations automatically.
-     * 
-     * @param tripId The trip to complete
-     * @return true if operation initiated successfully
+     * Complete a trip - instant response, automatic sync
      */
     public boolean completeTrip(String tripId) {
         if (tripId == null || tripId.trim().isEmpty()) {
@@ -153,7 +118,6 @@ public class UnifiedTripManager {
             return false;
         }
         
-        Log.i(TAG, "🏁 Completing trip: " + tripId);
         
         try {
             JSONObject operationData = new JSONObject();
@@ -161,15 +125,15 @@ public class UnifiedTripManager {
             operationData.put("deviceId", deviceId);
             operationData.put("action", "complete");
             
-            ConnectivityAwareSyncManager.SyncOperation operation = new CompleteTripOperation(tripId, operationData);
+            SyncOperation operation = CompleteTripOperation.create(tripId, operationData);
             
-            ConnectivityAwareSyncManager.SyncResult result = syncManager.executeOperation(operation);
+            SyncResult result = syncManager.executeOperation(operation);
             
             if (result.success) {
-                Log.i(TAG, "✅ Trip completion initiated: " + tripId + " - " + result.message);
+                locallyClaimedTrips.remove(tripId);
                 return true;
             } else {
-                Log.w(TAG, "⚠️ Trip completion failed: " + tripId + " - " + result.message);
+                Log.w(TAG, "Trip completion failed: " + tripId + " - " + result.message);
                 return false;
             }
             
@@ -180,14 +144,7 @@ public class UnifiedTripManager {
     }
     
     /**
-     * ↩️ Release a trip - instant response, automatic sync
-     * 
-     * Use this to unclaim a trip and return it to available state.
-     * Useful for cancellations or when a trip can't be completed.
-     * 
-     * @param tripId The trip to release
-     * @param reason Optional reason for releasing the trip
-     * @return true if operation initiated successfully
+     * Release a trip - instant response, automatic sync
      */
     public boolean releaseTrip(String tripId, String reason) {
         if (tripId == null || tripId.trim().isEmpty()) {
@@ -208,12 +165,14 @@ public class UnifiedTripManager {
             operationData.put("action", "release");
             operationData.put("reason", reason);
             
-            ConnectivityAwareSyncManager.SyncOperation operation = new ReleaseTripOperation(tripId, operationData);
+            SyncOperation operation = ReleaseTripOperation.create(tripId, operationData);
             
-            ConnectivityAwareSyncManager.SyncResult result = syncManager.executeOperation(operation);
+            SyncResult result = syncManager.executeOperation(operation);
             
             if (result.success) {
-                Log.i(TAG, "✅ Trip release initiated: " + tripId + " - " + result.message);
+                // 📝 Remove from local tracking when released
+                locallyClaimedTrips.remove(tripId);
+                Log.i(TAG, "✅ Trip release initiated: " + tripId + " - " + result.message + " (removed from local tracking)");
                 return true;
             } else {
                 Log.w(TAG, "⚠️ Trip release failed: " + tripId + " - " + result.message);
@@ -227,7 +186,7 @@ public class UnifiedTripManager {
     }
     
     /**
-     * 🔄 Convenient method: Claim and start a trip in one call
+     * Convenient method: Claim and start a trip in one call
      * 
      * This combines the most common workflow - claiming a trip and immediately
      * starting work on it.
@@ -236,7 +195,7 @@ public class UnifiedTripManager {
      * @return true if both operations initiated successfully
      */
     public boolean claimAndStartTrip(String tripId) {
-        Log.i(TAG, "🔄 Claim and start trip: " + tripId);
+        Log.i(TAG, "Claim and start trip: " + tripId);
         
         boolean claimed = claimTrip(tripId);
         if (claimed) {
@@ -249,7 +208,7 @@ public class UnifiedTripManager {
             
             boolean started = startTrip(tripId);
             if (started) {
-                Log.i(TAG, "✅ Successfully claimed and started trip: " + tripId);
+                Log.i(TAG, "Successfully claimed and started trip: " + tripId);
                 return true;
             } else {
                 // If start failed, try to release the claim
@@ -263,7 +222,7 @@ public class UnifiedTripManager {
     }
     
     /**
-     * 📊 Update trip status/metadata
+     * Update trip status/metadata
      * 
      * Use this to update trip metadata without changing its core state.
      * Good for progress updates, notes, etc.
@@ -279,7 +238,7 @@ public class UnifiedTripManager {
             return false;
         }
         
-        Log.i(TAG, "📊 Updating trip status: " + tripId + " -> " + status);
+        Log.i(TAG, "Updating trip status: " + tripId + " -> " + status);
         
         try {
             JSONObject operationData = new JSONObject();
@@ -291,15 +250,15 @@ public class UnifiedTripManager {
                 operationData.put("data", data);
             }
             
-            ConnectivityAwareSyncManager.SyncOperation operation = new UpdateTripStatusOperation(tripId, operationData);
+            SyncOperation operation = UpdateTripStatusOperation.create(tripId, status, data);
             
-            ConnectivityAwareSyncManager.SyncResult result = syncManager.executeOperation(operation);
+            SyncResult result = syncManager.executeOperation(operation);
             
             if (result.success) {
-                Log.i(TAG, "✅ Trip status update initiated: " + tripId);
+                Log.i(TAG, "Trip status update initiated: " + tripId);
                 return true;
             } else {
-                Log.w(TAG, "⚠️ Trip status update failed: " + tripId + " - " + result.message);
+                Log.w(TAG, "Trip status update failed: " + tripId + " - " + result.message);
                 return false;
             }
             
@@ -310,26 +269,248 @@ public class UnifiedTripManager {
     }
     
     /**
-     * 📊 Get current sync status - useful for UI indicators
+     * Handle delivery completion within a trip context
+     * 
+     * This method ensures that when a delivery is completed within a trip,
+     * all necessary sync operations are triggered automatically.
+     * 
+     * @param tripId The trip containing the completed delivery
+     * @param document The completed document/delivery ID
+     * @return true if sync operations were queued successfully
+     */
+    public boolean handleDeliveryCompletion(String tripId, String document) {
+        if (tripId == null || tripId.trim().isEmpty()) {
+            Log.w(TAG, "Cannot handle delivery completion - invalid trip ID");
+            return false;
+        }
+        
+        if (document == null || document.trim().isEmpty()) {
+            Log.w(TAG, "Cannot handle delivery completion - invalid document ID");
+            return false;
+        }
+        
+        Log.i(TAG, "Handling delivery completion: " + document + " (Trip: " + tripId + ")");
+        
+        try {
+            // Queue delivery data sync operation
+            com.clone.EasyDelivery.Utility.operations.SyncDeliveryDataOperation deliverySync = 
+                com.clone.EasyDelivery.Utility.operations.SyncDeliveryDataOperation.create(tripId, document);
+            
+            if (deliverySync != null) {
+                SyncResult deliveryResult = syncManager.executeOperation(deliverySync);
+                if (!deliveryResult.success) {
+                    Log.w(TAG, "Failed to queue delivery data sync: " + deliveryResult.message);
+                    return false;
+                }
+                Log.d(TAG, "Queued delivery data sync for: " + document);
+            } else {
+                Log.e(TAG, "Failed to create delivery sync operation for: " + document);
+                return false;
+            }
+            
+            // Check if this delivery needs email sending
+            if (shouldSendEmailForDelivery(tripId, document)) {
+                com.clone.EasyDelivery.Utility.operations.SendEmailOperation emailOp = 
+                    com.clone.EasyDelivery.Utility.operations.SendEmailOperation.create(tripId, document);
+                
+                if (emailOp != null) {
+                    SyncResult emailResult = syncManager.executeOperation(emailOp);
+                    if (!emailResult.success) {
+                        Log.w(TAG, "Failed to queue email operation: " + emailResult.message);
+                        // Don't return false - email is secondary to data sync
+                    } else {
+                        Log.d(TAG, "Queued email operation for: " + document);
+                    }
+                } else {
+                    Log.w(TAG, "Failed to create email operation for: " + document);
+                }
+            }
+            
+            // Update trip metadata to reflect the delivery completion
+            JSONObject deliveryData = new JSONObject();
+            deliveryData.put("completed_delivery", document);
+            deliveryData.put("completion_timestamp", System.currentTimeMillis());
+            updateTripStatus(tripId, "delivery_completed", deliveryData);
+            
+            Log.i(TAG, "Successfully handled delivery completion: " + document + " (Trip: " + tripId + ")");
+            return true;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error handling delivery completion: " + document + " (Trip: " + tripId + ")", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Check if email should be sent for a completed delivery
+     */
+    private boolean shouldSendEmailForDelivery(String tripId, String document) {
+        try {
+            com.clone.EasyDelivery.Database.DeliveryDb database = new com.clone.EasyDelivery.Database.DeliveryDb(context);
+            database.open();
+            
+            try {
+                // Check if this delivery has unsent email status
+                java.util.List<com.clone.EasyDelivery.Model.Delivery> unsentEmails = database.getAllUnsentEmails();
+                for (com.clone.EasyDelivery.Model.Delivery delivery : unsentEmails) {
+                    if (document.equals(delivery.getDocument()) && tripId.equals(delivery.getTripId())) {
+                        Log.d(TAG, "Delivery " + document + " requires email sending");
+                        return true;
+                    }
+                }
+                
+                Log.d(TAG, "Delivery " + document + " does not require email sending");
+                return false;
+                
+            } finally {
+                database.close();
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking email requirement for delivery: " + document, e);
+            // Default to sending email if we can't determine status
+            return true;
+        }
+    }
+    
+    /**
+     * Get trip sync status for UI display
+     * 
+     * This provides detailed information about the sync state of a specific trip,
+     * useful for showing progress indicators in the UI.
+     * 
+     * @param tripId The trip to check sync status for
+     * @return TripSyncStatus object containing sync state information
+     */
+    public TripSyncStatus getTripSyncStatus(String tripId) {
+        if (tripId == null || tripId.trim().isEmpty()) {
+            return new TripSyncStatus(tripId, false, "Invalid trip ID", 0, 0);
+        }
+        
+        try {
+            // Check if trip has pending sync operations
+            OfflineSyncQueue queue = OfflineSyncQueue.getInstance(context);
+            int pendingOperations = queue.getPendingOperationsCount(tripId);
+            
+            // Check database sync status
+            com.clone.EasyDelivery.Database.DeliveryDb database = new com.clone.EasyDelivery.Database.DeliveryDb(context);
+            database.open();
+            
+            try {
+                boolean isDataSynced = database.isDataSynced(tripId);
+                int totalDocuments = database.getCompletedDocumentList(tripId).size();
+                int syncedDocuments = database.getSyncedDocumentCount(tripId);
+                
+                String statusMessage;
+                if (pendingOperations > 0) {
+                    statusMessage = pendingOperations + " operations pending";
+                } else if (isDataSynced) {
+                    statusMessage = "All data synced";
+                } else {
+                    statusMessage = "Sync incomplete";
+                }
+                
+                return new TripSyncStatus(tripId, isDataSynced && pendingOperations == 0, 
+                                        statusMessage, syncedDocuments, totalDocuments);
+                
+            } finally {
+                database.close();
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting trip sync status for: " + tripId, e);
+            return new TripSyncStatus(tripId, false, "Error checking status: " + e.getMessage(), 0, 0);
+        }
+    }
+    
+    /**
+     * Clean up completed trips from local storage
+     * 
+     * This method removes completed and fully synced trips from local storage
+     * to prevent them from reappearing in the dashboard.
+     * 
+     * @param tripId The trip to clean up
+     * @return true if cleanup was successful
+     */
+    public boolean cleanupCompletedTrip(String tripId) {
+        if (tripId == null || tripId.trim().isEmpty()) {
+            Log.w(TAG, "Cannot cleanup trip - invalid trip ID");
+            return false;
+        }
+        
+        try {
+            // Check if trip is fully synced before cleanup
+            TripSyncStatus status = getTripSyncStatus(tripId);
+            if (!status.isFullySynced()) {
+                Log.w(TAG, "Cannot cleanup trip " + tripId + " - not fully synced: " + status.getStatusMessage());
+                return false;
+            }
+            
+            Log.i(TAG, "Cleaning up completed trip: " + tripId);
+            
+            // Remove from completed trips list
+            AppConstant.completedTrips.remove(tripId);
+            
+            // Remove from local tracking
+            locallyClaimedTrips.remove(tripId);
+            
+            // Delete local trip file
+            File tripFile = new File(context.getFilesDir() + "/Trip/", tripId + ".json");
+            if (tripFile.exists()) {
+                boolean deleted = tripFile.delete();
+                if (deleted) {
+                    Log.i(TAG, "Deleted local trip file: " + tripFile.getAbsolutePath());
+                } else {
+                    Log.w(TAG, "Failed to delete local trip file: " + tripFile.getAbsolutePath());
+                }
+            }
+            
+            // Delete temporary files
+            File tempFile = new File(context.getFilesDir() + "/Trip/", tripId + ".json.tmp");
+            if (tempFile.exists()) {
+                tempFile.delete();
+            }
+            
+            // Clean up database records
+            com.clone.EasyDelivery.Database.DeliveryDb database = new com.clone.EasyDelivery.Database.DeliveryDb(context);
+            database.open();
+            try {
+                database.deleteUploadedData(tripId);
+                Log.i(TAG, "Deleted uploaded data records for trip: " + tripId);
+            } finally {
+                database.close();
+            }
+            
+            Log.i(TAG, "Successfully cleaned up completed trip: " + tripId);
+            return true;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error cleaning up completed trip: " + tripId, e);
+            return false;
+        }
+    }
+    
+    /**
+     * Get current sync status - useful for UI indicators
      */
     public ConnectivityAwareSyncManager.SyncStatus getSyncStatus() {
         return syncManager.getSyncStatus();
     }
     
     /**
-     * 🧹 Force immediate sync of all pending operations
+     * Force immediate sync of all pending operations
      */
     public void forceSync() {
-        Log.i(TAG, "🧹 Force sync requested");
+        Log.i(TAG, "Force sync requested");
         syncManager.forceSync();
     }
     
     /**
-     * 📊 Get system statistics for debugging
+     * Get system statistics for debugging
      */
     public String getSystemStatistics() {
         StringBuilder stats = new StringBuilder();
-        stats.append("🎯 Unified Trip Manager Status:\n");
+        stats.append("Unified Trip Manager Status:\n");
         stats.append("Device ID: ").append(deviceId).append("\n\n");
         stats.append(syncManager.getSyncStatistics()).append("\n");
         
@@ -340,31 +521,102 @@ public class UnifiedTripManager {
     }
     
     /**
-     * 🆔 Get the device ID used for operations
+     * Get the device ID used for operations
      */
     public String getDeviceId() {
         return deviceId;
     }
     
     /**
-     * ↩️ Release a trip (overloaded method without reason)
+     * Release a trip (overloaded method without reason)
      */
     public boolean releaseTrip(String tripId) {
         return releaseTrip(tripId, "Manual release");
     }
     
+    
     /**
-     * 📋 Get list of available trips
-     * This method provides a simple way to get available trips for the UI
+     * Manual cleanup - triggers immediate device-aware cleanup
+     * Can be called by UI components if needed
+     */
+    public void forceCleanupStuckTrips() {
+        Log.i(TAG, "Manual cleanup requested");
+        performPeriodicCleanup();
+    }
+    
+    
+    /**
+     * Get list of available trips for dashboard
+     * 🗄️ OFFLINE-FIRST: Prioritizes cached trips, then adds cloud trips when online
      */
     public java.util.List<String> getAvailableTrips() {
         java.util.List<String> availableTrips = new java.util.ArrayList<>();
         
         try {
-            // Get available trips from local files directly (avoid circular dependency)
-            availableTrips.addAll(getLocalTripsDirectly());
+            // 🗄️ OFFLINE-FIRST: Start with cached trips from TripCacheManager
+            TripCacheManager cacheManager = TripCacheManager.getInstance(context);
+            java.util.List<TripCacheManager.TripCacheEntry> cachedTrips = cacheManager.getCachedTrips();
             
-            Log.i(TAG, "📋 Found " + availableTrips.size() + " available trips");
+            // Add all cached trips immediately (works offline)
+            for (TripCacheManager.TripCacheEntry entry : cachedTrips) {
+                if (!AppConstant.completedTrips.contains(entry.tripId)) {
+                    availableTrips.add(entry.tripId);
+                    Log.v(TAG, "Cached trip: " + entry.tripId + " (" + entry.syncStatus + ")");
+                }
+            }
+            
+            Log.i(TAG, "Found " + availableTrips.size() + " cached trips");
+            
+            // 🌐 ONLINE: Add additional trips from Dropbox when connected
+            ConnectivityAwareSyncManager syncManager = ConnectivityAwareSyncManager.getInstance(context);
+            boolean isOnline = syncManager.isOnline();
+            
+            if (isOnline) {
+                java.util.List<String> cloudTrips = getLocalTripsDirectly(); // This queries Dropbox
+                
+                // 🔧 STALE TRIP CLEANUP: Remove cached trips that no longer exist on Dropbox
+                Log.i(TAG, "🔍 CLEANUP CHECK: Cached trips: " + availableTrips + ", Dropbox trips: " + cloudTrips);
+                int removedCount = 0;
+                java.util.Iterator<String> iterator = availableTrips.iterator();
+                while (iterator.hasNext()) {
+                    String cachedTrip = iterator.next();
+                    if (!cloudTrips.contains(cachedTrip) && !locallyClaimedTrips.contains(cachedTrip)) {
+                        Log.i(TAG, "🗑️ CLEANUP: Removing stale cached trip: " + cachedTrip + " (not in Dropbox)");
+                        iterator.remove();
+                        // Also remove from cache manager
+                        cacheManager.removeTripFromCache(cachedTrip);
+                        removedCount++;
+                    }
+                }
+                Log.i(TAG, "🗑️ CLEANUP RESULT: Removed " + removedCount + " stale trips from cache");
+                
+                for (String tripId : cloudTrips) {
+                    if (!availableTrips.contains(tripId) && !AppConstant.completedTrips.contains(tripId)) {
+                        availableTrips.add(tripId);
+                        Log.d(TAG, "Added cloud trip: " + tripId);
+                        
+                        // Store in cache for offline access
+                        if (!cacheManager.isTripCached(tripId)) {
+                            // Trigger background download and caching
+                            downloadTripFromDropboxAsync(tripId);
+                        }
+                    }
+                }
+                
+                Log.i(TAG, "Total " + availableTrips.size() + " trips (" + cloudTrips.size() + " from cloud)");
+            } else {
+                Log.i(TAG, "Using " + availableTrips.size() + " cached trips only");
+            }
+            
+            // Add locally tracked claimed trips so they stay visible
+            for (String claimedTrip : locallyClaimedTrips) {
+                if (!availableTrips.contains(claimedTrip)) {
+                    availableTrips.add(claimedTrip);
+                    Log.d(TAG, "Added locally tracked trip to dashboard: " + claimedTrip);
+                }
+            }
+            
+            java.util.Collections.sort(availableTrips);
             
         } catch (Exception e) {
             Log.e(TAG, "Error getting available trips", e);
@@ -374,42 +626,74 @@ public class UnifiedTripManager {
     }
     
     /**
-     * 📁 Get trips from Dropbox available folder directly (CRITICAL FIX for claiming sync issues)
-     * This replaces the old local-only method to ensure real-time synchronization between devices
+     * 🗄️ Get cached trips only (pure offline access)
+     * This method works entirely offline using locally cached trip data
+     */
+    public java.util.List<String> getCachedTrips() {
+        java.util.List<String> cachedTrips = new java.util.ArrayList<>();
+        
+        try {
+            TripCacheManager cacheManager = TripCacheManager.getInstance(context);
+            java.util.List<TripCacheManager.TripCacheEntry> entries = cacheManager.getCachedTrips();
+            
+            for (TripCacheManager.TripCacheEntry entry : entries) {
+                if (!AppConstant.completedTrips.contains(entry.tripId)) {
+                    cachedTrips.add(entry.tripId);
+                }
+            }
+            
+            // Add locally tracked claimed trips
+            for (String claimedTrip : locallyClaimedTrips) {
+                if (!cachedTrips.contains(claimedTrip)) {
+                    cachedTrips.add(claimedTrip);
+                }
+            }
+            
+            java.util.Collections.sort(cachedTrips);
+            
+            Log.i(TAG, "Retrieved " + cachedTrips.size() + " cached trips (offline-capable)");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting cached trips", e);
+        }
+        
+        return cachedTrips;
+    }
+    
+    /**
+     * Get trips from Dropbox available folder directly
+     * This ensures real-time synchronization between devices
+     * 🔧 FIXED: Prevents race conditions that cause trips to pop in/out
      */
     private java.util.List<String> getLocalTripsDirectly() {
         java.util.List<String> availableTrips = new java.util.ArrayList<>();
         
         try {
-            Log.d(TAG, "🌐 CRITICAL FIX: Getting trips from Dropbox available folder for real-time sync");
-            
-            // 🚨 CRITICAL FIX: Check what's actually available on Dropbox, not just local files
+            // Check what's actually available on Dropbox, not just local files
             java.util.List<String> dropboxAvailableTrips = getTripsFromDropboxAvailableFolder();
             
-            // For each trip available on Dropbox, ensure we have it locally
+            // 🔧 RACE CONDITION FIX: Always add trips that exist on Dropbox
+            // Don't make trip visibility dependent on local file download completion
             for (String tripId : dropboxAvailableTrips) {
                 if (!AppConstant.completedTrips.contains(tripId)) {
-                    // Check if we have valid local data for this trip
+                    // ✅ ALWAYS ADD: If trip exists on Dropbox, show it in dashboard
+                    availableTrips.add(tripId);
+                    
+                    // Check local file status for background optimization only
                     File tripFile = new File(context.getFilesDir() + "/Trip/", tripId + ".json");
                     
-                    if (tripFile.exists() && tripFile.length() > 0) {
-                        availableTrips.add(tripId);
-                        Log.d(TAG, "✅ Available trip with local data: " + tripId);
-                    } else {
-                        Log.d(TAG, "📥 Trip available on Dropbox but missing locally - downloading: " + tripId);
-                        // Download the trip asynchronously
+                    if (!tripFile.exists() || tripFile.length() == 0) {
+                        // Download in background - doesn't affect visibility
                         downloadTripFromDropboxAsync(tripId);
-                        // Still add to available list since it exists on Dropbox
-                        availableTrips.add(tripId);
                     }
                 }
             }
             
             java.util.Collections.sort(availableTrips);
-            Log.i(TAG, "🌐 CRITICAL FIX: Found " + availableTrips.size() + " available trips from Dropbox: " + availableTrips.toString());
+            Log.i(TAG, "Found " + availableTrips.size() + " trips from Dropbox");
             
         } catch (Exception e) {
-            Log.e(TAG, "Error getting trips from Dropbox available folder, falling back to local", e);
+            Log.w(TAG, "Error getting trips from Dropbox, using local fallback: " + e.getMessage());
             // Fallback to local files if Dropbox is unavailable
             return getLocalTripsDirectlyFallback();
         }
@@ -418,7 +702,7 @@ public class UnifiedTripManager {
     }
     
     /**
-     * 🌐 Get list of trips currently in Dropbox available folder
+     * Get list of trips currently in Dropbox available folder
      */
     private java.util.List<String> getTripsFromDropboxAvailableFolder() {
         java.util.List<String> dropboxTrips = new java.util.ArrayList<>();
@@ -439,12 +723,11 @@ public class UnifiedTripManager {
                     if (fileName.endsWith(".json")) {
                         String tripId = fileName.substring(0, fileName.length() - 5);
                         dropboxTrips.add(tripId);
-                        Log.d(TAG, "📋 Found available trip on Dropbox: " + tripId);
                     }
                 }
             }
             
-            Log.i(TAG, "🌐 Found " + dropboxTrips.size() + " trips in Dropbox available folder");
+            Log.d(TAG, "Found " + dropboxTrips.size() + " trips in Dropbox available folder");
             
         } catch (Exception e) {
             Log.e(TAG, "Error listing Dropbox available folder", e);
@@ -453,18 +736,92 @@ public class UnifiedTripManager {
         return dropboxTrips;
     }
     
+    // 🔧 SYNCHRONIZED DOWNLOAD MANAGER: Prevents race conditions and duplicate downloads
+    private static final java.util.Set<String> activeDownloads = new java.util.HashSet<>();
+    private static final Object downloadLock = new Object();
+    
     /**
-     * 📥 Download trip file from Dropbox asynchronously
+     * Download trip file from Dropbox with race condition protection
+     * 🔧 ENHANCED: Prevents duplicate downloads and stores in TripCacheManager
      */
     private void downloadTripFromDropboxAsync(final String tripId) {
+        synchronized (downloadLock) {
+            // Check if download is already in progress
+            if (activeDownloads.contains(tripId)) {
+                Log.i(TAG, "Download already in progress for: " + tripId);
+                return;
+            }
+            
+            // Check if already cached
+            TripCacheManager cacheManager = TripCacheManager.getInstance(context);
+            if (cacheManager.isTripCached(tripId)) {
+                Log.i(TAG, "Trip already cached: " + tripId);
+                return;
+            }
+            
+            // Mark download as active
+            activeDownloads.add(tripId);
+            Log.i(TAG, "Starting protected download for: " + tripId);
+        }
+        
         Thread downloadThread = new Thread(new Runnable() {
             @Override
             public void run() {
+                boolean downloadSucceeded = false;
+                String downloadedContent = null;
+                
                 try {
-                    DropboxHelper.downloadFile(context, tripId + ".json");
-                    Log.i(TAG, "✅ Downloaded trip file: " + tripId);
+                    // Update sync status to "syncing"
+                    TripCacheManager cacheManager = TripCacheManager.getInstance(context);
+                    cacheManager.updateTripSyncStatus(tripId, TripCacheManager.STATUS_SYNCING);
+                    
+                    // Download from Dropbox
+                    DropboxHelper.downloadFileWithLocking(context, tripId + ".json");
+                    
+                    // 🔧 VERIFICATION: Check if file was actually created
+                    File downloadedFile = new File(context.getFilesDir() + "/Trip/", tripId + ".json");
+                    if (downloadedFile.exists() && downloadedFile.length() > 0) {
+                        // Read the downloaded content
+                        downloadedContent = JsonHandler.readFileAsString(context, tripId);
+                        
+                        if (downloadedContent != null && !downloadedContent.trim().isEmpty()) {
+                            // Store in cache manager for offline access
+                            boolean cached = cacheManager.storeTripInCache(tripId, downloadedContent);
+                            
+                            if (cached) {
+                                cacheManager.updateTripSyncStatus(tripId, TripCacheManager.STATUS_SYNCED);
+                                downloadSucceeded = true;
+                                Log.i(TAG, "🔄 SYNC_DOWNLOAD: Successfully downloaded and cached: " + tripId + " (" + downloadedFile.length() + " bytes)");
+                            } else {
+                                cacheManager.updateTripSyncStatus(tripId, TripCacheManager.STATUS_ERROR);
+                                Log.e(TAG, "🔄 SYNC_DOWNLOAD: Failed to cache downloaded trip: " + tripId);
+                            }
+                        } else {
+                            cacheManager.updateTripSyncStatus(tripId, TripCacheManager.STATUS_ERROR);
+                            Log.e(TAG, "🔄 SYNC_DOWNLOAD: Downloaded file has no content: " + tripId);
+                        }
+                    } else {
+                        Log.e(TAG, "🔄 SYNC_DOWNLOAD: Download claimed success but file missing: " + tripId);
+                    }
+                    
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to download trip: " + tripId, e);
+                    Log.w(TAG, "🔄 SYNC_DOWNLOAD: Download failed for " + tripId + ": " + e.getMessage());
+                    
+                    // Update sync status to error
+                    try {
+                        TripCacheManager cacheManager = TripCacheManager.getInstance(context);
+                        cacheManager.updateTripSyncStatus(tripId, TripCacheManager.STATUS_ERROR);
+                    } catch (Exception cacheError) {
+                        Log.e(TAG, "Failed to update cache status after download error", cacheError);
+                    }
+                    
+                    downloadSucceeded = false;
+                } finally {
+                    // Always remove from active downloads
+                    synchronized (downloadLock) {
+                        activeDownloads.remove(tripId);
+                        Log.i(TAG, "🔄 SYNC_DOWNLOAD: Released download lock for: " + tripId);
+                    }
                 }
             }
         });
@@ -472,86 +829,151 @@ public class UnifiedTripManager {
     }
     
     /**
-     * 📁 Fallback method - get trips from local file system only
+     * Fallback method - get trips from local file system only
+     * 🔧 FIXED: Improved stability for offline scenarios
      */
     private java.util.List<String> getLocalTripsDirectlyFallback() {
         java.util.List<String> localTrips = new java.util.ArrayList<>();
         
         try {
-            Log.d(TAG, "📁 FALLBACK: Getting trips from local files only");
-            
             File tripDir = new File(context.getFilesDir() + "/Trip/");
             if (!tripDir.exists()) {
-                Log.w(TAG, "Trip directory does not exist.");
+                tripDir.mkdirs();
                 return localTrips;
             }
             
             String[] tripFiles = tripDir.list();
             if (tripFiles == null) {
-                Log.w(TAG, "No files found in trip directory.");
                 return localTrips;
             }
             
-            // Add all valid local trips
+            // 🔧 STABILITY: More lenient file validation to prevent trips from disappearing
             for (String fileName : tripFiles) {
                 if (fileName.endsWith(".json") && !fileName.endsWith(".tmp")) {
                     String tripName = fileName.substring(0, fileName.length() - 5);
                     File currentFile = new File(tripDir, fileName);
                     
-                    // Only include if file has content and trip is not completed
-                    if (currentFile.length() > 0 && !AppConstant.completedTrips.contains(tripName)) {
+                    // 🔧 IMPROVED: Only exclude if file is completely empty or trip is definitely completed
+                    boolean isFileValid = currentFile.exists() && currentFile.length() >= 0; // Accept even small files
+                    boolean isTripCompleted = AppConstant.completedTrips.contains(tripName);
+                    
+                    if (isFileValid && !isTripCompleted) {
                         localTrips.add(tripName);
-                        Log.d(TAG, "Added local trip: " + tripName);
                     }
                 }
             }
             
             java.util.Collections.sort(localTrips);
-            Log.i(TAG, "📁 FALLBACK: Found " + localTrips.size() + " local trips: " + localTrips.toString());
+            Log.i(TAG, "Found " + localTrips.size() + " local trips (fallback)");
             
         } catch (Exception e) {
-            Log.e(TAG, "Error getting local trips fallback", e);
+            Log.e(TAG, "🔄 STABLE_FALLBACK: Error getting local trips, returning empty list", e);
         }
         
         return localTrips;
     }
     
-    // ================== MIGRATION HELPERS ==================
+    // ================== PERSISTENCE & CLEANUP HELPERS ==================
     
     /**
-     * 🔄 Helper to migrate from old DropboxHelper pattern
-     * 
-     * This method can replace existing DropboxHelper calls during migration:
-     * 
-     * OLD: DropboxHelper.moveTripInProgress(context, tripId);
-     * NEW: UnifiedTripManager.getInstance(context).migrateFromLegacy("claim_and_start", tripId);
+     * Get in-progress trips claimed by this device from Dropbox
+     * Used by both persistence logic and cleanup logic
      */
-    public boolean migrateFromLegacy(String operation, String tripId) {
-        Log.i(TAG, "🔄 Migrating legacy operation: " + operation + " for trip: " + tripId);
+    private java.util.List<String> getInProgressTripsByDevice() {
+        java.util.List<String> inProgressTrips = new java.util.ArrayList<>();
         
-        switch (operation.toLowerCase()) {
-            case "claim":
-            case "move_in_progress":
-                return claimTrip(tripId);
+        try {
+            com.dropbox.core.v2.DbxClientV2 client = DropboxHelper.getClient(context);
+            if (client == null) {
+                return inProgressTrips;
+            }
+            
+            String inProgressPath = "/Customers/" + AppConstant.COMPANY + "/in_progress";
+            
+            com.dropbox.core.v2.files.ListFolderResult inProgressFiles = client.files().listFolder(inProgressPath);
+            
+            if (inProgressFiles != null && !inProgressFiles.getEntries().isEmpty()) {
+                for (int i = 0; i < inProgressFiles.getEntries().size(); i++) {
+                    String fileName = inProgressFiles.getEntries().get(i).getName();
+                    
+                    DropboxHelper.ClaimInfo claimInfo = DropboxHelper.parseClaimInfo(fileName);
+                    
+                    if (claimInfo.isValidClaim && deviceId.equals(claimInfo.deviceId)) {
+                        inProgressTrips.add(claimInfo.tripId);
+                        Log.d(TAG, "Found in-progress trip by this device: " + claimInfo.tripId);
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting in-progress trips by device", e);
+        }
+        
+        return inProgressTrips;
+    }
+    
+    /**
+     * Device-aware periodic cleanup of stuck in-progress trips
+     * Only releases trips claimed by this device when no active trip exists
+     * Called by SyncService periodic operations
+     */
+    public void performPeriodicCleanup() {
+        Thread cleanupThread = new Thread(() -> {
+            try {
+                Log.d(TAG, "Performing periodic cleanup check...");
                 
-            case "claim_and_start":
-                return claimAndStartTrip(tripId);
+                // Find trips stuck in Dropbox in_progress folder by this device
+                java.util.List<String> dropboxInProgressTrips = getInProgressTripsByDevice();
                 
-            case "complete":
-            case "move_completed":
-                return completeTrip(tripId);
+                if (dropboxInProgressTrips.isEmpty()) {
+                    Log.d(TAG, "No in_progress trips found by this device - cleanup complete");
+                    return;
+                }
                 
-            case "release":
-            case "unclaim":
-                return releaseTrip(tripId, "Legacy migration");
+                // Simple logic: If no active trip, release all in_progress trips by this device
+                String currentTripId = AppConstant.TRIPID;
+                boolean hasActiveTrip = (currentTripId != null && !currentTripId.isEmpty());
                 
-            default:
-                Log.w(TAG, "Unknown legacy operation: " + operation);
-                return false;
+                if (!hasActiveTrip) {
+                    Log.w(TAG, "CLEANUP: No active trip - releasing " + dropboxInProgressTrips.size() + " stuck trips");
+                    
+                    for (String stuckTrip : dropboxInProgressTrips) {
+                        Log.i(TAG, "Releasing stuck trip: " + stuckTrip);
+                        releaseTrip(stuckTrip, "Periodic cleanup: no active trip");
+                    }
+                } else {
+                    Log.d(TAG, "Active trip detected: " + currentTripId + " - no cleanup needed");
+                    
+                    // Ensure the active trip is in local tracking
+                    if (dropboxInProgressTrips.contains(currentTripId)) {
+                        locallyClaimedTrips.add(currentTripId);
+                    }
+                }
+                
+            } catch (Exception e) {
+                Log.e(TAG, "Error in periodic cleanup", e);
+            }
+        });
+        cleanupThread.start();
+    }
+    
+    /**
+     * 🗑️ Force sync trip removals from Dropbox
+     * Manually triggers trip removal sync to immediately remove trips
+     * that are no longer available on Dropbox
+     */
+    public void forceSyncTripRemovals() {
+        try {
+            Log.i(TAG, "Forcing trip removal sync...");
+            
+            ConnectivityAwareSyncManager syncManager = ConnectivityAwareSyncManager.getInstance(context);
+            syncManager.forceTripRemovalSync();
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error during force trip removal sync", e);
         }
     }
     
-    // ================== PRIVATE HELPERS ==================
     
     private String generateDeviceId() {
         try {
@@ -582,237 +1004,6 @@ public class UnifiedTripManager {
         } catch (Exception e) {
             Log.e(TAG, "Error generating device ID, using fallback", e);
             return "Device_FALLBACK_" + System.currentTimeMillis();
-        }
-    }
-    
-    // ================== CONCRETE OPERATION CLASSES ==================
-    
-    /**
-     * Concrete implementation for claiming trips
-     */
-    private static class ClaimTripOperation extends ConnectivityAwareSyncManager.SyncOperation {
-        public ClaimTripOperation(String tripId, JSONObject data) {
-            super("CLAIM_TRIP", tripId, data);
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOnline(Context context) {
-            try {
-                Log.i(TAG, "🎯 Online claim trip: " + getTripId());
-                
-                // Get device ID from operation data
-                String deviceId = null;
-                try {
-                    JSONObject operationData = getData();
-                    deviceId = operationData.getString("deviceId");
-                } catch (Exception e) {
-                    Log.e(TAG, "Error getting device ID from operation data", e);
-                    return ConnectivityAwareSyncManager.SyncResult.failure("Missing device ID");
-                }
-                
-                // Perform actual Dropbox trip claiming operation
-                boolean claimSuccess = DropboxHelper.claimTripDirectly(context, getTripId(), deviceId);
-                
-                if (claimSuccess) {
-                    Log.i(TAG, "✅ Trip claimed successfully: " + getTripId());
-                    return ConnectivityAwareSyncManager.SyncResult.success("Trip claimed and moved to claimed folder");
-                } else {
-                    Log.w(TAG, "⚠️ Trip claim failed: " + getTripId());
-                    return ConnectivityAwareSyncManager.SyncResult.failure("Failed to claim trip on Dropbox");
-                }
-                
-            } catch (Exception e) {
-                Log.e(TAG, "Error in online claim operation for trip: " + getTripId(), e);
-                return ConnectivityAwareSyncManager.SyncResult.failure("Online claim failed: " + e.getMessage());
-            }
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOffline(Context context) {
-            try {
-                // Update local state immediately
-                Log.i(TAG, "Offline claim trip: " + getTripId());
-                return ConnectivityAwareSyncManager.SyncResult.success("Trip claimed offline (will sync later)");
-            } catch (Exception e) {
-                return ConnectivityAwareSyncManager.SyncResult.failure("Offline claim failed: " + e.getMessage());
-            }
-        }
-        
-        @Override
-        public int getPriority() {
-            return 2; // High priority
-        }
-    }
-    
-    /**
-     * Concrete implementation for starting trips
-     */
-    private static class StartTripOperation extends ConnectivityAwareSyncManager.SyncOperation {
-        public StartTripOperation(String tripId, JSONObject data) {
-            super("START_TRIP", tripId, data);
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOnline(Context context) {
-            try {
-                Log.i(TAG, "🚀 Online start trip: " + getTripId());
-                
-                // Move trip from claimed to in_progress folder
-                boolean startSuccess = DropboxHelper.startTripDirectly(context, getTripId());
-                
-                if (startSuccess) {
-                    Log.i(TAG, "✅ Trip started successfully: " + getTripId());
-                    return ConnectivityAwareSyncManager.SyncResult.success("Trip started and moved to in_progress folder");
-                } else {
-                    Log.w(TAG, "⚠️ Trip start failed: " + getTripId());
-                    return ConnectivityAwareSyncManager.SyncResult.failure("Failed to start trip on Dropbox");
-                }
-                
-            } catch (Exception e) {
-                Log.e(TAG, "Error in online start operation for trip: " + getTripId(), e);
-                return ConnectivityAwareSyncManager.SyncResult.failure("Online start failed: " + e.getMessage());
-            }
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOffline(Context context) {
-            try {
-                Log.i(TAG, "Offline start trip: " + getTripId());
-                return ConnectivityAwareSyncManager.SyncResult.success("Trip started offline (will sync later)");
-            } catch (Exception e) {
-                return ConnectivityAwareSyncManager.SyncResult.failure("Offline start failed: " + e.getMessage());
-            }
-        }
-        
-        @Override
-        public int getPriority() {
-            return 2; // High priority
-        }
-    }
-    
-    /**
-     * Concrete implementation for completing trips
-     */
-    private static class CompleteTripOperation extends ConnectivityAwareSyncManager.SyncOperation {
-        public CompleteTripOperation(String tripId, JSONObject data) {
-            super("COMPLETE_TRIP", tripId, data);
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOnline(Context context) {
-            try {
-                Log.i(TAG, "🏁 Online complete trip: " + getTripId());
-                
-                // Move trip from in_progress to completed folder
-                boolean completeSuccess = DropboxHelper.completeTripDirectly(context, getTripId());
-                
-                if (completeSuccess) {
-                    Log.i(TAG, "✅ Trip completed successfully: " + getTripId());
-                    return ConnectivityAwareSyncManager.SyncResult.success("Trip completed and moved to completed folder");
-                } else {
-                    Log.w(TAG, "⚠️ Trip completion failed: " + getTripId());
-                    return ConnectivityAwareSyncManager.SyncResult.failure("Failed to complete trip on Dropbox");
-                }
-                
-            } catch (Exception e) {
-                Log.e(TAG, "Error in online completion operation for trip: " + getTripId(), e);
-                return ConnectivityAwareSyncManager.SyncResult.failure("Online completion failed: " + e.getMessage());
-            }
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOffline(Context context) {
-            try {
-                Log.i(TAG, "Offline complete trip: " + getTripId());
-                return ConnectivityAwareSyncManager.SyncResult.success("Trip completed offline (will sync later)");
-            } catch (Exception e) {
-                return ConnectivityAwareSyncManager.SyncResult.failure("Offline completion failed: " + e.getMessage());
-            }
-        }
-        
-        @Override
-        public int getPriority() {
-            return 2; // High priority
-        }
-    }
-    
-    /**
-     * Concrete implementation for releasing trips
-     */
-    private static class ReleaseTripOperation extends ConnectivityAwareSyncManager.SyncOperation {
-        public ReleaseTripOperation(String tripId, JSONObject data) {
-            super("RELEASE_TRIP", tripId, data);
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOnline(Context context) {
-            try {
-                Log.i(TAG, "↩️ Online release trip: " + getTripId());
-                
-                // Move trip back to available folder (unclaim)
-                boolean releaseSuccess = DropboxHelper.releaseTripDirectly(context, getTripId());
-                
-                if (releaseSuccess) {
-                    Log.i(TAG, "✅ Trip released successfully: " + getTripId());
-                    return ConnectivityAwareSyncManager.SyncResult.success("Trip released and moved back to available folder");
-                } else {
-                    Log.w(TAG, "⚠️ Trip release failed: " + getTripId());
-                    return ConnectivityAwareSyncManager.SyncResult.failure("Failed to release trip on Dropbox");
-                }
-                
-            } catch (Exception e) {
-                Log.e(TAG, "Error in online release operation for trip: " + getTripId(), e);
-                return ConnectivityAwareSyncManager.SyncResult.failure("Online release failed: " + e.getMessage());
-            }
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOffline(Context context) {
-            try {
-                Log.i(TAG, "Offline release trip: " + getTripId());
-                return ConnectivityAwareSyncManager.SyncResult.success("Trip released offline (will sync later)");
-            } catch (Exception e) {
-                return ConnectivityAwareSyncManager.SyncResult.failure("Offline release failed: " + e.getMessage());
-            }
-        }
-        
-        @Override
-        public int getPriority() {
-            return 1; // Normal priority
-        }
-    }
-    
-    /**
-     * Concrete implementation for updating trip status
-     */
-    private static class UpdateTripStatusOperation extends ConnectivityAwareSyncManager.SyncOperation {
-        public UpdateTripStatusOperation(String tripId, JSONObject data) {
-            super("UPDATE_TRIP_STATUS", tripId, data);
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOnline(Context context) {
-            try {
-                Log.i(TAG, "Online update trip status: " + getTripId());
-                return ConnectivityAwareSyncManager.SyncResult.success("Trip status updated online");
-            } catch (Exception e) {
-                return ConnectivityAwareSyncManager.SyncResult.failure("Online status update failed: " + e.getMessage());
-            }
-        }
-        
-        @Override
-        public ConnectivityAwareSyncManager.SyncResult executeOffline(Context context) {
-            try {
-                Log.i(TAG, "Offline update trip status: " + getTripId());
-                return ConnectivityAwareSyncManager.SyncResult.success("Trip status updated offline (will sync later)");
-            } catch (Exception e) {
-                return ConnectivityAwareSyncManager.SyncResult.failure("Offline status update failed: " + e.getMessage());
-            }
-        }
-        
-        @Override
-        public int getPriority() {
-            return 1; // Normal priority
         }
     }
 }

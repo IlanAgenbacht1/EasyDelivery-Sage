@@ -18,10 +18,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import com.dropbox.core.v2.DbxClientV2;
 
 import com.dropbox.core.v2.DbxClientV2;
 
@@ -116,9 +117,7 @@ public class ScheduleHelper {
                 database.close();
 
             } catch (Exception e) {
-
-                e.printStackTrace();
-
+                Log.e("ScheduleHelper", "Error parsing and inserting schedule data: " + e.getMessage());
                 //ToastLogger.exception(context, e);
             }
         }
@@ -175,20 +174,20 @@ public class ScheduleHelper {
 
 
     public static ArrayList<String> getLocalTrips(Context context) {
-        // 🚀 Use Enhanced Sync for cloud-integrated trip discovery
-        Log.i("Trip List", "🚀 Using Enhanced Sync cloud-integrated trip discovery");
+        // Use Enhanced Sync for cloud-integrated trip discovery
+        Log.i("Trip List", "Using Enhanced Sync cloud-integrated trip discovery");
         return getENHANCED_SYNCAvailableTrips(context);
     }
     
     /**
-     * 🎯 Unified Trip Discovery
+     * Unified Trip Discovery
      * Uses the unified trip manager for seamless trip discovery
      */
     private static ArrayList<String> getENHANCED_SYNCAvailableTrips(Context context) {
         ArrayList<String> finalTripList = new ArrayList<>();
         
         try {
-            Log.i("UnifiedTripList", "🎯 Starting unified trip discovery");
+            Log.i("UnifiedTripList", "Starting unified trip discovery");
             long startTime = System.currentTimeMillis();
             
             // Use UnifiedTripManager to get available trips
@@ -203,9 +202,9 @@ public class ScheduleHelper {
                     
                     if (tripFile.exists() && tripFile.length() > 0) {
                         finalTripList.add(tripId);
-                        Log.d("UnifiedTripList", "✅ Added available trip: " + tripId);
+                        Log.d("UnifiedTripList", "Added available trip: " + tripId);
                     } else {
-                        Log.d("UnifiedTripList", "⚠️ Trip " + tripId + " available but missing locally - will download");
+                        Log.d("UnifiedTripList", "Trip " + tripId + " available but missing locally - will download");
                         // Trip is available but not local - trigger download
                         triggerTripDownload(context, tripId);
                     }
@@ -215,10 +214,11 @@ public class ScheduleHelper {
             Collections.sort(finalTripList);
             
             long duration = System.currentTimeMillis() - startTime;
-            Log.i("UnifiedTripList", "🎆 Unified trip discovery completed in " + duration + "ms - found " + finalTripList.size() + " available trips");
+            Log.i("UnifiedTripList", "Unified trip discovery completed in " + duration + "ms - found " + finalTripList.size() + " available trips");
             
-            // 🧹 CLEANUP: Remove any local trip files that don't exist anymore
-            cleanupStaleLocalTrips(context, finalTripList);
+            // CLEANUP: Remove any local trip files that don't exist in Dropbox anymore  
+            // Use the availableTrips we already got from Dropbox (don't make another network call!)
+            simpleCleanupStaleTrips(context, availableTrips);
             
         } catch (Exception e) {
             Log.e("UnifiedTripList", "Error in unified trip discovery", e);
@@ -228,45 +228,35 @@ public class ScheduleHelper {
     }
     
     /**
-     * 📶 LEGACY: Original file-based trip discovery
+     * LEGACY: Original file-based trip discovery
      * This method is preserved for fallback scenarios but should not be used
      * as the primary trip discovery mechanism in Enhanced Sync systems
      */
     private static ArrayList<String> getLegacyTrips(Context context) {
         ArrayList<String> finalTripList = new ArrayList<>();
         try {
-            Log.i("Trip List", "📶 LEGACY: Fetching trips from local files only...");
-
             File tripDir = new File(context.getFilesDir() + "/Trip/");
             if (!tripDir.exists()) {
-                Log.w("Trip List", "Trip directory does not exist.");
                 return finalTripList;
             }
 
-            // SIMPLIFIED: Just get all valid local trip files
             String[] tripFiles = tripDir.list();
             if (tripFiles == null) {
-                Log.w("Trip List", "No files found in trip directory.");
                 return finalTripList;
             }
 
-            // Add all valid local trips (skip complex filtering that was removing trips)
             for (String fileName : tripFiles) {
                 if (fileName.endsWith(".json") && !fileName.endsWith(".tmp")) {
                     String tripName = fileName.substring(0, fileName.length() - 5);
                     File currentFile = new File(tripDir, fileName);
 
-                    // Only exclude if file is empty or trip is actually completed
                     if (currentFile.length() > 0 && !AppConstant.completedTrips.contains(tripName)) {
                         finalTripList.add(tripName);
-                        Log.d("Trip List", "Added local trip: " + tripName);
                     }
                 }
             }
 
             Collections.sort(finalTripList);
-            Log.i("Trip List", "📶 LEGACY: Found " + finalTripList.size() + " local trips: " + finalTripList.toString());
-
         } catch (Exception e) {
             Log.e("Trip List", "Error getting local trips", e);
         }
@@ -274,70 +264,25 @@ public class ScheduleHelper {
     }
     
     /**
-     * 🚀 Enhanced Sync: Trigger download of a trip from available folder
+     * CONSOLIDATED: Trigger trip download via UnifiedTripManager
+     * This eliminates race conditions by using the centralized download system
      */
     private static void triggerTripDownload(Context context, String tripId) {
-        Log.i("ENHANCED_SYNCTripList", "📥 Triggering Enhanced Sync download for trip: " + tripId);
-        
-        // Run download in background thread
-        Thread downloadThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    // Download from Enhanced Sync available folder path
-                    downloadTripFromEnhancedSync(context, tripId);
-                    Log.i("ENHANCED_SYNCTripList", "✅ Downloaded trip file: " + tripId);
-                } catch (Exception e) {
-                    Log.e("ENHANCED_SYNCTripList", "Failed to download trip: " + tripId, e);
-                }
-            }
-        });
-        downloadThread.start();
-    }
-    
-    /**
-     * Download trip file from Enhanced Sync available folder
-     */
-    private static void downloadTripFromEnhancedSync(Context context, String tripId) throws Exception {
-        DbxClientV2 client = DropboxHelper.getClient(context);
-        if (client == null) {
-            throw new Exception("Dropbox client not available");
-        }
-        
-        // Enhanced Sync path: /Customers/CompanyName/available/TripId.json
-        String customerPath = "/Customers/" + AppConstant.COMPANY + "/";
-        String availablePath = customerPath + "available/" + tripId + ".json";
-        
-        File tripDir = new File(context.getFilesDir() + "/Trip/");
-        if (!tripDir.exists()) {
-            tripDir.mkdirs();
-        }
-        
-        File finalFile = new File(tripDir, tripId + ".json");
-        File tempFile = new File(tripDir, tripId + ".json.tmp");
-        
-        // Download to a temporary file first
-        try (OutputStream outputStream = new FileOutputStream(tempFile)) {
-            Log.d("ENHANCED_SYNCTripList", "Downloading from: " + availablePath);
-            client.files().downloadBuilder(availablePath).download(outputStream);
-        }
-        
-        // Atomically rename the temp file to the final file
-        if (tempFile.renameTo(finalFile)) {
-            Log.d("ENHANCED_SYNCTripList", "Successfully saved trip file: " + tripId);
-        } else {
-            // Clean up temp file on failure
-            if (tempFile.exists()) {
-                tempFile.delete();
-            }
-            throw new Exception("Failed to rename temporary file for: " + tripId);
+        try {
+            Log.i("ENHANCED_SYNCTripList", "Delegating download to UnifiedTripManager for: " + tripId);
+            
+            // Use UnifiedTripManager's synchronized download system
+            UnifiedTripManager tripManager = UnifiedTripManager.getInstance(context);
+            
+            // The UnifiedTripManager will handle the download in the background
+            // with proper synchronization and race condition protection
+            tripManager.getAvailableTrips(); // This will trigger download if needed
+            
+        } catch (Exception e) {
+            Log.w("ENHANCED_SYNCTripList", "Download delegation failed for " + tripId + ": " + e.getMessage());
         }
     }
     
-    /**
-     * 🧹 CLEANUP: Remove any local trip files that don't exist in the cloud anymore
-     * This ensures local cache is consistent with cloud source of truth
-     */
     private static void cleanupStaleLocalTrips(Context context, ArrayList<String> cloudTripList) {
         try {
             File tripDir = new File(context.getFilesDir() + "/Trip/");
@@ -350,40 +295,31 @@ public class ScheduleHelper {
                 return;
             }
             
-            Log.i("ENHANCED_SYNCTripList", "🧹 CLEANUP: Checking " + tripFiles.length + " local files against " + cloudTripList.size() + " cloud trips");
-            
             int deletedCount = 0;
             for (String fileName : tripFiles) {
                 if (fileName.endsWith(".json") && !fileName.endsWith(".tmp")) {
                     String tripName = fileName.substring(0, fileName.length() - 5);
                     
-                    // Delete local file if:
-                    // 1. Trip doesn't exist in cloud anymore AND
-                    // 2. Trip is not in completed list (don't delete completed trip data)
-                    if (!cloudTripList.contains(tripName) && !AppConstant.completedTrips.contains(tripName)) {
+                    // Simple rule: If trip no longer exists in Dropbox, delete it
+                    // BUT leave in_progress trips alone (they're being worked on)
+                    if (!cloudTripList.contains(tripName) && 
+                        !AppConstant.inProgressTrips.contains(tripName)) {
+                        
                         File staleFile = new File(tripDir, fileName);
                         if (staleFile.delete()) {
                             deletedCount++;
-                            Log.i("ENHANCED_SYNCTripList", "🗑️ CLEANUP: Deleted stale local file: " + fileName);
-                        } else {
-                            Log.w("ENHANCED_SYNCTripList", "⚠️ CLEANUP: Failed to delete stale file: " + fileName);
+                            Log.i("TripCleanup", "Deleted stale trip: " + tripName);
                         }
-                    } else if (cloudTripList.contains(tripName)) {
-                        Log.d("ENHANCED_SYNCTripList", "✅ CLEANUP: Keeping valid local file: " + fileName);
-                    } else {
-                        Log.d("ENHANCED_SYNCTripList", "🛡️ CLEANUP: Preserving completed trip file: " + fileName);
                     }
                 }
             }
             
             if (deletedCount > 0) {
-                Log.i("ENHANCED_SYNCTripList", "✅ CLEANUP: Deleted " + deletedCount + " stale local trip files");
-            } else {
-                Log.d("ENHANCED_SYNCTripList", "✅ CLEANUP: No stale files found");
+                Log.i("TripCleanup", "Cleaned up " + deletedCount + " stale trips");
             }
             
         } catch (Exception e) {
-            Log.w("ENHANCED_SYNCTripList", "Error cleaning up stale local trips", e);
+            Log.w("TripCleanup", "Error cleaning up stale trips", e);
         }
     }
 
@@ -396,17 +332,16 @@ public class ScheduleHelper {
             file.delete();
 
         } catch (Exception e) {
-
-            e.printStackTrace();
+            Log.w("ScheduleHelper", "Error deleting trip file " + tripName + ": " + e.getMessage());
         }
     }
     
     /**
-     * 🎯 EMERGENCY: Force cleanup of all local trip cache
+     * EMERGENCY: Force cleanup of all local trip cache
      * This can be called manually to resolve cache inconsistency issues
      */
     public static void forceCleanupLocalTripCache(Context context) {
-        Log.i("UnifiedTripList", "🎯 EMERGENCY: Starting force cleanup of local trip cache");
+        Log.i("UnifiedTripList", "EMERGENCY: Starting force cleanup of local trip cache");
         
         try {
             // Get fresh list of available trips from unified manager
@@ -414,15 +349,77 @@ public class ScheduleHelper {
             List<String> freshTrips = tripManager.getAvailableTrips();
             ArrayList<String> freshCloudTrips = new ArrayList<>(freshTrips);
             
-            Log.i("UnifiedTripList", "🎯 EMERGENCY: Found " + freshCloudTrips.size() + " trips available");
+            Log.i("UnifiedTripList", "EMERGENCY: Found " + freshCloudTrips.size() + " trips available");
             
             // Clean up stale local files
             cleanupStaleLocalTrips(context, freshCloudTrips);
             
-            Log.i("UnifiedTripList", "✅ EMERGENCY: Force cleanup completed");
+            Log.i("UnifiedTripList", "EMERGENCY: Force cleanup completed");
             
         } catch (Exception e) {
             Log.e("UnifiedTripList", "Error during force cleanup", e);
+        }
+    }
+    
+    /**
+     * SIMPLE: Use the Dropbox trips we already fetched (no extra network call!)
+     */
+    private static void simpleCleanupStaleTrips(Context context, List<String> dropboxTrips) {
+        try {
+            Log.i("TripCleanup", "=== CLEANUP DEBUG ===");
+            Log.i("TripCleanup", "Dropbox trips: " + dropboxTrips);
+            Log.i("TripCleanup", "InProgress trips: " + AppConstant.inProgressTrips);
+            
+            File tripDir = new File(context.getFilesDir() + "/Trip/");
+            if (!tripDir.exists()) {
+                Log.i("TripCleanup", "Trip directory doesn't exist");
+                return;
+            }
+            
+            String[] localFiles = tripDir.list();
+            if (localFiles == null) {
+                Log.i("TripCleanup", "No local files found");
+                return;
+            }
+            
+            Log.i("TripCleanup", "Found " + localFiles.length + " local files");
+            
+            int deletedCount = 0;
+            for (String fileName : localFiles) {
+                Log.d("TripCleanup", "Checking file: " + fileName);
+                
+                if (fileName.endsWith(".json") && !fileName.endsWith(".tmp")) {
+                    String tripName = fileName.substring(0, fileName.length() - 5);
+                    Log.i("TripCleanup", "Local trip: " + tripName);
+                    
+                    boolean inDropbox = dropboxTrips.contains(tripName);
+                    boolean inProgress = AppConstant.inProgressTrips.contains(tripName);
+                    
+                    Log.i("TripCleanup", "Trip " + tripName + ": inDropbox=" + inDropbox + ", inProgress=" + inProgress);
+                    
+                    // Delete if: Not in Dropbox AND not in_progress
+                    if (!inDropbox && !inProgress) {
+                        Log.i("TripCleanup", "ATTEMPTING TO DELETE: " + tripName);
+                        
+                        File staleFile = new File(tripDir, fileName);
+                        if (staleFile.delete()) {
+                            deletedCount++;
+                            Log.i("TripCleanup", "SUCCESS: DELETED stale trip: " + tripName);
+                        } else {
+                            Log.e("TripCleanup", "FAILED to delete: " + tripName);
+                        }
+                    } else {
+                        Log.i("TripCleanup", "KEEPING trip: " + tripName + " (reason: inDropbox=" + inDropbox + ", inProgress=" + inProgress + ")");
+                    }
+                } else {
+                    Log.d("TripCleanup", "Skipping non-json file: " + fileName);
+                }
+            }
+            
+            Log.i("TripCleanup", "=== CLEANUP RESULT: Deleted " + deletedCount + " stale trips ===");
+            
+        } catch (Exception e) {
+            Log.e("TripCleanup", "Error in cleanup", e);
         }
     }
 

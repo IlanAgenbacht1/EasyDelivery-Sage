@@ -18,7 +18,6 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,16 +28,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.clone.EasyDelivery.Adapter.TripAdapter;
 import com.clone.EasyDelivery.R;
 import com.clone.EasyDelivery.Utility.AppConstant;
-import com.clone.EasyDelivery.Utility.ConnectionHelper;
-import com.clone.EasyDelivery.Utility.DropboxHelper;
+import com.clone.EasyDelivery.Utility.ConnectivityAwareSyncManager;
 import com.clone.EasyDelivery.Utility.ScheduleHelper;
-import com.clone.EasyDelivery.Utility.SyncConstant;
+// SyncConstant merged into AppConstant
 import com.clone.EasyDelivery.Utility.UnifiedTripManager;
-import com.clone.EasyDelivery.databinding.ActivityMainBinding;
 import com.clone.EasyDelivery.databinding.ActivityTripDashBinding;
 
 import java.util.ArrayList;
-import java.util.Collections;
 
 public class TripDash extends AppCompatActivity {
 
@@ -58,6 +54,11 @@ public class TripDash extends AppCompatActivity {
     private Animation toBottomFabAnim;
     private Animation fromBottomBgAnim;
     private Animation toBottomBgAnim;
+    
+    // 🔧 STABILITY: Track trip list stability to reduce unnecessary updates
+    private ArrayList<String> lastKnownTrips = new ArrayList<>();
+    private int stableUpdateCount = 0;
+
 
 
     @Override
@@ -67,6 +68,9 @@ public class TripDash extends AppCompatActivity {
 
         binding = ActivityTripDashBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        AppConstant.loadCompletedTripsFromStorage(this);
+        UnifiedTripManager.getInstance(this);
 
         fromBottomFabAnim = AnimationUtils.loadAnimation(this, R.anim.from_bottom_fab);
         toBottomFabAnim = AnimationUtils.loadAnimation(this, R.anim.to_bottom_fab);
@@ -98,14 +102,11 @@ public class TripDash extends AppCompatActivity {
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
         
-        // 🎨 SMOOTH ANIMATIONS: Enable built-in RecyclerView animations
         recyclerView.setItemAnimator(new androidx.recyclerview.widget.DefaultItemAnimator());
         recyclerView.getItemAnimator().setChangeDuration(300);
         recyclerView.getItemAnimator().setMoveDuration(300);
         recyclerView.getItemAnimator().setAddDuration(400);
         recyclerView.getItemAnimator().setRemoveDuration(300);
-        
-        Log.i("TripDash", "🎨 RecyclerView animations enabled");
 
         layout = findViewById(R.id.trip_dash_main);
 
@@ -121,16 +122,12 @@ public class TripDash extends AppCompatActivity {
             @Override
             public void onItemClick(String tripName) {
 
-                // 🚀 INSTANT FEEDBACK: Immediately disable interactions and show loading
                 recyclerView.setFocusable(false);
-                recyclerView.setEnabled(false); // Prevent multiple taps
+                recyclerView.setEnabled(false);
                 
-                // Show loading state immediately
                 logo.setVisibility(View.INVISIBLE);
                 loadingIcon.setVisibility(View.VISIBLE);
                 title.setText("STARTING TRIP " + tripName + "...");
-                
-                Log.i("TripPerformance", "🚀 INSTANT FEEDBACK: UI updated immediately for trip " + tripName);
 
                 AppConstant.TRIPID = tripName;
 
@@ -139,6 +136,8 @@ public class TripDash extends AppCompatActivity {
         });
 
         recyclerView.setAdapter(adapter);
+
+        //checkConnectivity();
 
         textHandler = new Handler(Looper.getMainLooper());
         loop();
@@ -150,41 +149,67 @@ public class TripDash extends AppCompatActivity {
             @Override
             public void run() {
                 new Thread(() -> {
-                    // Background thread: Fetch trips
-                    ArrayList<String> newTrips = ScheduleHelper.getLocalTrips(TripDash.this);
+                    try {
+                        ArrayList<String> newTrips = ScheduleHelper.getLocalTrips(TripDash.this);
 
-                    // UI thread: Update adapter and UI
-                    textHandler.post(() -> {
-                        adapter.updateTrips(newTrips);
+                        textHandler.post(() -> {
+                            try {
+                                // 🔧 STABILITY: Only update UI if trips actually changed
+                                boolean tripsChanged = !newTrips.equals(lastKnownTrips);
+                                
+                                if (tripsChanged) {
+                                    Log.i("TripDash", "🔄 STABLE_UI: Trip list changed from " + lastKnownTrips.size() + " to " + newTrips.size() + " trips");
+                                    Log.d("TripDash", "🔄 STABLE_UI: Previous: " + lastKnownTrips + ", New: " + newTrips);
+                                    
+                                    adapter.updateTrips(newTrips);
+                                    lastKnownTrips = new ArrayList<>(newTrips);
+                                    stableUpdateCount = 0;
+                                } else {
+                                    stableUpdateCount++;
+                                    Log.v("TripDash", "🔄 STABLE_UI: No changes detected (stable for " + (stableUpdateCount * 5) + "s)");
+                                }
 
-                        if (!newTrips.isEmpty() && !layoutAnimated) {
+                                if (!newTrips.isEmpty() && !layoutAnimated) {
+                                    loadingIcon.setVisibility(View.INVISIBLE);
+                                    title.setVisibility(View.INVISIBLE);
 
-                            loadingIcon.setVisibility(View.INVISIBLE);
-                            title.setVisibility(View.INVISIBLE);
+                                    Animation fadeIn = new AlphaAnimation(0, 1);
+                                    fadeIn.setInterpolator(new DecelerateInterpolator());
+                                    fadeIn.setDuration(1000);
+                                    fadeIn.setStartOffset(250);
 
-                            Animation fadeIn = new AlphaAnimation(0, 1);
-                            fadeIn.setInterpolator(new DecelerateInterpolator()); //add this
-                            fadeIn.setDuration(1000);
-                            fadeIn.setStartOffset(250);
-
-                            //binding.mainFabBtn.startAnimation(fadeIn);
-                            //logo.startAnimation(fadeIn);
-                            //recyclerView.startAnimation(fadeIn);
-                            title.startAnimation(fadeIn);
-
-                            title.setText("SELECT TRIP");
-
-                            //binding.mainFabBtn.setVisibility(View.VISIBLE);
-                            //logo.setVisibility(View.VISIBLE);
-                            title.setVisibility(View.VISIBLE);
-                            //recyclerView.setVisibility(View.VISIBLE);
-
-                            layoutAnimated = true;
-
-                        }
-                        // Reschedule the next run
-                        textHandler.postDelayed(this, 5000);
-                    });
+                                    title.startAnimation(fadeIn);
+                                    title.setText("SELECT TRIP");
+                                    title.setVisibility(View.VISIBLE);
+                                    layoutAnimated = true;
+                                } else if (newTrips.isEmpty()) {
+                                    checkConnectivity();
+                                }
+                                
+                            } catch (Exception e) {
+                                Log.e("TripDash", "Error updating UI in trip loop", e);
+                            }
+                            
+                            // 🔧 ADAPTIVE POLLING: Use longer intervals when trips are stable
+                            long nextPollInterval;
+                            if (stableUpdateCount > 10) {
+                                // After 50 seconds of stability, poll every 15 seconds
+                                nextPollInterval = 15000;
+                            } else if (stableUpdateCount > 3) {
+                                // After 15 seconds of stability, poll every 8 seconds  
+                                nextPollInterval = 8000;
+                            } else {
+                                // Recent changes or first few updates, poll every 5 seconds
+                                nextPollInterval = 5000;
+                            }
+                            
+                            textHandler.postDelayed(this, nextPollInterval);
+                        });
+                        
+                    } catch (Exception e) {
+                        Log.e("TripDash", "Error in trip fetching loop", e);
+                        textHandler.postDelayed(this, 10000);
+                    }
                 }).start();
             }
         };
@@ -193,52 +218,33 @@ public class TripDash extends AppCompatActivity {
     }
 
 
+    private void checkConnectivity() {
+        ConnectivityAwareSyncManager syncManager = ConnectivityAwareSyncManager.getInstance(TripDash.this);
+        boolean isOnline = syncManager.isOnline();
+
+        if (!isOnline) {
+            title.setText("OFFLINE - NO TRIPS AVAILABLE");
+        } else {
+            title.setText("NO TRIPS AVAILABLE");
+        }
+    }
+
+
     public void startTrip(String trip) {
 
-        SyncConstant.STARTED_TRIP = AppConstant.TRIPID;
-
-        // 🚀 INSTANT DATA LOADING: Load trip data SYNCHRONOUSLY from local JSON first
-        Log.i("TripPerformance", "⚡ INSTANT: Loading trip data synchronously from local JSON");
-        long dataLoadStart = System.currentTimeMillis();
-        
-        // Parse schedule data immediately from local JSON file (no Dropbox operations)
+        AppConstant.STARTED_TRIP = AppConstant.TRIPID;
         ScheduleHelper.getSchedule(this, AppConstant.TRIPID);
-        
-        long dataLoadTime = System.currentTimeMillis() - dataLoadStart;
-        Log.i("TripPerformance", "✅ INSTANT: Local trip data loaded in " + dataLoadTime + "ms");
-        Log.i("TripPerformance", "📄 INSTANT: Loaded " + AppConstant.documentList.size() + " documents for trip " + AppConstant.TRIPID);
-
-        // 🚀 INSTANT NAVIGATION: Navigate immediately with data loaded
-        Log.i("TripPerformance", "⚡ INSTANT: Navigating to DashHeader with trip data ready");
-        
         textHandler.removeCallbacksAndMessages(null);
         
-        // 🚀 UNIFIED: Use new unified trip manager for instant operations
-        Thread backgroundClaimThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Log.i("TripPerformance", "🎯 UNIFIED: Claiming and starting trip with unified manager");
-                    
-                    UnifiedTripManager tripManager = UnifiedTripManager.getInstance(TripDash.this);
-                    
-                    // Single call handles claim + start, works online or offline
-                    boolean success = tripManager.claimAndStartTrip(AppConstant.TRIPID);
-                    
-                    if (success) {
-                        Log.i("TripPerformance", "✅ UNIFIED: Trip claimed and started successfully (sync automatic)");
-                    } else {
-                        Log.w("TripPerformance", "⚠️ UNIFIED: Trip claim/start failed - but data already loaded for user");
-                    }
-                    
-                } catch (Exception e) {
-                    Log.e("TripPerformance", "Error in unified trip operations", e);
-                }
+        new Thread(() -> {
+            try {
+                UnifiedTripManager tripManager = UnifiedTripManager.getInstance(TripDash.this);
+                tripManager.claimAndStartTrip(AppConstant.TRIPID);
+            } catch (Exception e) {
+                Log.e("TripDash", "Error in unified trip operations", e);
             }
-        });
-        backgroundClaimThread.start();
+        }).start();
 
-        // Navigate immediately (UI already has data loaded synchronously)
         startActivity(new Intent(TripDash.this, DashHeader.class));
         finish();
     }

@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.text.style.RelativeSizeSpan;
+import android.util.Log;
 import android.util.Patterns;
 import android.view.KeyEvent;
 import android.view.View;
@@ -32,7 +33,7 @@ import androidx.core.content.ContextCompat;
 import com.clone.EasyDelivery.R;
 import com.clone.EasyDelivery.Utility.AppConstant;
 import com.clone.EasyDelivery.Utility.ScheduleHelper;
-import com.clone.EasyDelivery.Utility.SyncService;
+// SyncService removed - initialization now handled by EasyDeliveryApplication
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -137,8 +138,8 @@ public class SplashLogin extends AppCompatActivity {
                         @Override
                         public void run() {
 
-                            Intent startSyncIntent = new Intent(SplashLogin.this, SyncService.class);
-                            startService(startSyncIntent);
+                            // SyncService removed - initialization handled by EasyDeliveryApplication
+                            // All sync components are now initialized when the app starts
 
                             startActivity(new Intent(SplashLogin.this, TripDash.class));
                             finish();
@@ -268,7 +269,6 @@ public class SplashLogin extends AppCompatActivity {
 
     public String GetCompany() {
         SharedPreferences shp = this.getSharedPreferences("COMPANY", MODE_PRIVATE);
-        System.out.println("getting Image" + shp.getString("company", ""));
         return shp.getString("company", "");
     }
 
@@ -276,7 +276,7 @@ public class SplashLogin extends AppCompatActivity {
     public void StoreCompany(String image_url) {
         SharedPreferences.Editor editor = getSharedPreferences("COMPANY", MODE_PRIVATE).edit();
         editor.putString("company", image_url);
-        System.out.println("company changed>>>>>>>>>" + image_url);
+        Log.d(TAG, "Company configured: " + image_url);
         editor.commit();
     }
 
@@ -284,7 +284,6 @@ public class SplashLogin extends AppCompatActivity {
 
     public String GetDriver() {
         SharedPreferences shp = this.getSharedPreferences("DRIVER", MODE_PRIVATE);
-        System.out.println("getting driver" + shp.getString("driver", ""));
         return shp.getString("driver", "");
     }
 
@@ -292,7 +291,6 @@ public class SplashLogin extends AppCompatActivity {
     public void StoreDriver(String image_url) {
         SharedPreferences.Editor editor = getSharedPreferences("DRIVER", MODE_PRIVATE).edit();
         editor.putString("driver", image_url);
-        System.out.println("driver changed>>>>>>>>>" + image_url);
         editor.commit();
     }
 

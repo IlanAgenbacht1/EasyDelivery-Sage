@@ -147,13 +147,9 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
         }
 
         public void bind(final String tripName, final TripAdapter.OnItemClickListener listener) {
-
-            Log.i("DeliveryCount", "Binder context: " + itemView.getContext() + " Trip: " + tripName);
-
             int deliveryCount = 0;
 
             if (!AppConstant.completedTrips.contains(tripName)) {
-
                 deliveryCount = JsonHandler.returnDeliveryCount(itemView.getContext(), tripName);
             }
 
@@ -165,13 +161,7 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
                 textViewDeliveryCount.setText(deliveryCount + " Delivery");
             }
 
-            itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                    listener.onItemClick(tripName);
-                }
-            });
+            itemView.setOnClickListener(v -> listener.onItemClick(tripName));
 
         }
     }

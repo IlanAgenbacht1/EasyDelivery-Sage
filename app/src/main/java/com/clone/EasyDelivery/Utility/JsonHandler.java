@@ -48,6 +48,30 @@ public class JsonHandler {
         return tripData;
     }
 
+    /**
+     * 📤 Read trip file as raw string content (for TripCacheManager integration)
+     */
+    public static String readFileAsString(Context context, String trip) {
+        if (trip == null || trip.trim().isEmpty()) {
+            return null;
+        }
+        
+        StringBuilder jsonString = new StringBuilder();
+        
+        try (BufferedReader reader = new BufferedReader(new FileReader(new File(context.getFilesDir() + "/Trip/", trip + ".json")))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                jsonString.append(line);
+            }
+            
+            return jsonString.toString();
+            
+        } catch (Exception e) {
+            Log.w("JsonHandler", "Could not read file as string for trip: " + trip, e);
+            return null;
+        }
+    }
+
 
     public static JSONObject readReturnFile(Context context) {
 
@@ -82,7 +106,7 @@ public class JsonHandler {
             File file = new File(context.getFilesDir() + "/Sync/");
             file.mkdirs();
             file = new File(file.getPath(), delivery.getDocument() + ".json");
-            SyncConstant.DOCUMENT_FILE_PATH = file.getPath();
+            AppConstant.DOCUMENT_FILE_PATH = file.getPath();
             if (file.createNewFile()) {
                 JSONObject json = new JSONObject();
                 json.put("documentNumber", delivery.getDocument());

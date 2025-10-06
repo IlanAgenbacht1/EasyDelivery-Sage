@@ -253,7 +253,7 @@ public class Preview extends AppCompatActivity {
 
                 strList = TextUtils.join(", ",  AppConstant.validatedParcels);
                 strList = strList.replaceAll("\\s"," ");
-                System.out.println(strList);
+                Log.d("PreviewValidation", "Validated parcels list: " + strList);
 
                 updateDatabase();
 
@@ -280,7 +280,7 @@ public class Preview extends AppCompatActivity {
 
             String parcelString= gson.toJson(parcelId);
 
-            System.out.println("inputString= " + parcelString);
+            Log.d("PreviewDatabase", "Parcel JSON: " + parcelString);
 
             itemParcel.setParcels(strList);
             itemParcel.setDriver(tvDriver.getText().toString());
@@ -313,19 +313,31 @@ public class Preview extends AppCompatActivity {
             Log.i("TripCompletion", "All deliveries completed for trip " + AppConstant.TRIPID + ": " + allDeliveriesCompleted);
             
             if (allDeliveriesCompleted) {
-                Log.i("TripCompletion", "🎉 TRIP COMPLETED! Adding to completed trips list and broadcasting completion");
+                Log.i("TripCompletion", "🎉 TRIP COMPLETED! Marking as completed with persistent storage");
                 
-                // Add trip to completed list if not already there
-                if (!AppConstant.completedTrips.contains(AppConstant.TRIPID)) {
-                    AppConstant.completedTrips.add(AppConstant.TRIPID);
-                    Log.i("TripCompletion", "Added trip " + AppConstant.TRIPID + " to completed trips list");
-                }
+                // Use persistent storage method to mark trip as completed
+                // This handles both in-memory list and persistent storage automatically
+                AppConstant.markTripCompleted(this, AppConstant.TRIPID);
                 
-                // Send broadcast to trigger trip completion handling
-                Intent tripCompletedIntent = new Intent("TripCompleted");
-                tripCompletedIntent.putExtra("tripId", AppConstant.TRIPID);
-                sendBroadcast(tripCompletedIntent);
-                Log.i("TripCompletion", "✅ Broadcasted TripCompleted for trip: " + AppConstant.TRIPID);
+                // Direct call to UnifiedTripManager for clean architecture
+                Log.i("TripCompletion", "🎯 Completing trip directly via UnifiedTripManager: " + AppConstant.TRIPID);
+                Thread tripCompletionThread = new Thread(() -> {
+                    try {
+                        com.clone.EasyDelivery.Utility.UnifiedTripManager tripManager = 
+                            com.clone.EasyDelivery.Utility.UnifiedTripManager.getInstance(Preview.this);
+                        
+                        boolean success = tripManager.completeTrip(AppConstant.TRIPID);
+                        
+                        if (success) {
+                            Log.i("TripCompletion", "✅ Trip completed successfully via direct call: " + AppConstant.TRIPID);
+                        } else {
+                            Log.w("TripCompletion", "⚠️ Trip completion had issues (will sync later): " + AppConstant.TRIPID);
+                        }
+                    } catch (Exception e) {
+                        Log.e("TripCompletion", "Error in direct trip completion", e);
+                    }
+                });
+                tripCompletionThread.start();
                 
                 // Show completion confirmation
                 showTripCompletionDialog();
@@ -453,26 +465,30 @@ public class Preview extends AppCompatActivity {
 
     public String GetCompany() {
         SharedPreferences shp = this.getSharedPreferences("COMPANY", MODE_PRIVATE);
-        System.out.println("getting Image" + shp.getString("company", ""));
-        return shp.getString("company", "");
+        String company = shp.getString("company", "");
+        Log.d("PreviewConfig", "Retrieved company: " + company);
+        return company;
     }
 
     public String GetDriver() {
         SharedPreferences shp = this.getSharedPreferences("DRIVER", MODE_PRIVATE);
-        System.out.println("getting driver" + shp.getString("driver", ""));
-        return shp.getString("driver", "");
+        String driver = shp.getString("driver", "");
+        Log.d("PreviewConfig", "Retrieved driver: " + driver);
+        return driver;
     }
 
     public String GetEmail() {
         SharedPreferences shp = this.getSharedPreferences("EMAIL", MODE_PRIVATE);
-        System.out.println("getting email" + shp.getString("email", ""));
-        return shp.getString("email", "");
+        String email = shp.getString("email", "");
+        Log.d("PreviewConfig", "Retrieved email: " + email);
+        return email;
     }
 
     public String GetVehicle() {
         SharedPreferences shp = this.getSharedPreferences("VEHICLE", MODE_PRIVATE);
-        System.out.println("getting vehicle" + shp.getString("vehicle", ""));
-        return shp.getString("vehicle", "");
+        String vehicle = shp.getString("vehicle", "");
+        Log.d("PreviewConfig", "Retrieved vehicle: " + vehicle);
+        return vehicle;
     }
     
     /**

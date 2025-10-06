@@ -2,7 +2,10 @@ package com.clone.EasyDelivery.Utility;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.util.Log;
 import com.dropbox.core.v2.DbxClientV2;
 import com.clone.EasyDelivery.Database.DeliveryDb;
@@ -10,6 +13,18 @@ import org.json.JSONObject;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.List;
+import java.util.ArrayList;
+import java.io.File;
+import com.clone.EasyDelivery.Utility.AppConstant;
+
+// Import new operation classes
+import com.clone.EasyDelivery.Utility.operations.SyncOperation;
+import com.clone.EasyDelivery.Utility.operations.RemoveTripOperation;
+import com.clone.EasyDelivery.Utility.operations.CleanupCompletedTripsOperation;
+import com.clone.EasyDelivery.Utility.operations.MaintenanceOperation;
 
 /**
  * 🌐 ConnectivityAwareSyncManager - Smart sync that adapts to network conditions
@@ -31,11 +46,32 @@ public class ConnectivityAwareSyncManager {
     private final Context context;
     private final AtomicBoolean isOnline = new AtomicBoolean(false);
     private final AtomicLong lastConnectivityCheck = new AtomicLong(0);
+    private final AtomicLong lastConnectivityLog = new AtomicLong(0);
     private static final long CONNECTIVITY_CHECK_INTERVAL = 2000; // 2 seconds
+    private static final long CONNECTIVITY_LOG_INTERVAL = 30000; // 30 seconds for stable state logging
     
     // Sync state
     private final AtomicBoolean syncInProgress = new AtomicBoolean(false);
     private final AtomicLong lastSuccessfulSync = new AtomicLong(0);
+    private boolean isSynced = false;
+    
+    // Periodic sync - optimized for responsiveness
+    private Timer periodicSyncTimer;
+    private static final long SYNC_INTERVAL_NORMAL = 15000; // 15 seconds
+    private static final long SYNC_INTERVAL_FAST = 3000;    // 3 seconds when queue has items
+    private static final long SYNC_INTERVAL_SLOW = 30000;   // 30 seconds when idle
+    
+    // Background cache refresh
+    private Timer cacheRefreshTimer;
+    private final AtomicBoolean cacheRefreshInProgress = new AtomicBoolean(false);
+    private final AtomicLong lastCacheRefresh = new AtomicLong(0);
+    private static final long CACHE_REFRESH_INTERVAL = 10000; // 30 seconds
+    
+    // Completed trips cleanup
+    private Timer completedTripsCleanupTimer;
+    private final AtomicBoolean cleanupInProgress = new AtomicBoolean(false);
+    private final AtomicLong lastCleanup = new AtomicLong(0);
+    private static final long CLEANUP_INTERVAL = 10000; // 5 minutes
     
     // Singleton
     private static ConnectivityAwareSyncManager instance;
@@ -43,6 +79,9 @@ public class ConnectivityAwareSyncManager {
     private ConnectivityAwareSyncManager(Context context) {
         this.context = context.getApplicationContext();
         updateConnectivityState();
+        startPeriodicSync();
+        startCacheRefreshTimer();
+        startCompletedTripsCleanupTimer();
     }
     
     public static synchronized ConnectivityAwareSyncManager getInstance(Context context) {
@@ -56,74 +95,76 @@ public class ConnectivityAwareSyncManager {
      * 🌐 Check current connectivity and update internal state
      */
     public boolean updateConnectivityState() {
-        long now = System.currentTimeMillis();
-        
-        // Cache connectivity checks to avoid excessive system calls
-        if (now - lastConnectivityCheck.get() < CONNECTIVITY_CHECK_INTERVAL) {
-            return isOnline.get();
-        }
-        
+        return updateConnectivityState(false);
+    }
+    
+    /**
+     * 🌐 Update connectivity state with option to force check (for external triggers)
+     */
+    public boolean updateConnectivityState(boolean forceCheck) {
         boolean wasOnline = isOnline.get();
-        boolean nowOnline = checkNetworkConnectivity() && checkDropboxConnectivity();
-        
-        isOnline.set(nowOnline);
-        lastConnectivityCheck.set(now);
-        
-        // Log connectivity changes
+        boolean nowOnline = checkNetworkConnectivity();
+
+        // Only proceed if the state has actually changed.
         if (wasOnline != nowOnline) {
+            isOnline.set(nowOnline);
             Log.i(TAG, "🌐 Connectivity changed: " + (nowOnline ? "ONLINE" : "OFFLINE"));
-            
-            if (nowOnline && !wasOnline) {
-                // Just came online - trigger sync of queued operations
+
+            // If we just came back online, trigger the sync for the offline queue.
+            if (nowOnline) {
                 Log.i(TAG, "📡 Network restored - triggering sync of queued operations");
                 triggerOfflineSync();
             }
+        } else {
+            // Optional: Log that the state remains stable.
+            Log.v(TAG, "🌐 Connectivity state stable: " + (nowOnline ? "ONLINE" : "OFFLINE"));
         }
-        
+
         return nowOnline;
     }
     
     /**
      * 📶 Check basic network connectivity
      */
+    /**
+     * 📶 Checks for a validated network connection (i.e., actual internet access).
+     * This is more reliable than just checking if a network is "active".
+     */
     private boolean checkNetworkConnectivity() {
         try {
-            ConnectivityManager connectivityManager = 
-                (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            
+            ConnectivityManager connectivityManager =
+                    (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
             if (connectivityManager == null) {
+                Log.w(TAG, "Cannot get ConnectivityManager");
                 return false;
             }
-            
-            NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-            return networkInfo != null && networkInfo.isConnectedOrConnecting();
-            
+
+            // For modern Android versions (API 23+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Network activeNetwork = connectivityManager.getActiveNetwork();
+                if (activeNetwork == null) {
+                    return false;
+                }
+                NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
+                // Check for both an active transport (Wi-Fi, Cellular, etc.) AND validated internet access.
+                return capabilities != null &&
+                        (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN));
+            } else {
+                // Fallback for older Android versions
+                NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+                return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+            }
         } catch (Exception e) {
-            Log.w(TAG, "Error checking network connectivity", e);
+            Log.e(TAG, "Error checking network connectivity", e);
             return false;
         }
     }
-    
-    /**
-     * 🗂️ Check Dropbox API connectivity (lightweight test)
-     */
-    private boolean checkDropboxConnectivity() {
-        try {
-            DbxClientV2 client = DropboxHelper.getClient(context);
-            if (client == null) {
-                return false;
-            }
-            
-            // Quick, lightweight test - just check if we can get account info
-            // This is cached by Dropbox client, so very fast
-            client.users().getCurrentAccount();
-            return true;
-            
-        } catch (Exception e) {
-            // Not necessarily an error - might just be offline
-            Log.d(TAG, "Dropbox connectivity check failed: " + e.getMessage());
-            return false;
-        }
+
+    public boolean isOnline() {
+        return isOnline.get();
     }
     
     /**
@@ -133,8 +174,7 @@ public class ConnectivityAwareSyncManager {
      * - Online: Execute immediately against Dropbox
      * - Offline: Queue locally, return success immediately
      */
-    public SyncResult executeOperation(SyncOperation operation) {
-        updateConnectivityState();
+    public SyncOperation.SyncResult executeOperation(SyncOperation operation) {
         
         if (isOnline.get()) {
             return executeOnlineOperation(operation);
@@ -146,14 +186,14 @@ public class ConnectivityAwareSyncManager {
     /**
      * ⚡ Execute operation immediately (online mode)
      */
-    private SyncResult executeOnlineOperation(SyncOperation operation) {
+    private SyncOperation.SyncResult executeOnlineOperation(SyncOperation operation) {
         Log.d(TAG, "⚡ Executing online operation: " + operation.getType());
         
         try {
             long startTime = System.currentTimeMillis();
             
             // Execute directly against Dropbox
-            SyncResult result = operation.executeOnline(context);
+            SyncOperation.SyncResult result = operation.executeOnline(context);
             
             long duration = System.currentTimeMillis() - startTime;
             
@@ -188,12 +228,12 @@ public class ConnectivityAwareSyncManager {
     /**
      * 💾 Queue operation for later sync (offline mode)
      */
-    private SyncResult executeOfflineOperation(SyncOperation operation) {
+    private SyncOperation.SyncResult executeOfflineOperation(SyncOperation operation) {
         Log.d(TAG, "💾 Queueing offline operation: " + operation.getType());
         
         try {
             // Update local state immediately (optimistic)
-            SyncResult localResult = operation.executeOffline(context);
+            SyncOperation.SyncResult localResult = operation.executeOffline(context);
             
             if (localResult.success) {
                 // Queue for sync when online
@@ -203,7 +243,7 @@ public class ConnectivityAwareSyncManager {
                 Log.i(TAG, "✅ Offline operation queued: " + operation.getType());
                 
                 // Return success immediately - user sees instant response
-                return SyncResult.success("Operation completed (will sync when online)");
+                return SyncOperation.SyncResult.success("Operation completed (will sync when online)");
                 
             } else {
                 Log.w(TAG, "⚠️ Offline operation failed: " + operation.getType() + 
@@ -213,7 +253,7 @@ public class ConnectivityAwareSyncManager {
             
         } catch (Exception e) {
             Log.e(TAG, "❌ Offline operation error: " + operation.getType(), e);
-            return SyncResult.failure("Offline operation failed: " + e.getMessage());
+            return SyncOperation.SyncResult.failure("Offline operation failed: " + e.getMessage());
         }
     }
     
@@ -232,13 +272,21 @@ public class ConnectivityAwareSyncManager {
                 syncInProgress.set(true);
                 
                 OfflineSyncQueue queue = OfflineSyncQueue.getInstance(context);
-                SyncResult result = queue.syncAll();
+                SyncOperation.SyncResult result = queue.syncAll();
+                
+                // Parse the result message to get detailed sync info
+                String resultDetails = result.message != null ? result.message : "Unknown result";
                 
                 if (result.success) {
-                    Log.i(TAG, "✅ Offline sync completed successfully");
-                    lastSuccessfulSync.set(System.currentTimeMillis());
+                    // Check if there were any individual operation failures
+                    if (resultDetails.contains("failed") && !resultDetails.contains("0 failed")) {
+                        Log.w(TAG, "⚠️ Offline sync completed with partial failures: " + resultDetails);
+                    } else {
+                        Log.i(TAG, "✅ Offline sync completed successfully: " + resultDetails);
+                        lastSuccessfulSync.set(System.currentTimeMillis());
+                    }
                 } else {
-                    Log.w(TAG, "⚠️ Offline sync completed with issues: " + result.message);
+                    Log.e(TAG, "❌ Offline sync failed: " + resultDetails);
                 }
                 
             } catch (Exception e) {
@@ -252,7 +300,7 @@ public class ConnectivityAwareSyncManager {
     /**
      * 🔄 Update local database state after successful operation
      */
-    private void updateLocalState(SyncOperation operation, SyncResult result) {
+    private void updateLocalState(SyncOperation operation, SyncOperation.SyncResult result) {
         try {
             // Update sync metadata to reflect successful cloud operation
             DeliveryDb database = new DeliveryDb(context);
@@ -265,6 +313,17 @@ public class ConnectivityAwareSyncManager {
             }
             
             database.close();
+
+            // Check if the operation that just succeeded was a trip completion.
+            if (operation instanceof com.clone.EasyDelivery.Utility.operations.CompleteTripOperation) {
+                Log.i(TAG, "Trip completion synced. Triggering automatic cleanup for trip: " + operation.getTripId());
+
+                // Run cleanup on a background thread to avoid blocking the sync manager.
+                new Thread(() -> {
+                    UnifiedTripManager tripManager = UnifiedTripManager.getInstance(context);
+                    tripManager.cleanupCompletedTrip(operation.getTripId());
+                }).start();
+            }
             
         } catch (Exception e) {
             Log.w(TAG, "Error updating local state after sync", e);
@@ -275,7 +334,6 @@ public class ConnectivityAwareSyncManager {
      * 📊 Get current sync status for UI display
      */
     public SyncStatus getSyncStatus() {
-        updateConnectivityState();
         
         boolean online = isOnline.get();
         boolean syncing = syncInProgress.get();
@@ -312,7 +370,6 @@ public class ConnectivityAwareSyncManager {
      * 🧹 Force sync of all pending operations (user-initiated)
      */
     public void forceSync() {
-        updateConnectivityState();
         
         if (!isOnline.get()) {
             Log.w(TAG, "Cannot force sync - device is offline");
@@ -327,7 +384,6 @@ public class ConnectivityAwareSyncManager {
      * 📊 Get sync statistics for debugging
      */
     public String getSyncStatistics() {
-        updateConnectivityState();
         
         OfflineSyncQueue queue = OfflineSyncQueue.getInstance(context);
         SyncStatus status = getSyncStatus();
@@ -347,13 +403,609 @@ public class ConnectivityAwareSyncManager {
             stats.append("Never\n");
         }
         
+        stats.append("\n").append(getCacheRefreshStatistics());
+        stats.append("\n").append(getCompletedTripsCleanupStatistics());
+        
         return stats.toString();
+    }
+    
+    /**
+     * Register connectivity listener for automatic sync triggers
+     */
+    public void registerConnectivityListener() {
+        try {
+            Log.d(TAG, "Registering connectivity listeners");
+            // Connectivity monitoring is handled by updateConnectivityState() in periodic sync
+            // This method exists for consistency with Application lifecycle
+        } catch (Exception e) {
+            Log.e(TAG, "Error registering connectivity listener", e);
+        }
+    }
+    
+    /**
+     * Unregister connectivity listener
+     */
+    public void unregisterConnectivityListener() {
+        try {
+            Log.d(TAG, "Unregistering connectivity listeners");
+            // Cleanup handled by shutdown() method
+        } catch (Exception e) {
+            Log.e(TAG, "Error unregistering connectivity listener", e);
+        }
+    }
+    
+    /**
+     * Handle app resuming - trigger sync
+     */
+    public void onAppResumed() {
+        try {
+            Log.d(TAG, "App resumed - triggering sync check");
+            
+            // Trigger sync if we have queued operations and we're online
+            OfflineSyncQueue queue = OfflineSyncQueue.getInstance(context);
+            if (queue.getQueuedOperationCount() > 0 && isOnline.get()) {
+                triggerOfflineSync();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error handling app resumed", e);
+        }
+    }
+    
+    /**
+     * Handle app pausing - save state
+     */
+    public void onAppPaused() {
+        try {
+            Log.d(TAG, "App paused - saving sync state");
+            // State is automatically maintained by the queue
+        } catch (Exception e) {
+            Log.e(TAG, "Error handling app paused", e);
+        }
+    }
+    
+    /**
+     * Process pending operations from previous session
+     */
+    public void processPendingOperations() {
+        try {
+            Log.d(TAG, "Processing pending operations from previous session");
+            
+            OfflineSyncQueue queue = OfflineSyncQueue.getInstance(context);
+            int pendingCount = queue.getQueuedOperationCount();
+            
+            if (pendingCount > 0) {
+                Log.i(TAG, "Found " + pendingCount + " pending operations from previous session");
+                
+                if (isOnline.get()) {
+                    triggerOfflineSync();
+                } else {
+                    Log.d(TAG, "Device offline - pending operations will sync when connection is restored");
+                }
+            } else {
+                Log.d(TAG, "No pending operations from previous session");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error processing pending operations", e);
+        }
+    }
+    
+    /**
+     * Shutdown the sync manager
+     */
+    public void shutdown() {
+        try {
+            Log.d(TAG, "Shutting down ConnectivityAwareSyncManager");
+            
+            // Stop periodic sync timer
+            if (periodicSyncTimer != null) {
+                periodicSyncTimer.cancel();
+                periodicSyncTimer = null;
+            }
+            
+            // Complex timers removed
+            
+            Log.d(TAG, "ConnectivityAwareSyncManager shutdown complete");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error during sync manager shutdown", e);
+        }
+    }
+    
+    /**
+     * 🔄 Start periodic sync timer
+     */
+    private void startPeriodicSync() {
+        if (periodicSyncTimer != null) {
+            periodicSyncTimer.cancel();
+        }
+        
+        periodicSyncTimer = new Timer("PeriodicSync", true);
+        scheduleNextSync();
+        
+        // Removed complex cache refresh and cleanup timers
+        
+        Log.i(TAG, "Periodic sync started with cache refresh and cleanup");
+    }
+    
+    /**
+     * 🔄 Schedule next sync based on current conditions
+     */
+    private void scheduleNextSync() {
+        try {
+            OfflineSyncQueue queue = OfflineSyncQueue.getInstance(context);
+            int queuedOps = queue.getQueuedOperationCount();
+            
+            long interval;
+            if (queuedOps > 0) {
+                interval = SYNC_INTERVAL_FAST; // Fast sync when items queued
+            } else if (isOnline.get()) {
+                interval = SYNC_INTERVAL_NORMAL; // Normal sync when online
+            } else {
+                interval = SYNC_INTERVAL_SLOW; // Slow sync when offline
+            }
+            
+            periodicSyncTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    performPeriodicSync();
+                }
+            }, interval);
+            
+            // Only log sync scheduling when there are operations queued or at INFO level intervals
+            if (queuedOps > 0 || interval >= SYNC_INTERVAL_NORMAL) {
+                Log.d(TAG, "Next sync scheduled in " + (interval/1000) + "s (queued ops: " + queuedOps + ")");
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error scheduling periodic sync", e);
+            // Fallback to normal interval
+            periodicSyncTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    performPeriodicSync();
+                }
+            }, SYNC_INTERVAL_NORMAL);
+        }
+    }
+    
+    /**
+     * 🔄 Perform periodic sync check
+     */
+    private void performPeriodicSync() {
+        try {
+            
+            if (isOnline.get() && !syncInProgress.get()) {
+                OfflineSyncQueue queue = OfflineSyncQueue.getInstance(context);
+                int queuedOps = queue.getQueuedOperationCount();
+                
+                if (queuedOps > 0) {
+                    Log.i(TAG, "Periodic sync triggering for " + queuedOps + " queued operations");
+                    triggerOfflineSync();
+                } else {
+                    // Reduce verbose logging when no operations are queued
+                    Log.v(TAG, "Periodic sync check - no operations queued");
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error in periodic sync", e);
+        } finally {
+            // Schedule next sync regardless of success/failure
+            scheduleNextSync();
+        }
+    }
+    
+    /**
+     * 🚫 Stop periodic sync (for cleanup)
+     */
+    public void stopPeriodicSync() {
+        if (periodicSyncTimer != null) {
+            periodicSyncTimer.cancel();
+            periodicSyncTimer = null;
+            Log.i(TAG, "Periodic sync stopped");
+        }
+        
+        // Stop other timers
+        if (cacheRefreshTimer != null) {
+            cacheRefreshTimer.cancel();
+            cacheRefreshTimer = null;
+            Log.i(TAG, "Cache refresh timer stopped");
+        }
+        
+        if (completedTripsCleanupTimer != null) {
+            completedTripsCleanupTimer.cancel();
+            completedTripsCleanupTimer = null;
+            Log.i(TAG, "Completed trips cleanup timer stopped");
+        }
+    }
+    
+    /**
+     * 🔄 Start cache refresh timer
+     */
+    private void startCacheRefreshTimer() {
+        if (cacheRefreshTimer != null) {
+            cacheRefreshTimer.cancel();
+        }
+        
+        cacheRefreshTimer = new Timer("CacheRefresh", true);
+        scheduleCacheRefresh();
+        
+        Log.i(TAG, "Cache refresh timer started (interval: " + (CACHE_REFRESH_INTERVAL / 1000) + " seconds)");
+    }
+    
+    /**
+     * 🔄 Schedule cache refresh
+     */
+    private void scheduleCacheRefresh() {
+        try {
+            cacheRefreshTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    performCacheRefresh();
+                    scheduleCacheRefresh(); // Schedule next refresh
+                }
+            }, CACHE_REFRESH_INTERVAL);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error scheduling cache refresh", e);
+        }
+    }
+    
+    /**
+     * 🔄 Perform cache refresh
+     */
+    private void performCacheRefresh() {
+        if (cacheRefreshInProgress.get()) {
+            Log.v(TAG, "Cache refresh already in progress, skipping");
+            return;
+        }
+        
+        if (!isOnline.get()) {
+            Log.v(TAG, "Skipping cache refresh - device offline");
+            return;
+        }
+        
+        Thread refreshThread = new Thread(() -> {
+            try {
+                cacheRefreshInProgress.set(true);
+                
+                Log.i(TAG, "🔄 Starting background cache refresh");
+                
+                TripCacheManager cacheManager = TripCacheManager.getInstance(context);
+                cacheManager.refreshCache();
+                
+                lastCacheRefresh.set(System.currentTimeMillis());
+                Log.i(TAG, "🔄 Cache refresh completed");
+                
+            } catch (Exception e) {
+                Log.e(TAG, "Error during cache refresh", e);
+            } finally {
+                cacheRefreshInProgress.set(false);
+            }
+        });
+        
+        refreshThread.start();
+    }
+    
+    /**
+     * 🧹 Start completed trips cleanup timer
+     */
+    private void startCompletedTripsCleanupTimer() {
+        if (completedTripsCleanupTimer != null) {
+            completedTripsCleanupTimer.cancel();
+        }
+        
+        completedTripsCleanupTimer = new Timer("CompletedTripsCleanup", true);
+        scheduleCompletedTripsCleanup(true); // Initial run with shorter delay
+        
+        Log.i(TAG, "Completed trips cleanup timer started (normal interval: " + (CLEANUP_INTERVAL / (60 * 1000)) + " minutes)");
+    }
+    
+    /**
+     * 🧹 Schedule next completed trips cleanup
+     */
+    private void scheduleCompletedTripsCleanup() {
+        scheduleCompletedTripsCleanup(false);
+    }
+    
+    /**
+     * 🧹 Schedule completed trips cleanup with optional initial run
+     */
+    private void scheduleCompletedTripsCleanup(boolean isInitial) {
+        try {
+            // For first run, schedule sooner (30 seconds) to test the system
+            // For subsequent runs, use the 5-minute interval
+            long delay = isInitial ? 30000L : CLEANUP_INTERVAL;
+            
+            completedTripsCleanupTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    performCompletedTripsCleanup();
+                    scheduleCompletedTripsCleanup(false); // Schedule next cleanup (normal interval)
+                }
+            }, delay);
+            
+            if (isInitial) {
+                Log.i(TAG, "🧹 Initial completed trips cleanup scheduled in " + (delay / 1000) + " seconds");
+            } else {
+                Log.v(TAG, "Next completed trips cleanup scheduled in " + (delay / (60 * 1000)) + " minutes");
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error scheduling completed trips cleanup", e);
+        }
+    }
+    
+    /**
+     * 🧹 Perform completed trips cleanup
+     */
+    private void performCompletedTripsCleanup() {
+        if (cleanupInProgress.get()) {
+            Log.v(TAG, "Cleanup already in progress, skipping");
+            return;
+        }
+        
+        // Only cleanup when online to ensure we have latest Dropbox state
+        if (!isOnline.get()) {
+            Log.v(TAG, "Skipping completed trips cleanup - device offline");
+            return;
+        }
+        
+        // Run cleanup in background thread
+        Thread cleanupThread = new Thread(() -> {
+            try {
+                cleanupInProgress.set(true);
+                long startTime = System.currentTimeMillis();
+                
+                Log.i(TAG, "🧹 Starting automated completed trips cleanup");
+                
+                // Create and execute cleanup operation
+                CleanupCompletedTripsOperation cleanupOp = CleanupCompletedTripsOperation.create();
+                SyncOperation.SyncResult result = cleanupOp.executeOnline(context);
+                
+                long duration = System.currentTimeMillis() - startTime;
+                lastCleanup.set(System.currentTimeMillis());
+                
+                if (result.success) {
+                    Log.i(TAG, "✅ Completed trips cleanup finished successfully: " + result.message + " (" + duration + "ms)");
+                } else {
+                    Log.w(TAG, "⚠️ Completed trips cleanup completed with issues: " + result.message);
+                }
+                
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error during completed trips cleanup", e);
+            } finally {
+                cleanupInProgress.set(false);
+            }
+        });
+        
+        cleanupThread.start();
+    }
+    
+    /**
+     * 📈 Get cache refresh statistics
+     */
+    public String getCacheRefreshStatistics() {
+        StringBuilder stats = new StringBuilder();
+        stats.append("🔄 Background Cache Refresh Status:\n");
+        stats.append("  - Refresh in progress: ").append(cacheRefreshInProgress.get()).append("\n");
+        
+        long lastRefresh = lastCacheRefresh.get();
+        if (lastRefresh > 0) {
+            long minutesAgo = (System.currentTimeMillis() - lastRefresh) / (60 * 1000);
+            stats.append("  - Last refresh: ").append(minutesAgo).append(" minutes ago\n");
+        } else {
+            stats.append("  - Last refresh: Never\n");
+        }
+        
+        stats.append("  - Refresh interval: ").append(CACHE_REFRESH_INTERVAL / 1000).append(" seconds\n");
+        
+        try {
+            TripCacheManager cacheManager = TripCacheManager.getInstance(context);
+            TripCacheManager.CacheStatistics cacheStats = cacheManager.getCacheStatistics();
+            stats.append("  - Cached trips: ").append(cacheStats.totalCachedTrips).append("\n");
+            stats.append("  - Cache size: ").append(cacheStats.totalCacheSize / 1024).append(" KB\n");
+        } catch (Exception e) {
+            stats.append("  - Cache stats: Error retrieving\n");
+        }
+        
+        return stats.toString();
+    }
+    
+    /**
+     * 📈 Get completed trips cleanup statistics
+     */
+    public String getCompletedTripsCleanupStatistics() {
+        StringBuilder stats = new StringBuilder();
+        stats.append("🧹 Completed Trips Cleanup Status:\n");
+        stats.append("  - Cleanup in progress: ").append(cleanupInProgress.get()).append("\n");
+        
+        long lastCleanupTime = lastCleanup.get();
+        if (lastCleanupTime > 0) {
+            long minutesAgo = (System.currentTimeMillis() - lastCleanupTime) / (60 * 1000);
+            stats.append("  - Last cleanup: ").append(minutesAgo).append(" minutes ago\n");
+        } else {
+            stats.append("  - Last cleanup: Never\n");
+        }
+        
+        stats.append("  - Cleanup interval: ").append(CLEANUP_INTERVAL / (60 * 1000)).append(" minutes\n");
+        
+        try {
+            DeliveryDb database = new DeliveryDb(context);
+            database.open();
+            try {
+                List<String> completedTrips = database.getAllFullyCompletedTrips();
+                stats.append("  - Completed trips in database: ").append(completedTrips.size()).append("\n");
+            } finally {
+                database.close();
+            }
+        } catch (Exception e) {
+            stats.append("  - Completed trips: Error retrieving\n");
+        }
+        
+        return stats.toString();
+    }
+    
+    /**
+     * 🔄 Force immediate cache refresh (for testing/manual triggers)
+     */
+    public void forceCacheRefresh() {
+        Log.i(TAG, "Manual cache refresh requested");
+        
+        if (!isOnline.get()) {
+            Log.w(TAG, "Cannot force cache refresh - device offline");
+            return;
+        }
+        
+        // Cancel current refresh if in progress and start new one
+        cacheRefreshInProgress.set(false);
+        performCacheRefresh();
+    }
+    
+    /**
+     * 🧹 Force immediate completed trips cleanup (for testing/manual triggers)
+     */
+    public void forceCompletedTripsCleanup() {
+        Log.i(TAG, "Manual completed trips cleanup requested");
+        
+        if (!isOnline.get()) {
+            Log.w(TAG, "Cannot force completed trips cleanup - device offline");
+            return;
+        }
+        
+        // Cancel current cleanup if in progress and start new one
+        cleanupInProgress.set(false);
+        performCompletedTripsCleanup();
+    }
+    
+    
+    /**
+     * 🔄 Force trip removal sync
+     * Immediately syncs trip removals from Dropbox
+     */
+    public void forceTripRemovalSync() {
+        if (!isOnline.get()) {
+            Log.w(TAG, "Cannot force trip removal sync - device offline");
+            return;
+        }
+        
+        Thread syncThread = new Thread(() -> {
+            try {
+                Log.i(TAG, "🔄 Force syncing trip removals from Dropbox");
+                
+                // Get current trips from Dropbox
+                List<String> cloudTrips = getTripsFromDropbox();
+                
+                // Sync removals with cache manager
+                TripCacheManager cacheManager = TripCacheManager.getInstance(context);
+                int removedCount = cacheManager.syncTripRemovals(cloudTrips);
+                
+                Log.i(TAG, "🔄 Force trip removal sync complete: " + removedCount + " trips removed");
+                
+            } catch (Exception e) {
+                Log.e(TAG, "Error during force trip removal sync", e);
+            }
+        });
+        
+        syncThread.start();
+    }
+    
+    /**
+     * 📊 Check if trips are in sync
+     */
+    public boolean isInSync() {
+        Log.d(TAG, "Checking sync state...");
+        
+        // If offline, consider synced based on cached state
+        if (!ConnectionHelper.isInternetConnected(context)) {
+            Log.d(TAG, "Offline - using cached sync state: " + isSynced);
+            return isSynced;
+        }
+        
+        // If online, check dropbox vs local files
+        try {
+            List<String> dropboxTrips = getTripsFromDropbox();
+            List<String> localTrips = getLocalTrips();
+            
+            boolean synced = dropboxTrips.equals(localTrips);
+            
+            Log.d(TAG, "Sync check - Dropbox: " + dropboxTrips.size() + 
+                      ", Local: " + localTrips.size() + 
+                      ", In sync: " + synced);
+            
+            isSynced = synced;
+            return synced;
+            
+        } catch (Exception e) {
+            Log.w(TAG, "Error checking sync state", e);
+            return isSynced; // Return cached state on error
+        }
+    }
+    
+    /**
+     * 📥 Get available trips from Dropbox
+     */
+    private List<String> getTripsFromDropbox() {
+        List<String> trips = new ArrayList<>();
+        
+        try {
+            DbxClientV2 client = DropboxHelper.getClient(context);
+            if (client == null) {
+                Log.w(TAG, "Dropbox client not available for trip list");
+                return trips;
+            }
+            
+            String availablePath = "/Customers/" + AppConstant.COMPANY + "/available/";
+            
+            com.dropbox.core.v2.files.ListFolderResult result = client.files().listFolder(availablePath);
+            
+            for (com.dropbox.core.v2.files.Metadata entry : result.getEntries()) {
+                if (entry instanceof com.dropbox.core.v2.files.FileMetadata) {
+                    String filename = entry.getName();
+                    if (filename.endsWith(".json")) {
+                        String tripId = filename.substring(0, filename.length() - 5);
+                        trips.add(tripId);
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.w(TAG, "Error getting trips from Dropbox", e);
+        }
+        
+        return trips;
+    }
+    
+    /**
+     * 📂 Get local trips
+     */
+    private List<String> getLocalTrips() {
+        List<String> trips = new ArrayList<>();
+        
+        try {
+            File tripDir = new File(context.getFilesDir() + "/Trip/");
+            if (tripDir.exists() && tripDir.isDirectory()) {
+                File[] files = tripDir.listFiles();
+                if (files != null) {
+                    for (File file : files) {
+                        if (file.getName().endsWith(".json")) {
+                            String tripId = file.getName().substring(0, file.getName().length() - 5);
+                            trips.add(tripId);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error getting local trips", e);
+        }
+        
+        return trips;
     }
     
     // ================== HELPER CLASSES ==================
     
     /**
-     * 📊 Sync status information for UI
+     * Sync status information for UI
      */
     public static class SyncStatus {
         public enum State {
@@ -376,77 +1028,6 @@ public class ConnectivityAwareSyncManager {
             this.isOnline = isOnline;
             this.queuedOperations = queuedOperations;
             this.lastSuccessfulSync = lastSuccessfulSync;
-        }
-    }
-    
-    /**
-     * 🔄 Base class for sync operations
-     */
-    public static abstract class SyncOperation {
-        private final String type;
-        private final String tripId;
-        private final JSONObject data;
-        private final long timestamp;
-        
-        public SyncOperation(String type, String tripId, JSONObject data) {
-            this.type = type;
-            this.tripId = tripId;
-            this.data = data;
-            this.timestamp = System.currentTimeMillis();
-        }
-        
-        public String getType() { return type; }
-        public String getTripId() { return tripId; }
-        public JSONObject getData() { return data; }
-        public long getTimestamp() { return timestamp; }
-        
-        /**
-         * Execute operation when online (direct Dropbox operation)
-         */
-        public abstract SyncResult executeOnline(Context context);
-        
-        /**
-         * Execute operation when offline (local database update)
-         */
-        public abstract SyncResult executeOffline(Context context);
-        
-        /**
-         * Get operation priority (for queue ordering)
-         */
-        public int getPriority() {
-            return 0; // Normal priority by default
-        }
-    }
-    
-    /**
-     * 📊 Operation result
-     */
-    public static class SyncResult {
-        public final boolean success;
-        public final String message;
-        public final JSONObject data;
-        
-        private SyncResult(boolean success, String message, JSONObject data) {
-            this.success = success;
-            this.message = message;
-            this.data = data;
-        }
-        
-        public static SyncResult success(String message) {
-            return new SyncResult(true, message, null);
-        }
-        
-        public static SyncResult success(String message, JSONObject data) {
-            return new SyncResult(true, message, data);
-        }
-        
-        public static SyncResult failure(String message) {
-            return new SyncResult(false, message, null);
-        }
-        
-        @Override
-        public String toString() {
-            return "SyncResult{success=" + success + ", message='" + message + "'}";
         }
     }
 }

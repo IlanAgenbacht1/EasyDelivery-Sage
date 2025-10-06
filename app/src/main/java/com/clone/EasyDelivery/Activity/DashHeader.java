@@ -15,9 +15,8 @@ import com.clone.EasyDelivery.Database.DeliveryDb;
 import com.clone.EasyDelivery.Model.Delivery;
 import com.clone.EasyDelivery.R;
 import com.clone.EasyDelivery.Utility.AppConstant;
-import com.clone.EasyDelivery.Utility.ConnectionHelper;
 import com.clone.EasyDelivery.Utility.ScheduleHelper;
-import com.clone.EasyDelivery.Utility.SyncConstant;
+// SyncConstant merged into AppConstant
 import com.clone.EasyDelivery.Utility.ToastLogger;
 
 import android.util.Log;
@@ -222,15 +221,15 @@ public class DashHeader extends AppCompatActivity {
                                 cleanupThread.start();
                             }
 
-                            SyncConstant.STARTED_TRIP = "";
+                            AppConstant.STARTED_TRIP = "";
                             AppConstant.TRIPID = "";
-
-                            Intent intent = new Intent("TripNotStarted");
-                            sendBroadcast(intent);
+                            
+                            Log.i("DashHeader", "🎯 Trip cleanup completed via direct UnifiedTripManager call");
+                            // Note: Trip release already handled above via tripManager.releaseTrip()
 
                         } else {
 
-                            SyncConstant.STARTED_TRIP = "";
+                            AppConstant.STARTED_TRIP = "";
                             AppConstant.TRIPID = "";
                         }
 

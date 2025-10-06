@@ -623,6 +623,37 @@ public class DeliveryDb {
     }
     
     /**
+     * Get the count of synced documents for a specific trip
+     * This is used for progress tracking in the UI
+     */
+    public int getSyncedDocumentCount(String tripId) {
+        if (tripId == null || tripId.trim().isEmpty()) {
+            return 0;
+        }
+        
+        try {
+            Cursor cursor = ourDatabase.rawQuery(
+                "SELECT " + KEY_DOCUMENT_SYNC_QTY + " FROM " + SYNC_TABLE + 
+                " WHERE " + KEY_TRIPID + " = ?",
+                new String[]{tripId}
+            );
+            
+            if (cursor.moveToFirst()) {
+                int syncedCount = cursor.getInt(0);
+                cursor.close();
+                return syncedCount;
+            }
+            
+            cursor.close();
+            
+        } catch (Exception e) {
+            Log.e("Database", "Error getting synced document count for trip: " + tripId, e);
+        }
+        
+        return 0;
+    }
+    
+    /**
      * Check if a trip is fully completed and synced (should not be re-downloaded)
      * A trip is considered fully completed when:
      * 1. All deliveries are completed AND uploaded
